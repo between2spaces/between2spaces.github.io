@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Part 1 - Graphics</title>
+		<link rel="stylesheet" href="/style.css">
+	</head>
+	<body>
+		<div id="crumb"><a href="../../">between2spaces.github.io</a> / <a href="../">the complete roguelike tutorial done in es2015</a> / part 1 - graphics</div>
+		<h1>Week 2 - Part 1: Graphics</h1>
+		<p>r/roguelikedev/<a href="https://www.reddit.com/r/roguelikedev/comments/6jqemp/roguelikedev_does_the_complete_python_tutorial/">RoguelikeDev Does The Complete Python Tutorial - Week 2 - Part 1: Graphics and Part 2: The Object and the Map</a></p>
+		<div style="font-size: 200%; padding: 50px;"><a href="roguelike.html" target="_blank">▶ Play</a></div>
+		<h2>Showing the @ on screen</h2>
+		<p>To draw a character to the screen I've wrap a call to rot's display.draw up in a custom draw function which takes
+			an object that defines an x and a y position and also takes the character to be drawn and a foreground colour.
+			The draw function handles offsetting the position from a calculated centre of screen, which centres the origin
+			( 0, 0 ) to be the middle of the screen, not the top left.</p>
+		<pre>
+let centre
+
+let pc = { x: 0, y: 0, ch: '@', fg: '#aaa' }
+
+function draw( xy, ch, fg ) {
+	display.draw( xy.x + centre.x, xy.y + centre.y, ch, fg )
+}
+
+draw( pc, pc.ch )
+		</pre>
+		<h2>Display scaling vs reflow</h2>
+		<p>rot.js is simulating a terminal on a HTML canvas which, when resized, is performing basic
+			canvas image scaling instead of a terminal emulators approach of reflowing the columns and rows
+			to fit the new dimensions of the window.
+		</p>
+		<p>It would be nice if rot.js did this for me, but unless I'm missing something it doesn't appear to. So
+			I've added a window resize <a href="https://davidwalsh.name/javascript-debounce-function">debounce</a> listener
+			which calls fit(), a function to calculate the maximum width and height available within the windows dimensions.
+			The displays options then get updated and a screen centre is calculated. Finally the display is cleared and the
+			player character is redrawn at its current position.
+		</p>
+		<pre>
+function fit() {
+	let options = display.getOptions()
+	let size = display.computeSize( window.innerWidth, window.innerHeight )
+	options.width = size[ 0 ]
+	options.height = size[ 1 ]
+	display.setOptions( options )
+	centre = { x: Math.floor( options.width * 0.5 ), y: Math.floor( options.height * 0.5 ) }
+	display.clear()
+	draw( pc, pc.ch )
+}
+
+;( function ( timeout, blocked ) {
+	let handler = function() {
+		blocked = timeout
+		timeout || ( fit(), timeout = setTimeout( function() {
+			timeout = null
+			blocked && handler()
+		}, 500 ) )
+	}
+	window.addEventListener( "resize", handler )
+} )()
+		</pre>
+		<h2>Moving around</h2>
+		<p>Movement is the first chance I've had to play around a bit with an interesting mechanic that takes me a little off
+			the suggested path for Part 1 of the tutorial series. I've chosen to implement 8 way movement using 4 input keys,
+			and to delay the actual movement until keyup rather then move immediately on keydown. Delaying movement till keyup
+			allows keydown combinations like for example North (w) + West (a) to indicate that the users intention is to move
+			North West.
+		</p>
+		<p>To achieve this, I have a series of interactions between keydown and keyup event listeners that keep track of
+			the current directional intention in a object named dir. To deal with millisecond differences between keyup's when the user
+			has decided on a horizontal direction and is lifting off two keys, a "sticky" key test is made that checks
+			if the last down time of a key is less than KEY_STICK_MS ago.
+		</p>
+		<pre>
+const N = 0
+const S = 1
+const E = 2
+const W = 3
+
+const DIR_CH = [ '🚶', '🚶', '🚶', '🚶', ' ', '🚶', '🚶', '🚶', '🚶' ]
+
+let dir = { x: 0, y: 0, ch: DIR_CH[ N ], fg: '#3f3' }
+
+const KEY_STICK_MS = 60
+
+function isDown( keyList ) {
+	for ( let i = 0; i < keyList.length; i++ ) {
+		let key = keyList[ i ]
+		if ( keys[ key ] && keys[ key ].isDown ) {
+			return true
+		}
+	}
+	return false
+}
+
+function lastDown( keyList ) {
+	let mostRecent = -1
+	for ( let i =0; i < keyList.length; i++ ) {
+		let key = keyList[ i ]
+		if (  keys[ key ] && keys[ key ].lastDown > mostRecent ) {
+			mostRecent = keys[ key ].lastDown
+		}
+	}
+	return mostRecent
+}
+
+function updateDir() {
+	if ( dir.timeoutUpdate ) {
+		clearTimeout( dir.timeoutUpdate )
+	}
+
+	let down = [
+		isDown( [ 'ArrowUp', 'w', 'k' ] ),
+		isDown( [ 'ArrowDown', 's', 'j' ] ),
+		isDown( [ 'ArrowRight', 'd', 'l' ] ),
+		isDown( [ 'ArrowLeft', 'a', 'h' ] )
+	]
+	let last = [
+		lastDown( [ 'ArrowUp', 'w', 'k' ] ),
+		lastDown( [ 'ArrowDown', 's', 'j' ] ),
+		lastDown( [ 'ArrowRight', 'd', 'l' ] ),
+		lastDown( [ 'ArrowLeft', 'a', 'h' ] )
+	]
+	let now = performance.now()
+	
+	down[ N ] = down[ N ] || ( ! down[ S ] && last[ N ] > last[ S ] && ( now - last[ N ] ) < KEY_STICK_MS )
+	down[ S ] = down[ S ] || ( ! down[ N ] && last[ S ] > last[ N ] && ( now - last[ S ] ) < KEY_STICK_MS )
+	down[ E ] = down[ E ] || ( ! down[ W ] && last[ E ] > last[ W ] && ( now - last[ E ] ) < KEY_STICK_MS )
+	down[ W ] = down[ W ] || ( ! down[ E ] && last[ W ] > last[ E ] && ( now - last[ W ] ) < KEY_STICK_MS )
+
+	let offset = { x: 0, y: 0 }
+
+	if ( down[ N ] ) offset.y--
+	if ( down[ S ] ) offset.y++
+	if ( down[ E ] ) offset.x++
+	if ( down[ W ] ) offset.x--
+
+	dir.ch = DIR_CH[ ( offset.y + 1 ) * 3 + offset.x + 1 ]
+	
+	if ( offset.x !== 0 || offset.y !== 0 ) {
+		offset.x += pc.x
+		offset.y += pc.y
+		put( dir, offset )
+	}
+
+	dir.timeoutUpdate = setTimeout( updateDir, KEY_STICK_MS )
+}
+
+let keys = {}
+let keysDown = 0
+ 
+function getcmd( resolve ) {
+	let handler = function( event ) {
+		if ( event.ctrlKey || event.altKey || event.metaKey || event.shiftKey ) {
+			return
+		}
+		let key = keys[ event.key ] || ( keys[ event.key ] = {} )
+		key.isDown = false
+		key.lastDown = performance.now()
+		keysDown--
+		updateDir()
+		if ( keysDown <= 0 ) {
+			keysDown = 0
+			document.removeEventListener( "keyup", handler )
+			if ( dir.updater ) {
+				clearTimeout( dir.updater )
+			}
+			resolve()
+		}
+	}
+	document.addEventListener( "keyup", handler )
+}
+
+document.addEventListener( "keydown", function( event ) {
+	if ( event.ctrlKey || event.altKey || event.metaKey || event.shiftKey ) {
+		return
+	}
+	let key = keys[ event.key ] || ( keys[ event.key ] = { isDown: false } )
+	key.isDown || keysDown++
+	key.isDown = true
+	key.lastDown = performance.now()
+	updateDir()
+} )
+		</pre>
+		<p>Finally I've got the basics of a game loop which for the moment simply calls getcmd() and waits for a movement
+			suggestion from the player to update the position of the player character.
+		</p>
+		<pre>
+function loop() {
+	getcmd( function() {
+		put( pc, dir )
+		setTimeout( loop, 0 )
+	} )
+}
+
+loop()
+		</pre>
+	</body>
+</html>

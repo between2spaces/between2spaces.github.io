@@ -1,0 +1,20 @@
+{
+    "name": "spatial-test",
+    "version": "0.1.0",
+    "description": "A hobby project of a 40+yo husband and father of two",
+    "author": "Between2Spaces",
+    "license": "Apache-2.0",
+    "scripts": {
+        "start": "concurrently --kill-others --names \"ROLLUP,HTTP\" \"rollup -cw\" \"http-server . -p 3000 -C-1\"",
+        "rollup": "rollup -cw",
+        "http": "http-server . -p 3000 -C-1",
+        "compile": "java -jar node_modules/google-closure-compiler/compiler.jar --flagfile closure.config"
+    },
+    "devDependencies": {
+        "concurrently": "latest",
+        "google-closure-compiler": "latest",
+        "http-server": "latest",
+        "rollup": "latest",
+        "rollup-plugin-alias": "latest"
+    }
+}

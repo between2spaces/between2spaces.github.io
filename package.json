@@ -1,0 +1,15 @@
+{
+    "name": "between2spaces.github.io",
+    "version": "0.1.0",
+    "private": true,
+    "description": "between2spaces github pages",
+    "licence": "ISC",
+    "author": "Between2Spaces",
+    "scripts": {
+        "httpserver": "http-server . -p 80 -C-1"
+    },
+    "devDependencies": {
+        "http-server": "latest",
+        "rollup": "latest"
+    }
+}

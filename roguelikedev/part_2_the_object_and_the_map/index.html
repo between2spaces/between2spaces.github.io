@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Part 2 - Objects and map</title>
+		<link rel="stylesheet" href="/style.css">
+	</head>
+	<body>
+		<div id="crumb"><a href="../../">between2spaces.github.io</a> / <a href="../">the complete roguelike tutorial done in es2015</a> / part 2 - the object and the map</div>
+		<h1>Week 2 - Part 2: The object and the map</h1>
+		<p>r/roguelikedev/<a href="https://www.reddit.com/r/roguelikedev/comments/6jqemp/roguelikedev_does_the_complete_python_tutorial/">RoguelikeDev Does The Complete Python Tutorial - Week 2 - Part 1: Graphics and Part 2: The Object and the Map</a></p>
+		<div style="font-size: 200%; padding: 50px;"><a href="roguelike.html" target="_blank">▶ Play</a></div>
+		<h2>Organising code into modules</h2>
+		<p>Time to start moving stuff out of a single file and into modules so I can compartmentalise where things are
+			in my head (and on disk). As such the code base has exploded to now look like the following.
+		</p>
+		<code>./objects/<a href="src/objects/floor.js">floor.js</a><br/>
+			./objects/<a href="src/objects/npc.js">npc.js</a><br/>
+			./objects/<a href="src/objects/npc.js">object.js</a><br/>
+			./objects/<a href="src/objects/pc.js">pc.js</a><br/>
+			./<a href="src/colour.js">colour.js</a><br/>
+			./<a href="src/display.js">display.js</a><br/>
+			./<a href="src/glyph.js">glyph.js</a><br/>
+			./<a href="src/input.js">input.js</a><br/>
+			./<a href="src/main.js">main.js</a><br/>
+			./<a href="src/map.js">map.js</a><br/>
+			./<a href="src/polyfills.js">pollyfills.js</a><br/>
+		</code>
+		<h2>The Map</h2>
+		<p>Close but not identical to the tutorial, I've gone with a single dimension array of Tile objects that
+			store their own xy positions and an array of Objects currently occupying the Tile.
+		</p>
+		<pre>const size = { x: 200, y: 150 }
+const centre = { x: Math.floor( size.x * 0.5 ), y: Math.floor( size.y * 0.5 ) }
+const tiles = []
+
+function Tile( x, y ) {
+	var tile = {
+		x: x,
+		y: y,
+		objects: []
+	}
+	return tile
+}
+
+for ( var y = size.y; y--; ) {
+	for ( var x = size.x; x--; ) {
+		tiles[ y * size.x + x ] = Tile( x - centre.x, y - centre.y )
+	}
+}
+</pre>
+		<h2>A wall is just a floor that is too high to step on</h2>
+		<p>Instead of using a "blocked" property on a Tile to define walls and inaccessible areas, I've gone with
+			the notion of differences in height between the floor of neighbouring Tiles. Essentially a wall
+			is just a floor that is too high to step on from your current elevation. All Objects in the
+			world will in-fact have a z property, and a Floor is just an Object like everything else.
+		</p>
+		<h2>Expansion of the player intention system</h2>
+		<p>Continuing with the directional triangles to indicate walking direction from Part 1, now that the map
+			has an NPC and walls I've added the following hints.
+		</p>
+		<ul>
+			<li>Impassable height (i.e walls) uses a traditional "#" as the hint</li>
+			<li>Interaction with NPCs uses "!" as the hint</li>
+		</ul>
+		<h2>Walking on the NPCs head is a <del><span style="color: red">bug</span></del><span style="color: green">feature</span></h2>
+		<p>When I showed a first draft of my Part 2 solution to people in the Discord <a href="https://discord.gg/9pmFGKx">channel</a>,
+		we had a laugh when someone noticed that if you approach the NPC from the elevated floor behind the NPC, the height check
+		doesn't deem the difference great enough to block so movement gets allowed and you end up standing on top
+		of the NPC. Luckly from the NPCs head you are allowed to moved either back up or continue down to the lower elevation.
+		</p>
+		<p>I decided to leave this in as a feature and just cleaned it up a bit so while the NPCs height from the lower floor
+			gets deemed passable when travelling in a downwards direction, I didn't want to be able to jump back up on to the head of
+			a short NPC from an equal or lower elevation than the NPC itself.
+		</p>
+	</body>
+</html>

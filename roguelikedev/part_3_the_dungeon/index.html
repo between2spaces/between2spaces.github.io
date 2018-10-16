@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Part 3 - The dungeon</title>
+		<link rel="stylesheet" href="/style.css">
+	</head>
+	<body>
+		<div id="crumb"><a href="../../">between2spaces.github.io</a> / <a href="../">the complete roguelike tutorial done in es2015</a> / part 3 - the dungeon</div>
+		<h1>Week 3 - Part 3: The dungeon</h1>
+		<p>r/roguelikedev/<a href="https://www.reddit.com/r/roguelikedev/comments/6l596k/roguelikedev_does_the_complete_python_tutorial/">RoguelikeDev Does The Complete Python Tutorial - Week 3 - Part 3: The dungeon</a></p>
+		<div style="font-size: 200%; padding: 50px;"><a href="roguelike.html" target="_blank">▶ Play</a></div>
+		<h2>Tanked</h2>
+		<p>I tanked on complications with the height component of objects amongst other things. This week I've
+        brought the whole thing back to basics, re-wrote a whole bunch and have gone back to a single main.js file.
+		</p>
+        <code>./<a href="src/main.js">main.js</a><br/></code>
+		<h2>Open fields instead of dungeons</h2>
+		<p>I spent some time looking at dungeons and come to conclusion that an inside/underground feel is not what
+        I'm going to be interested in long-term. So instead of dungeons my walls are trees and my rooms are open
+        grassy fields.
+		</p>
+		<h2>Glyph style</h2>
+		<p>Something I stumbled upon this week is the large library of Unicode characters I have access to for use
+        in my roguelike through a browser. This includes huge sets of a Emoji characters too, which I've taken to
+        for use a the player characer 👤 and the trees 🌳. I've also mixed these in with more traditional ASCII
+        characters for the grass <span style="color:green">' "</span>.
+		</p>
+		<h2>Revised method of 8 way movement</h2>
+		<p>After listening to advise last week and also researching how other successful roguelikes do it, I've
+        decided to do away with the "wadit for keyup" method I had previously and instead have gone with using a
+        modifier (shift+) to change to diagonal direction. 
+		</p>
+        <table>
+            <thead><tr><th colspan="3">vim keys</th><th></th><th colspan="3">arrow keys</th></tr></thead>
+            <tr><td>shift+j</td><td>k</td><td>shift+k</td><td></td><td>shift+left</td><td>up</td><td>shift+up</td></tr>
+            <tr><td>h</td><td></td><td>l</td><td></td><td>left</td><td></td><td>right</td></tr>
+            <tr><td>shift+h</td><td>j</td><td>shift+l</td><td></td><td>shift+down</td><td>down</td><td>shift+right</td></tr>
+        </table>
+	</body> 
+</html>

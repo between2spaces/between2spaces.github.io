@@ -1,0 +1,7 @@
+node_modules/
+.thumbnails/
+npm-debug.log
+server/certs/cert.pem
+server/certs/key.pem
+server/db/accounts.db
+server/db/characters.db

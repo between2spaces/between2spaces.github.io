@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Part 4 - Field of view</title>
+		<link rel="stylesheet" href="/style.css">
+	</head>
+	<body>
+		<div id="crumb"><a href="../../">between2spaces.github.io</a> / <a href="../">the complete roguelike tutorial done in es2015</a> / part 4 - field of view</div>
+		<h1>Week 4 - Part 4: Field of view</h1>
+		<p>r/roguelikedev/<a href="https://www.reddit.com/r/roguelikedev/comments/6mjk6j/roguelikedev_does_the_complete_python_tutorial/">RoguelikeDev Does The Complete Python Tutorial - Week 4 - Part 4: Field of view</a></p>
+		<div style="font-size: 200%; padding: 50px;"><a href="roguelike.html" target="_blank">▶ Play</a></div>
+		<h2>FOV and FOW states on tiles</h2>
+		<p>Breezed through this part quite quickly. I guess mostly because rot.js has excellent FOV utilities, much like
+        the tutorials Python instructions for this part, it's just a matter of keeping track tile participation in the current
+        FOV and FOW (fog of war) calculations.
+		</p>
+        <code>./<a href="src/main.js">main.js</a><br/></code>
+		<h2>Fancy FOV graphic</h2>
+		<p>Got a bit fancy with the rendering of tiles that have been seen but are currently out of the field of view. Using
+        a transparent checker pattern graphic that gets placed like an overlay over the top.
+		</p>
+        <image src="assets/fov.png" width="200px"/>
+	</body> 
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "vast",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Open world terrain simulation",
+  "licence": "MIT License",
+  "author": "Between2Spaces",
+  "scripts": {
+    "serve": "http-server -p 3000 public",
+    "watch": "wrollup -c rollup.config.js",
+    "clean": "rm -f public/vast.js",
+    "start": "npm-run-all -p watch serve"
+  },
+  "devDependencies": {
+    "http-server": "^0.9.0",
+    "npm-run-all": "^4.0.2",
+    "wrollup": "^0.2.0"
+  }
+}

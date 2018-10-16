@@ -1,0 +1,4 @@
+node_modules/
+.thumbnails/
+npm-debug.log
+vscode/

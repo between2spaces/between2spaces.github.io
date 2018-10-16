@@ -1,0 +1,30 @@
+{
+  "name": "liveanddie",
+  "version": "0.0.0",
+  "description": "a hobby project that attempts to create a single player 'living world' experience",
+  "scripts": {
+    "start": "node src/continuous",
+    "rollup": "rollup --format iife --sourcemap inline --output out.js -- src/main.js",
+    "closure": "java -jar ./node_modules/google-closure-compiler/compiler.jar --language_in ECMASCRIPT6 --language_out ECMASCRIPT5 --compilation_level ADVANCED --js_output_file=min.js out.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inthe3vening/liveanddie.git"
+  },
+  "keywords": [
+    "html5",
+    "pixjs"
+  ],
+  "author": "inthe3vening",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/inthe3vening/liveanddie/issues"
+  },
+  "homepage": "https://github.com/inthe3vening/",
+  "devDependencies": {
+    "node-watch": "latest",
+    "rollup": "latest",
+    "google-closure-compiler": "latest",
+    "pixi.js": "latest"
+  }
+}

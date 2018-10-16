@@ -1,0 +1,5 @@
+node_modules/
+.thumbnails/
+npm-debug.log
+bundle.js
+package-lock.json

@@ -1,0 +1,29 @@
+{
+  "name": "formularpg",
+  "version": "1.0.0",
+  "description": "FormulaRPG is a racing team management game with RPG elements.",
+  "main": "index.html",
+  "scripts": {
+    "start": "concurrently --kill-others \"npm run wrollup\" \"npm run server\"",
+    "wrollup": "wrollup -c rollup.config.js",
+    "server": "node serve"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/between2spaces/formularpg.git"
+  },
+  "keywords": [
+    "javascript",
+    "arpg"
+  ],
+  "author": "between2spaces",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/between2spaces/formularpg/issues"
+  },
+  "homepage": "https://github.com/between2spaces/formularpg#readme",
+  "devDependencies": {
+    "concurrently": "2.2.0",
+    "wrollup": "^0.1.21"
+  }
+}

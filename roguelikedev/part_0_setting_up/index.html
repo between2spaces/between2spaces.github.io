@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Part 0 - Setting up</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <div id="crumb"><a href="../../">between2spaces.github.io</a> / <a href="../">the complete roguelike tutorial done in es2015</a> / part 0 - setting up</div>
+    <h1>Week 1 - Part 0: Setting up</h1>
+    <p>r/roguelikedev/<a href="https://www.reddit.com/r/roguelikedev/comments/6ibqev/roguelikedev_does_the_complete_python_tutorial/">RoguelikeDev Does The Complete Python Tutorial - Week 1 - Part 0</a></p>
+    <div style="font-size: 200%; padding: 50px;"><a href="roguelike.html" target="_blank">▶ Play</a></div>
+    <p>Using <a href="https://github.com/ondras/rot.js">rot.js</a> as a few other people
+      following the series are also, which makes sense as it's modelled after the
+      library the complete roguelike tutorial will be using,
+      <a href="https://bitbucket.org/libtcod/libtcod">libtcod</a>.</p>
+    <h2><a href="roguelike.html">roguelike.html</a></h2>
+    <p>roguelike.html defines a title, style and pulls in the games bundled JavaScript, roguelike.js</p>
+    <pre>
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;The complete roguelike tutorial&lt;/title&gt;
+    &lt;style&gt;
+      body { padding: 0; margin: 0 }
+      * { box-sizing: border-box; }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;script src="roguelike.js"&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+    </pre>
+
+    <h2><a href="roguelike.js">roguelike.js</a></h2>
+    <p>Source code is organised into modules that get bundled into a single browser friendly
+      file. I'm using the module bundler <a href="https://rollupjs.org/">Rollup</a> to do this.</p>
+
+    <h2><a href="rollup.config.js">rollup.config.js</a></h2>
+    <p>My Rollup configuration sources main.js as an entry point module and adds a
+      sourceMap to the bundle output to help debug the game in the browser.</p>
+    <pre>
+export default {
+    entry: 'src/main.js',
+    indent: '\t',
+    sourceMap: 'inline',
+    dest: 'roguelike.js',
+    format: 'iife'
+}
+    </pre>
+
+    <h2><a href="src/main.js">main.js</a></h2>
+    <p>main.js at this point in the tutorial could probably simply be an empty file,
+      but lets import rot.js, create a ROT.Display and add its container to the page.</p>
+    <pre>
+import { ROT } from "./rot"
+
+let display = new ROT.Display()
+document.body.appendChild( display.getContainer() )
+    </pre>
+  </body>
+</html>
