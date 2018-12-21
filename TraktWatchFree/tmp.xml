@@ -1,0 +1,32 @@
+<div class="grid-item col-xs-6 col-md-2 col-sm-3" data-episode-id="2810966" data-runtime="45" data-season-id="147764" data-season-number="5" data-show-id="43973" data-total-runtime="45" data-type="episode" data-url="/episodes/2810966" itemprop="episode" itemscope="" itemtype="http://schema.org/TVEpisode">
+  <meta content="https://trakt.tv/shows/vikings/seasons/5/episodes/10" itemprop="url">
+<a href="/shows/vikings/seasons/5/episodes/10">
+<div class="poster">
+    <img class="base" src="/assets/placeholders/thumb/poster-78214cfcef8495a39d297ce96ddecea1.png" alt="Poster">
+    <img class="real" data-original="https://walter.trakt.tv/images/shows/000/043/973/posters/thumb/735e733dbc.jpg.webp" title="Vikings 5x10 &quot;Moments of Vision&quot;" src="https://walter.trakt.tv/images/shows/000/043/973/posters/thumb/735e733dbc.jpg.webp" alt="Poster" style="display: block;">
+    <meta content="https://walter.trakt.tv/images/shows/000/043/973/posters/thumb/735e733dbc.jpg" itemprop="image">
+    <div class="loading"><div class="icon">
+        <div class="fa fa-refresh fa-spin"></div>
+    </div>
+</div>
+</div>
+</a>
+<div class="quick-icons smaller">
+    <div class="actions">
+        <a class="watch" data-original-title="" title="">
+            <div class="base"></div>
+            <div class="trakt-icon-check-thick"></div>
+        </a>
+        <a class="collect" data-original-title="" title="">
+            <div class="base"></div>
+            <div class="trakt-icon-collection-thick"></div>
+        </a>
+        <a class="list" data-original-title="" title="">
+            <div class="base"></div>
+            <div class="trakt-icon-list-thick"></div>
+        </a><a class="watch-now" data-source-count="6" data-target="#watch-now-modal" data-toggle="modal" data-url="/episodes/2810966" data-original-title="" title="" style="border: 1px solid red;"><div class="base"></div><div class="trakt-icon-play2-thick"></div></a></div><div class="metadata"><div class="percentage" data-original-title="" title=""><div class="fa fa-heart rating-7"></div>78%</div></div></div><a class="titles-link" href="/shows/vikings/seasons/5/episodes/10"></a><div class="titles"><a class="titles-link" href="/shows/vikings/seasons/5/episodes/10"><h3><span class="main-title-sxe">5x10</span> <span class="main-title" data-spoiler-episode-id="2810966" data-spoiler-show-id="43973">Moments of Vision</span></h3></a><h4><a class="titles-link" href="/shows/vikings/seasons/5/episodes/10"></a><a class="ignore" data-section="progress_watched" data-type="show" data-original-title="" title=""><i class="trakt-icon-block-thick"></i></a><a href="/shows/vikings" class="titles-link">Vikings</a></h4><h4 data-original-title="" title=""><div class="progress"><div class="progress-bar" style="width: 96%;"></div></div></h4></div>
+<span class="hidden" itemprop="partOfSeries" itemscope="" itemtype="http://schema.org/TVSeries"><meta content="Vikings" itemprop="name"><meta content="https://walter.trakt.tv/images/shows/000/043/973/posters/original/735e733dbc.jpg" itemprop="image"><meta content="https://trakt.tv/shows/vikings" itemprop="sameAs"></span>
+<meta content="Moments of Vision" itemprop="name">
+<meta content="10" itemprop="episodeNumber">
+<meta content="2018-01-25T02:00:00+00:00" itemprop="datePublished">
+</div>

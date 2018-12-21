@@ -1,11 +1,5 @@
 # between2spaces
 
-## [SOBA](soba/)
-SOBA
-
-## [r/dailyprogrammer](dailyprogrammer/)
-r/dailyprogrammer challenges.
-
 ## [1d](1d/)
 A game in one dimension.
 
@@ -17,8 +11,5 @@ Page to test performance between two functions [Benchmark.js](https://benchmarkj
 
 ## [Simplex noise](simplex/)
 Simplex noise implementation plus procedural wood texture example.
-
-## [Canvas](canvas/)
-Canvas wrapper library.
 
 [github](https://github.com/between2spaces) | [pages](https://between2spaces.github.io)
