@@ -1,5 +1,9 @@
 # between2spaces
 
+
+## [Logistic Fun](logistic_fun/)
+A logistic simulation game.
+
 ## [1d](1d/)
 A game in one dimension.
 
