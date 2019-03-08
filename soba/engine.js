@@ -770,6 +770,7 @@
     function resize() {
         canvas.width = window.innerWidth
         canvas.height = window.innerHeight
+        console.log( canvas.width, canvas.height )
         canvas_centre.set( .5 * canvas.width, .5 * canvas.height )
         updateVisibleMinMax()
     }
