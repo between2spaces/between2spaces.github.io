@@ -1,13 +1,55 @@
 ( function () {
     'use strict'
-    class Vec2 {
-        constructor( a, b ) {
+    let nextGUID = 0
+    class EventListener {
+        constructor( params ) {
+            params = params || {}
+            this.id = nextGUID++
+            this.name = params.name || 'Unnamed'
+        }
+        addEventListener( type, listener ) {
+            void 0 === this._listeners && ( this._listeners = {} )
+            let arr = this._listeners
+            void 0 === arr[ type ] && ( arr[ type ] = [] )
+            arr[ type ].push( listener )
+        }
+        hasEventListener( type, listener ) {
+            if ( void 0 === this._listeners ) return false
+            let arr = this._listeners
+            return void 0 !== arr[ type ] && -1 !== arr[ type ].indexOf( listener )
+        }
+        removeEventListener( type, listener ) {
+            if ( void 0 !== this._listeners ) {
+                let arr = this._listeners[ type ]
+                if ( void 0 === arr ) return
+                let i = arr.indexOf( listener )
+                if ( - 1 === i ) return
+                arr.splice( i, 1 )
+            }
+        }
+        dispatchEvent( type, ...args ) {
+            if ( void 0 !== this._listeners ) {
+                var arr = this._listeners[ type ]
+                if ( void 0 !== arr ) {
+                    arr = arr.slice( 0 )
+                    setTimeout( () => {
+                        for ( let i = 0, l = arr.length; i < l; i++ )
+                            arr[ i ].call( this, ...args )
+                    }, 0 )
+                }
+            }
+        }
+    }
+    class Vec2D extends EventListener {
+        constructor( a, b, params ) {
+            super( params )
             this.x = a || 0
             this.y = b || 0
         }
         set( a, b ) {
             this.x = a
             this.y = b
+            this.dispatchEvent( 'translate', this )
             return this
         }
         clone() {
@@ -20,12 +62,6 @@
         }
         equals( a ) {
             return !( this.x !== a.x || this.y !== a.y )
-        }
-        get width() {
-            return this.x
-        }
-        get height() {
-            return this.y
         }
         add( a ) {
             this.x += a.x
@@ -109,150 +145,91 @@
             return this.x + ',' + this.y
         }
     }
-    class EventListener {
-        addEventListener( type, listener ) {
-            void 0 === this._listeners && ( this._listeners = {} )
-            let arr = this._listeners
-            void 0 === arr[ type ] && ( arr[ type ] = [] )
-            arr[ type ].push( listener )
-        }
-        hasEventListener( type, listener ) {
-            if ( void 0 === this._listeners ) return false
-            let arr = this._listeners
-            return void 0 !== arr[ type ] && -1 !== arr[ type ].indexOf( listener )
-        }
-        removeEventListener( type, listener ) {
-            if ( void 0 !== this._listeners ) {
-                let arr = this._listeners[ type ]
-                if ( void 0 === arr ) return
-                let i = arr.indexOf( listener )
-                if ( - 1 === i ) return
-                arr.splice( i, 1 )
-            }
-        }
-        dispatchEvent( type, ...args ) {
-            if ( void 0 !== this._listeners ) {
-                var arr = this._listeners[ type ]
-                if ( void 0 !== arr ) {
-                    arr = arr.slice( 0 )
-                    setTimeout( () => {
-                        for ( let i = 0, l = arr.length; i < l; i++ )
-                            arr[ i ].call( this, ...args )
-                    }, 0 )
-                }
-            }
-        }
-    }
-    let nextBoundingBoxId = 0
-    class BoundingBox extends EventListener {
+    class BoundingBox extends Vec2D {
         constructor( params ) {
-            super()
             params = params || {}
-            this.id = nextBoundingBoxId++
-            this.name = params.name || 'BoundingBox'
-            this.position = new Vec2( typeof params.x !== 'undefined' ? params.x : 0, typeof params.y !== 'undefined' ? params.y : 0 )
+            params.name = params.name || 'BoundingBox'
+            super( typeof params.x !== 'undefined' ? params.x : 0, typeof params.y !== 'undefined' ? params.y : 0, params )
             this.rotation = typeof params.rotation !== 'undefined' ? params.rotation : 0
-            this.width = typeof params.width !== 'undefined' ? params.width : Infinity
-            this.height = typeof params.height !== 'undefined' ? params.height : Infinity
-            this.scale = new Vec2( typeof params.sx !== 'undefined' ? params.sx : 1, typeof params.sy !== 'undefined' ? params.sy : 1 )
-            this.zorder = params.zorder || 0
-            this.spatial = params.spatial ? true : false
-            this.physical = params.physical ? true : false
+            this.width = typeof params.width !== 'undefined' ? params.width : null
+            this.height = typeof params.height !== 'undefined' ? params.height : null
+            this.scale = new Vec2D( typeof params.sx !== 'undefined' ? params.sx : 1, typeof params.sy !== 'undefined' ? params.sy : 1 )
             this.debug = params.debug ? params.debug : {}
-            this.a = new Vec2( -Infinity, -Infinity )
-            this.b = new Vec2( Infinity, -Infinity )
-            this.c = new Vec2( -Infinity, Infinity )
-            this.d = new Vec2( Infinity, Infinity )
-            this.min = new Vec2( -Infinity, -Infinity )
-            this.max = new Vec2( Infinity, Infinity )
+            this.a = new Vec2D( -Infinity, -Infinity )
+            this.b = new Vec2D( Infinity, -Infinity )
+            this.c = new Vec2D( -Infinity, Infinity )
+            this.d = new Vec2D( Infinity, Infinity )
+            this.min = new Vec2D( -Infinity, -Infinity )
+            this.max = new Vec2D( Infinity, Infinity )
             this.update()
         }
         set( x, y, width, height, radians, sx, sy ) {
-            this.position.set( x, y )
+            super.set( x, y )
             this.width = typeof width !== 'undefined' ? width : this.width
             this.height = typeof height !== 'undefined' ? height : this.height
-            this.rotation = typeof radians !== 'undefined' ? radians : this.radians
+            this.rotation = typeof radians !== 'undefined' ? radians : this.rotation
             this.scale.set( typeof sx !== 'undefined' ? sx : this.scale.x, typeof sy !== 'undefined' ? sy : this.scale.y )
-            this.update()
+            return this.update()
         }
         setPosition( x, y ) {
-            this.position.set( x, y )
-            this.update()
+            super.set( x, y )
+            return this.update()
         }
         setSize( width, height ) {
             this.width = width
             this.height = height
             this.update()
+            this.dispatchEvent( 'size', this )
+            return this
         }
         setRotation( radians ) {
             this.rotation = radians
             this.update()
+            this.dispatchEvent( 'rotation', this )
+            return this
         }
         setScale( sx, sy ) {
             this.scale.set( sx, sy )
             this.update()
+            this.dispatchEvent( 'scale', this )
+            return this
         }
         setZOrder( zorder ) {
             this.zorder = zorder
+            return this
+        }
+        getWidth() {
+            return this.width === null ? this.scale.x : this.width * this.scale.x
+        }
+        getHeight() {
+            return this.height === null ? this.scale.y : this.height * this.scale.y
         }
         update() {
-            let position = this.position
-            let x = position.x
-            let y = position.y
-            let hx = .5 * this.width * this.scale.x
-            let hy = .5 * this.height * this.scale.y
+            let hx = .5 * this.getWidth()
+            let hy = .5 * this.getHeight()
             let sin = Math.sin( this.rotation )
             let cos = Math.cos( this.rotation )
             let hxcos = hx * cos
             let hysin = hy * sin
             let hxsin = hx * sin
             let hycos = hy * cos
-            this.a.set( - hxcos + hysin + x + 1, - hxsin - hycos + y + 1 )
-            this.b.set( hxcos + hysin + x - 1, hxsin - hycos + y + 1 )
-            this.c.set( - hxcos - hysin + x + 1, - hxsin + hycos + y - 1 )
-            this.d.set( hxcos - hysin + x - 1, hxsin + hycos + y - 1 )
+            this.a.set( - hxcos + hysin + this.x + 1, - hxsin - hycos + this.y + 1 )
+            this.b.set( hxcos + hysin + this.x - 1, hxsin - hycos + this.y + 1 )
+            this.c.set( - hxcos - hysin + this.x + 1, - hxsin + hycos + this.y - 1 )
+            this.d.set( hxcos - hysin + this.x - 1, hxsin + hycos + this.y - 1 )
             this.min.set( Math.min( this.a.x, this.b.x, this.c.x, this.d.x ), Math.min( this.a.y, this.b.y, this.c.y, this.d.y ) )
             this.max.set( Math.max( this.a.x, this.b.x, this.c.x, this.d.x ), Math.max( this.a.y, this.b.y, this.c.y, this.d.y ) )
             if ( this.debug.boundingbox ) {
                 if ( !this.debug.boundingbox_min )
-                    this.debug.boundingbox_min = new Object2D( { name: 'BoundingBox.Min', sprite: boundingboxdebug_sprite, x: this.min.x, y: this.min.y, physical: false, zorder: this.zorder + 1, sx: .2, sy: .2 } )
+                    this.debug.boundingbox_min = new Object2D( { name: 'BoundingBox.Min', sprite: boundingboxdebug_sprite, x: this.min.x, y: this.min.y, zorder: this.zorder + 1, sx: .2, sy: .2 } )
                 else
                     this.debug.boundingbox_min.setPosition( this.min.x, this.min.y )
                 if ( !this.debug.boundingbox_max )
-                    this.debug.boundingbox_max = new Object2D( { name: 'BoundingBox.Max', sprite: boundingboxdebug_sprite, x: this.max.x, y: this.max.y, physical: false, zorder: this.zorder + 1, sx: .2, sy: .2 } )
+                    this.debug.boundingbox_max = new Object2D( { name: 'BoundingBox.Max', sprite: boundingboxdebug_sprite, x: this.max.x, y: this.max.y, zorder: this.zorder + 1, sx: .2, sy: .2 } )
                 else
                     this.debug.boundingbox_max.setPosition( this.max.x, this.max.y )
             }
-            if ( !scene.cells || !this.spatial ) return
-            let lastoccupiedcells = this.occupiedcells
-            let currentoccupiedcells = this.cells()
-            for ( let i = 0, l = currentoccupiedcells.length; i < l; i++ ) {
-                let cell = currentoccupiedcells[ i ]
-                let t = lastoccupiedcells ? lastoccupiedcells.indexOf( cell ) : -1
-                if ( -1 === t ) {
-                    binarySearchInsert( cell.object2ds, this, object2dComparator )
-                    if ( this.physical ) cell.collidables.push( this )
-                    //if ( this.name === 'Obstacle' ) console.log( 'occupyCell ' + cell.grid.toString(), cell.collidables, this.physical )
-                    ENGINE.dispatchEvent( 'occupyCell', cell, this )
-                } else {
-                    lastoccupiedcells.splice( t, 1 )
-                }
-            }
-            for ( let i = 0, l = lastoccupiedcells ? lastoccupiedcells.length : 0; i < l; i++ ) {
-                let cell = lastoccupiedcells[ i ]
-                let object2ds = cell.object2ds
-                let t = object2ds.indexOf( this )
-                if ( - 1 !== t ) object2ds.splice( t, 1 )
-                if ( this.physical ) {
-                    let collidables = cell.collidables
-                    t = collidables.indexOf( this )
-                    if ( - 1 !== t ) collidables.splice( t, 1 )
-                }
-                //if ( this.name === 'Obstacle' ) console.log( 'unoccupyCell ' + cell.grid.toString() )
-                ENGINE.dispatchEvent( 'unoccupyCell', cell, this )
-            }
-            this.occupiedcells = currentoccupiedcells
-            //if ( this.name === 'Obstacle' ) console.log( this.occupiedcells.length )
+            return this
         }
         overlaps( a ) {
             return this.max.x < a.min.x || this.min.x > a.max.x || this.max.y < a.min.y || this.min.y > a.max.y ? false : true
@@ -278,10 +255,156 @@
             return this.min.toString() + 'x' + this.max.toString()
         }
     }
+    class Object2D extends BoundingBox {
+        constructor( params ) {
+            params = params || {}
+            params.name = typeof params.name === 'string' ? params.name : 'Object2D'
+            super( params )
+            this.zorder = params.zorder || 0
+            this.spatial = typeof params.spatial !== 'undefined' ? params.spatial : true
+            this.physical = typeof params.physical !== 'undefined' ? params.physical : false
+            this.sprite = params.sprite ? params.sprite : new Sprite( 'blank' )
+            this.parent = null
+            this.children = []
+            this.speed = params.speed || 0.3
+            let _this = this
+            let spriteready = () => {
+                this.setSprite( this.sprite )
+                _this.dispatchEvent( 'ready', _this )
+            }
+            this.sprite.image ? spriteready() : this.sprite.addEventListener( 'ready', spriteready )
+        }
+        setSprite( sprite ) {
+            this.sprite = sprite
+            if ( this.width === null )
+                return this.setSize( this.sprite.width, this.sprite.height )
+            this.update()
+            return this
+        }
+        destroy() {
+            unoccupyCells( this )
+        }
+        add( object2d ) {
+            binarySearchInsert( this.children, object2d, object2dComparator )
+            object2d.parent = this
+            return this
+        }
+        remove( object2d ) {
+            let children = this.children
+            let i = children.indexOf( object2d )
+            if ( - 1 !== i ) {
+                children.splice( i, 1 )
+                object2d.parent = null
+            }
+            return this
+        }
+        setSpeed( speed ) {
+            this.speed = speed
+            return this
+        }
+        move( dx, dy, onComplete ) {
+            this.moveAnimationId && stopAnimation( this.moveAnimationId )
+            let fromx = this.x
+            let fromy = this.y
+            if ( 0 === this.speed ) { onComplete && onComplete(); return this }
+            this.setRotation( Math.atan2( dy, dx ) )
+            let duration = Math.sqrt( dx * dx + dy * dy ) / ( .1 * this.speed )
+            if ( 0 === duration ) return this.setPosition( fromx + dx, fromy + dy )
+            let _this = this
+            this.moveAnimationId = startAnimation( duration, lerp => { _this.setPosition( fromx + lerp * dx, fromy + lerp * dy ) }, onComplete )
+            return this
+        }
+        moveTo( position ) {
+            if ( this.destination && position.equals( this.destination ) ) return this
+            this.destination = position.clone()
+            let _this = this
+            function followpath() {
+                if ( _this.followingpath && _this.followingpath.length > 0 ) {
+                    while ( _this.followingpath.length ) {
+                        let nextposition = _this.followingpath.pop()
+                        let cell = cellAtXY( nextposition.x, nextposition.y )
+                        ENGINE.dispatchEvent( 'pathpopcell', cell, _this )
+                    }
+                }
+                if ( _this.equals( _this.destination ) ) return this
+                _this.followingpath = findpath( _this, _this, _this.destination )
+                if ( _this.followingpath.length ) {
+                    let nextposition = _this.followingpath.pop()
+                    let cell = cellAtXY( nextposition.x, nextposition.y )
+                    ENGINE.dispatchEvent( 'pathpopcell', cell, _this )
+                    let dx = nextposition.x - _this.x
+                    let dy = nextposition.y - _this.y
+                    if ( 0 === dx && 0 === dy )
+                        _this.followingpath.length && setTimeout( followpath, 0 )
+                    else
+                        _this.move( dx, dy, followpath )
+                }
+                return this
+            }
+            return followpath()
+        }
+        update() {
+            super.update()
+            if ( !scene.cells || !this.spatial ) return
+            let lastoccupiedcells = this.occupiedcells
+            let currentoccupiedcells = this.cells()
+            for ( let i = 0, l = currentoccupiedcells.length; i < l; i++ ) {
+                let cell = currentoccupiedcells[ i ]
+                let t = lastoccupiedcells ? lastoccupiedcells.indexOf( cell ) : -1
+                if ( -1 === t ) {
+                    cell.object2ds.push( this )
+                    if ( this.physical ) cell.collidables.push( this )
+                    ENGINE.dispatchEvent( 'occupyCell', cell, this )
+                } else {
+                    lastoccupiedcells.splice( t, 1 )
+                }
+            }
+            for ( let i = 0, l = lastoccupiedcells ? lastoccupiedcells.length : 0; i < l; i++ ) {
+                let cell = lastoccupiedcells[ i ]
+                let object2ds = cell.object2ds
+                let t = object2ds.indexOf( this )
+                if ( - 1 !== t ) object2ds.splice( t, 1 )
+                if ( this.physical ) {
+                    let collidables = cell.collidables
+                    t = collidables.indexOf( this )
+                    if ( - 1 !== t ) collidables.splice( t, 1 )
+                }
+                ENGINE.dispatchEvent( 'unoccupyCell', cell, this )
+            }
+            this.occupiedcells = currentoccupiedcells
+            let centrecell = cellAtXY( this.x, this.y )
+            if ( this.centrecell !== centrecell ) {
+                if ( this.centrecell ) {
+                    let object2ds = this.centrecell.centredobject2ds
+                    let t = object2ds.indexOf( this )
+                    if ( - 1 !== t ) object2ds.splice( t, 1 )
+                }
+                binarySearchInsert( centrecell.centredobject2ds, this, object2dComparator, true )
+                this.centrecell = centrecell
+            }
+            let inview = inview_boundingbox.overlaps( this )
+            if ( inview && !this.inview ) binarySearchInsert( inview_objects, this, object2dComparator, true )
+            else if ( !inview && this.inview ) {
+                let i = inview_objects.indexOf( this )
+                if ( -1 !== i ) inview_objects.splice( i, 1 )
+            }
+            this.inview = inview
+        }
+        draw() {
+            ctx.save()
+            this.sprite && this.sprite.draw( this )
+            let children = this.children
+            for ( let i = 0, l = children.length; i < l; i++ )
+                children[ i ].draw()
+            ctx.restore()
+            return this
+        }
+    }
     class Cell extends BoundingBox {
         constructor( x, y ) {
-            super( { name: 'Cell', spatial: false } )
-            this.grid = new Vec2( x, y )
+            super( { name: 'Cell' } )
+            this.grid = new Vec2D( x, y )
+            this.centredobject2ds = []
             this.object2ds = []
             this.collidables = []
             let segmentsize = scene.segmentsize
@@ -293,11 +416,6 @@
             ENGINE.dispatchEvent( 'weight', this, value )
             return value
         }
-        /**
-         * Returns a list of neighbouring cells in the order [ N, E, S, W (, NE, SE, SW, NW)? ]
-         * @param {*} options 
-         *          options.nodiagonal (default False) 
-         */
         neighbours( options ) {
             options = options || {}
             let grid = this.grid
@@ -324,26 +442,27 @@
         scene.width = options.width || 512
         scene.height = options.height || 512
         scene.segmentsize = options.segmentsize || 32
-        scene.segments = new Vec2( Math.ceil( scene.width / scene.segmentsize ), Math.ceil( scene.height / scene.segmentsize ) )
-        scene.halfwidth = .5 * scene.segments.width * scene.segmentsize - .5 * scene.segmentsize
-        scene.halfheight = .5 * scene.segments.height * scene.segmentsize - .5 * scene.segmentsize
-        scene.cells = new Array( scene.segments.width )
-        for ( let x = 0; x < scene.segments.width; x++ ) {
-            let col = scene.cells[ x ] = new Array( scene.segments.height )
-            for ( let y = 0; y < scene.segments.height; y++ ) {
+        scene.segments = new Vec2D( Math.ceil( scene.width / scene.segmentsize ), Math.ceil( scene.height / scene.segmentsize ) )
+        let segments_width = scene.segments.x
+        let segments_height = scene.segments.y
+        scene.halfwidth = .5 * segments_width * scene.segmentsize - .5 * scene.segmentsize
+        scene.halfheight = .5 * segments_height * scene.segmentsize - .5 * scene.segmentsize
+        scene.cells = new Array( segments_width )
+        for ( let x = 0; x < segments_width; x++ ) {
+            let col = scene.cells[ x ] = new Array( segments_height )
+            for ( let y = 0; y < segments_height; y++ )
                 col[ y ] = new Cell( x, y )
-            }
         }
         if ( options.debug ) {
             if ( options.debug.cells ) {
                 debug_cell_blank_sprite.onReady( () => {
                     let sx = scene.segmentsize / debug_cell_blank_sprite.width
                     let sy = scene.segmentsize / debug_cell_blank_sprite.height
-                    for ( let x = 0; x < scene.segments.width; x++ ) {
+                    for ( let x = 0; x < segments_width; x++ ) {
                         let col = scene.cells[ x ]
-                        for ( let y = 0; y < scene.segments.height; y++ ) {
+                        for ( let y = 0; y < segments_height; y++ ) {
                             let cell = col[ y ]
-                            cell.object = new Object2D( { name: 'CellDebug ' + x + ',' + y, sprite: debug_cell_blank_sprite, x: cell.position.x, y: cell.position.y, zorder: 999, physical: false } )//, debug: { boundingbox: true } } )
+                            cell.object = new Object2D( { name: 'CellDebug ' + x + ',' + y, sprite: debug_cell_blank_sprite, x: cell.x, y: cell.y, zorder: 999, physical: false } )//, debug: { boundingbox: true } } )
                             cell.object.setScale( sx, sy )
                         }
                     }
@@ -372,7 +491,7 @@
     }
     function cellAtGrid( x, y ) {
         let segments = scene.segments
-        return segments ? scene.cells[ Math.min( Math.max( 0, x ), segments.width - 1 ) ][ Math.min( Math.max( 0, y ), segments.height - 1 ) ] : null
+        return segments ? scene.cells[ Math.min( Math.max( 0, x ), segments.x - 1 ) ][ Math.min( Math.max( 0, y ), segments.y - 1 ) ] : null
     }
     function unoccupyCells( object2d, suppressEvent ) {
         let lastoccupiedcells = object2d.occupiedcells
@@ -392,7 +511,7 @@
         object2d.occupiedcells = null
     }
     function canOccupy( object2d, x, y ) {
-        _BoundingBox.set( x, y, object2d.width, object2d.height, 0, object2d.scale.x, object2d.scale.y )
+        _BoundingBox.set( x, y, object2d.getWidth(), object2d.getHeight(), 0, object2d.scale.x, object2d.scale.y )
         return _BoundingBox.cells( object2d )
     }
     function findpath( object2d, start, end, options ) {
@@ -423,7 +542,7 @@
             for ( let i = 0, l = neighbours.length; i < l; i++ ) {
                 n = neighbours[ i ]
                 let grid = n.grid
-                let g = canOccupy( object2d, n.position.x, n.position.y ) ? 1 : 0
+                let g = canOccupy( object2d, n.x, n.y ) ? 1 : 0
                 if ( 0 === g || n.closed === findpath.id ) continue
                 if ( n === endcell && 0 === endcell_weight ) { best = n; break }
                 // skip diagonal neighbour if either adjoining neighbour is blocked
@@ -445,11 +564,11 @@
             if ( n === endcell && 0 === endcell_weight ) break
         }
         ENGINE.dispatchEvent( 'pathpushcell', best, object2d )
-        let path = [ best === endcell ? end : best.position ]
+        let path = [ best === endcell ? end : best ]
         cell = best.parent
         while ( cell && cell.parent ) {
             ENGINE.dispatchEvent( 'pathpushcell', cell, object2d )
-            path.push( cell.position )
+            path.push( cell )
             cell = cell.parent
         }
         return path
@@ -594,134 +713,21 @@
                 1, this.canvas.height - 1 ), this.ctx.stroke() )
         }
         draw( object2d ) {
-            let position = object2d.position
-            ctx.translate( position.x, position.y )
+            ctx.translate( object2d.x, object2d.y )
             object2d.rotation && ctx.rotate( object2d.rotation )
-            let scale = object2d.scale
-            ctx.scale( scale.x, scale.y )
+            //let scale = object2d.scale
+            //ctx.scale( scale.x, scale.y )
             let canvas = this.canvas
-            let width = canvas.width
-            let height = canvas.height
+            let width = object2d.getWidth()
+            let height = object2d.getHeight()
             ctx.drawImage( canvas, .5 * -width, .5 * -height, width, height )
         }
     }
     const image_cache = {}
     ////////////////////////////////////////////////////////////////////////////
-    class Object2D extends BoundingBox {
-        constructor( params ) {
-            params = params || {}
-            params.name = typeof params.name === 'string' ? params.name : 'Object2D'
-            params.x = typeof params.x !== 'undefined' ? params.x : 0
-            params.y = typeof params.y !== 'undefined' ? params.y : 0
-            params.width = typeof params.width !== 'undefined' ? params.width : 1
-            params.height = typeof params.height !== 'undefined' ? params.height : 1
-            params.rotation = typeof params.rotation !== 'undefined' ? params.rotation : 0
-            params.sx = typeof params.sx !== 'undefined' ? params.sx : 1
-            params.sy = typeof params.sy !== 'undefined' ? params.sy : 1
-            params.spatial = typeof params.spatial !== 'undefined' ? params.spatial : true
-            params.physical = typeof params.physical !== 'undefined' ? params.physical : true
-            super( params )
-            this.sprite = params.sprite ? params.sprite : new Sprite( 'blank' )
-            this.parent = null
-            this.children = []
-            this.speed = params.speed || 0.3
-            this.debug = params.debug || false
-            let _this = this
-            let spriteready = () => {
-                _this.setSize( _this.sprite.width, _this.sprite.height )
-                _this.dispatchEvent( 'ready', _this )
-            }
-            this.sprite.image ? spriteready() : this.sprite.addEventListener( 'ready', spriteready )
-        }
-        setSprite( sprite ) {
-            this.sprite = sprite
-            this.setSize( sprite.width, sprite.height )
-        }
-        destroy() {
-            unoccupyCells( this )
-        }
-        add( object2d ) {
-            binarySearchInsert( this.children, object2d, object2dComparator )
-            object2d.parent = this
-        }
-        remove( object2d ) {
-            let children = this.children
-            let i = children.indexOf( object2d )
-            if ( - 1 !== i ) {
-                children.splice( i, 1 )
-                object2d.parent = null
-            }
-        }
-        setSpeed( speed ) {
-            this.speed = speed
-        }
-        setPosition( x, y ) {
-            super.setPosition( x, y )
-            this.dispatchEvent( 'translate', this )
-        }
-        setRotation( radians ) {
-            super.setRotation( radians )
-            this.dispatchEvent( 'rotation', this )
-        }
-        setSize( width, height ) {
-            super.setSize( width, height )
-            this.dispatchEvent( 'size', this )
-        }
-        setScale( sx, sy ) {
-            super.setScale( sx, sy )
-            this.dispatchEvent( 'scale', this )
-        }
-        move( dx, dy, onComplete ) {
-            this.moveAnimationId && stopAnimation( this.moveAnimationId )
-            let sx = this.position.x
-            let sy = this.position.y
-            if ( 0 === this.speed ) { onComplete && onComplete(); return }
-            this.setRotation( Math.atan2( dy, dx ) )
-            let duration = Math.sqrt( dx * dx + dy * dy ) / ( .1 * this.speed )
-            if ( 0 === duration ) return this.setPosition( sx + dx, sy + dy )
-            let _this = this
-            this.moveAnimationId = startAnimation( duration, lerp => { _this.setPosition( sx + lerp * dx, sy + lerp * dy ) }, onComplete )
-        }
-        moveTo( position ) {
-            let destination = position.clone()
-            let _this = this
-            function followpath() {
-                if ( _this.followingpath && _this.followingpath.length > 0 ) {
-                    while ( _this.followingpath.length ) {
-                        let position = _this.followingpath.pop()
-                        let cell = cellAtXY( position.x, position.y )
-                        ENGINE.dispatchEvent( 'pathpopcell', cell, _this )
-                    }
-                }
-                if ( _this.position.equals( destination ) ) return
-                _this.followingpath = findpath( _this, _this.position, destination )
-                if ( _this.followingpath.length ) {
-                    let position = _this.followingpath.pop()
-                    let cell = cellAtXY( position.x, position.y )
-                    ENGINE.dispatchEvent( 'pathpopcell', cell, _this )
-                    let dx = position.x - _this.position.x
-                    let dy = position.y - _this.position.y
-                    if ( 0 === dx && 0 === dy )
-                        _this.followingpath.length && setTimeout( followpath, 0 )
-                    else
-                        _this.move( dx, dy, followpath )
-                }
-            }
-            followpath()
-        }
-        draw() {
-            ctx.save()
-            this.sprite && this.sprite.draw( this )
-            let children = this.children
-            for ( let i = 0, l = children.length; i < l; i++ )
-                children[ i ].draw()
-            ctx.restore()
-        }
-    }
-    ////////////////////////////////////////////////////////////////////////////
     class Matrix {
         constructor( translate, rotate, scale ) {
-            this.set( translate || new Vec2, rotate || 0, scale || new Vec2( 1, 1 ) )
+            this.set( translate || new Vec2D, rotate || 0, scale || new Vec2D( 1, 1 ) )
         }
         set( translate, rotate, scale ) {
             let cos = Math.cos( rotate )
@@ -742,26 +748,37 @@
     }
     ////////////////////////////////////////////////////////////////////////////
     const canvas = document.createElement( 'canvas' )
-    let canvas_centre = new Vec2
+    let canvas_centre = new Vec2D
     const ctx = canvas.getContext( '2d' )
-    const mouse = new Vec2
+    const mouse = new Vec2D
     mouse.button = [ false, false, false ]
-    const visible_position_min = new Vec2
-    const visible_position_max = new Vec2
-    let visible_grid_min
-    let visible_grid_max
+    const visible_position_min = new Vec2D
+    const visible_position_max = new Vec2D
+    let inview_boundingbox = new BoundingBox()
     const camera = new Object2D( { name: 'Camera', spatial: false, physical: false } )
     const camera_transform = new Matrix()
     function updateCameraTransform() {
-        camera_transform.set( camera.position, camera.rotation, camera.scale.clone().set( 1 / camera.scale.x, 1 / camera.scale.y ) )
+        camera_transform.set( camera, camera.rotation, camera.scale.clone().set( 1 / camera.scale.x, 1 / camera.scale.y ) )
         this.dispatchEvent( 'transform', this )
     }
+
+    const inview_objects = []
     function updateVisibleMinMax() {
-        if ( !scene.segmentsize ) return
-        camera_transform.transform( visible_position_min.set( - canvas_centre.x, - canvas_centre.y ) )
-        camera_transform.transform( visible_position_max.set( canvas_centre.x, canvas_centre.y ) )
-        visible_grid_min = cellAtXY( visible_position_min.x, visible_position_min.y ).grid
-        visible_grid_max = cellAtXY( visible_position_max.x, visible_position_max.y ).grid
+        if ( !scene.cells ) return
+        inview_boundingbox.set( 0, 0, canvas.width, canvas.height )
+        camera_transform.transform( inview_boundingbox.min )
+        camera_transform.transform( inview_boundingbox.max )
+        let min = cellAtXY( inview_boundingbox.min.x, inview_boundingbox.min.y ).grid
+        let max = cellAtXY( inview_boundingbox.max.x, inview_boundingbox.max.y ).grid
+        inview_objects.length = 0
+        for ( let x = min.x; x <= max.x; x++ ) {
+            let col = scene.cells[ x ]
+            for ( let y = min.y; y <= max.y; y++ ) {
+                let object2ds = col[ y ].centredobject2ds
+                for ( let i = 0, l = object2ds.length; i < l; i++ )
+                    binarySearchInsert( inview_objects, object2ds[ i ], object2dComparator, true )
+            }
+        }
     }
     camera.addEventListener( 'translate', updateCameraTransform )
     camera.addEventListener( 'rotate', updateCameraTransform )
@@ -770,7 +787,6 @@
     function resize() {
         canvas.width = window.innerWidth
         canvas.height = window.innerHeight
-        console.log( canvas.width, canvas.height )
         canvas_centre.set( .5 * canvas.width, .5 * canvas.height )
         updateVisibleMinMax()
     }
@@ -780,10 +796,9 @@
     ////////////////////////////////////////////////////////////////////////////
     const animations = []
     let time = 0
-    let nextAnimationId = 0
     function startAnimation( duration, stepCallback, onComplete ) {
         let animation = {
-            id: nextAnimationId++,
+            id: nextGUID++,
             start: time,
             duration: duration,
             stepCallback: stepCallback,
@@ -817,9 +832,9 @@
         array.splice( i, 0, item )
     }
     function object2dComparator( a, b ) {
-        return a.zorder === b.zorder ? a.position.y - b.position.y : a.zorder - b.zorder
+        return a.zorder === b.zorder ? a.y - b.y : a.zorder - b.zorder
     }
-    const _BoundingBox = new BoundingBox( 'Calc' )
+    const _BoundingBox = new BoundingBox()
     ////////////////////////////////////////////////////////////////////////////
     window.ENGINE = new EventListener
     ////////////////////////////////////////////////////////////////////////////
@@ -833,32 +848,15 @@
         cell.object && cell.object.setSprite( 0 === cell.weight() ? debug_cell_blocked_sprite : debug_cell_blank_sprite )
     }
     ////////////////////////////////////////////////////////////////////////////
-    ENGINE.visible_object2ds = []
     function render() {
         ctx.save()
         canvas.width = canvas.width
         ctx.translate( canvas_centre.x, canvas_centre.y )
         camera.rotation && ctx.rotate( camera.rotation )
         ctx.scale( camera.scale.x, camera.scale.y )
-        ctx.translate( - camera.position.x, - camera.position.y )
-        ENGINE.last_visible_object2ds_length = ENGINE.visible_object2ds.length
-        ENGINE.visible_object2ds.length = 0
-        ENGINE.visible_cells = 0
-        if ( typeof visible_grid_min !== 'undefined' ) {
-            for ( let x = visible_grid_min.x; x <= visible_grid_max.x; x++ ) {
-                let row = scene.cells[ x ]
-                for ( let y = visible_grid_min.y; y <= visible_grid_max.y; y++ ) {
-                    ENGINE.visible_cells++
-                    let object2ds = row[ y ].object2ds
-                    for ( let i = 0, l = object2ds.length; i < l; i++ )
-                        binarySearchInsert( ENGINE.visible_object2ds, object2ds[ i ], object2dComparator, true )
-                }
-            }
-            // if ( ENGINE.last_visible_object2ds_length !== ENGINE.visible_object2ds.length )
-            //     console.log( 'visible object2ds: ' + ENGINE.visible_object2ds.length )
-            for ( let i = 0, l = ENGINE.visible_object2ds.length; i < l; i++ )
-                ENGINE.visible_object2ds[ i ].draw()
-        }
+        ctx.translate( - camera.x, - camera.y )
+        for ( let i = 0, l = inview_objects.length; i < l; i++ )
+            inview_objects[ i ].draw()
         ctx.restore()
     }
     function updateAnimation( t ) {
@@ -908,9 +906,13 @@
     ENGINE.debounce = debounce
     ENGINE.setScene = setScene
     ENGINE.camera = camera
-    ENGINE.Vec2 = Vec2
+    ENGINE.Vec2D = Vec2D
     ENGINE.Sprite = Sprite
     ENGINE.Object2D = Object2D
     ENGINE.cellAtXY = cellAtXY
     const boundingboxdebug_sprite = new Sprite( 'blank', { background: '#ff0000', border: '#ff7777' } )
 } )()
+/**
+ * TODO
+ *  
+ */
