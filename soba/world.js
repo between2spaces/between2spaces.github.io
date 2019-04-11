@@ -738,7 +738,7 @@
         else if ( 2 === e.button ) WORLDJS.mouse.right = true
         WORLDJS.dispatchEvent( WORLDJS, 'mousedown', WORLDJS.mouse )
     } )
-    window.addEventListener( 'touchstart', e => {
+    window.body.addEventListener( 'touchstart', e => {
         let touchobj = e.changedTouches[ 0 ] // reference first touch point (ie: first finger)
         let x = parseInt( touchobj.clientX ) // get x position of touch point relative to left edge of browser
         let y = parseInt( touchobj.clientY ) // get x position of touch point relative to left edge of browser
@@ -752,7 +752,7 @@
         WORLDJS.dispatchEvent( WORLDJS, 'mousedown', WORLDJS.mouse )
         e.preventDefault()
     }, false )
-    window.addEventListener( 'touchend', function ( e ) {
+    window.body.addEventListener( 'touchend', function ( e ) {
         var touchobj = e.changedTouches[ 0 ] // reference first touch point for this event
         WORLDJS.mouse.left = false
         WORLDJS.dispatchEvent( WORLDJS, 'mouseup', WORLDJS.mouse )
