@@ -51,7 +51,7 @@
     function length( vec ) {
         return Math.sqrt( vec.x * vec.x + vec.y * vec.y )
     }
-    function distance( a, b ) {
+    WORLDJS.distance = ( a, b ) => {
         let x = a.x - b.x
         let y = a.y - b.y
         return Math.sqrt( x * x + y * y )
@@ -74,7 +74,7 @@
         let node = Object.assign( {
             id: nextGUID++,
             ready: false,
-            name: '',
+            name: undefined,
             x: 0,
             y: 0,
             width: 1,
@@ -104,6 +104,7 @@
         node.sprite = { x: 0, y: 0, width: 1, height: 1 }
         Object.assign( node.sprite, sprite )
         node.sprite.name = name
+        if ( typeof node.name === 'undefined' ) node.name = name
         sprite = WORLDJS.sprites[ node.sprite.name ] || WORLDJS.defineSprite( sprite )
         function ready() {
             node.ready = true
@@ -137,7 +138,8 @@
     WORLDJS.add = ( parent, node ) => {
         if ( !node ) {
             node = typeof parent.id === 'undefined' ? WORLDJS.defineNode( parent ) : parent
-            node.ready ? assignNodeToCells( node ) : WORLDJS.addEventListener( node, 'ready', () => { assignNodeToCells( node ) } )
+            assignNodeToCells( node )
+            //node.ready ? assignNodeToCells( node ) : WORLDJS.addEventListener( node, 'ready', () => { assignNodeToCells( node ) } )
             return node
         }
         node = typeof node.id === 'undefined' ? WORLDJS.defineNode( node ) : node
@@ -149,6 +151,7 @@
     }
     WORLDJS.remove = ( parent, node ) => {
         if ( !node ) {
+            parent.inview = false
             for ( let i = 0; i < parent.cells.length; i++ )
                 WORLDJS.remove( parent.cells[ i ], parent )
             return
@@ -193,7 +196,6 @@
         if ( inview !== node.inview ) {
             let t = inview_nodes.indexOf( node )
             if ( inview ) -1 === t && insert( inview_nodes, node, comparator )
-            else -1 < t && inview_nodes.splice( t, 1 )
             node.inview = inview
         }
     }
@@ -320,6 +322,15 @@
     }
     WORLDJS.cellXY = ( x, y, weigh ) => {
         return WORLDJS.cellCOLROW( Math.floor( ( x / WORLDJS.CELLSIZE ) + .5 ), Math.floor( ( y / WORLDJS.CELLSIZE ) + .5 ), weigh )
+    }
+    WORLDJS.nodesXY = ( x, y, includenonsprites ) => {
+        let nodes = []
+        let children = WORLDJS.cellXY( x, y ).children
+        for ( let i = 0, l = children.length; i < l; i++ ) {
+            let node = children[ i ]
+            if ( includenonsprites || node.sprite ) nodes.push( node )
+        }
+        return nodes
     }
     class Heap {
         constructor() {
@@ -639,8 +650,6 @@
             }
             if ( !inview ) {
                 node.inview = false
-                let t = inview_nodes.indexOf( node )
-                t > -1 && inview_nodes.splice( t, 1 )
             }
         }
         inview_nodes.sort( comparator )
@@ -654,12 +663,15 @@
         viewport.overdraw = overdraw
         updateViewport()
     }
+    WORLDJS.view = ( x, y ) => {
+        viewport.x = x
+        viewport.y = y
+        updateViewport()
+    }
     let following = null
     WORLDJS.follow = node => {
         following = node
-        viewport.x = node.x
-        viewport.y = node.y
-        updateViewport()
+        WORLDJS.view( node.x, node.y )
     }
     const animations = []
     WORLDJS.time = 0
@@ -687,10 +699,26 @@
         viewport.rotation && ctx.rotate( viewport.rotation )
         ctx.scale( viewport.scale, viewport.scale )
         ctx.translate( - viewport.x, - viewport.y )
-        for ( let i = 0, l = inview_nodes.length; i < l; i++ ) {
+        for ( let i = 0; i < inview_nodes.length; i++ ) {
             let node = inview_nodes[ i ]
-            _visibleUpdate( node )
-            draw( node )
+            if ( !node.inview )
+                inview_nodes.splice( i--, 1 )
+            else
+                _visibleUpdate( node )
+        }
+        for ( let i = 0; i < inview_nodes.length; i++ ) {
+            let node = inview_nodes[ i ]
+            if ( !node.inview ) {
+                inview_nodes.splice( i--, 1 )
+                continue
+            } else {
+                _visibleUpdate( node )
+            }
+            if ( !node.inview ) {
+                inview_nodes.splice( i--, 1 )
+            } else {
+                draw( node )
+            }
         }
         ctx.restore()
     }
