@@ -56,9 +56,6 @@
         let y = a.y - b.y
         return Math.sqrt( x * x + y * y )
     }
-    function heuristic( a, b ) {
-        return Math.abs( b.x - a.x ) + Math.abs( b.y - a.y )
-    }
     WORLDJS.containsPoint = ( node, point ) => {
         let sin = Math.sin( -node.rotation )
         let cos = Math.cos( -node.rotation )
@@ -149,18 +146,6 @@
         }
         return node
     }
-    WORLDJS.remove = ( parent, node ) => {
-        if ( !node ) {
-            parent.inview = false
-            for ( let i = 0; i < parent.cells.length; i++ )
-                WORLDJS.remove( parent.cells[ i ], parent )
-            return
-        }
-        let i = parent.children.indexOf( node )
-        if ( 0 > i ) return
-        parent.children.splice( i, 1 )
-        WORLDJS.dispatchEvent( WORLDJS, 'cellchildrenchanged', parent )
-    }
     function assignNodeToCells( node ) {
         let cells = WORLDJS.cellsOccupiedBy( node, node )
         let nodecellschanged = false
@@ -219,68 +204,6 @@
             WORLDJS.dispatchEvent( node, 'translate', node )
         }, onComplete )
     }
-    WORLDJS.move = ( node, dx, dy, onComplete ) => {
-        node.moveAnimationId && stopAnimation( node.moveAnimationId )
-        if ( 0 === node.speed || ( 0 === dx && 0 === dy ) ) { onComplete && onComplete(); return }
-        let x = node.x
-        let y = node.y
-        let hx = .5 * node.width
-        let hy = .5 * node.height
-        let corners
-        if ( dx <= 0 && dy <= 0 )
-            corners = [ { x: 0, y: 0 }, { x: -hx, y: -hy }, { x: hx, y: -hy }, { x: -hx, y: hy } ]
-        else if ( dx <= 0 && dy > 0 )
-            corners = [ { x: 0, y: 0 }, { x: -hx, y: -hy }, { x: -hx, y: hy }, { x: hx, y: hy } ]
-        else if ( dx > 0 && dy <= 0 )
-            corners = [ { x: 0, y: 0 }, { x: hx, y: -hy }, { x: -hx, y: -hy }, { x: hx, y: hy } ]
-        else
-            corners = [ { x: 0, y: 0 }, { x: hx, y: hy }, { x: -hx, y: hy }, { x: hx, y: -hy } ]
-        for ( let i = 0; i < corners.length; i++ ) {
-            let corner = corners[ i ]
-            let b = { x: x + dx + corner.x, y: y + dy + corner.y }
-            let cells = WORLDJS.ray( { x: x + corner.x, y: y + corner.y }, b, node, true )
-            let l = cells.length
-            if ( 0 === l ) continue
-            let last = cells[ l - 1 ]
-            if ( 0 !== last.weight ) continue
-            let target = WORLDJS.cellXY( b.x, b.y, node )
-            if ( 0 === target.weight && 2 > length( { x: target.col - last.col, y: target.row - last.row } ) ) {
-                let min_hx_hy = Math.min( hx, hy )
-                dx = -last._ray_info.dx
-                dy = -last._ray_info.dy
-                set( b, dx, dy )
-                while ( length( b ) < min_hx_hy ) {
-                    b.x += dx; b.y += dy
-                }
-                b.x += last._ray_info.x
-                b.y += last._ray_info.y
-                while ( WORLDJS.cellsOccupiedBy( node, b, true ) ) {
-                    b.x += dx
-                    b.y += dy
-                }
-                dx = b.x - x
-                dy = b.y - y
-                break
-            }
-            return path( node, x + dx, y + dy, onComplete )
-        }
-        let duration = Math.sqrt( dx * dx + dy * dy ) / node.speed
-        WORLDJS.translate( node, x + dx, y + dy, duration, onComplete )
-    }
-    function path( node, x, y, onComplete ) {
-        if ( x === node.x && y === node.y ) { onComplete && onComplete(); return }
-        node.followingpath = findpath( node, x, y )
-        function followpath() {
-            if ( ( x === node.x && y === node.y ) || 0 === node.followingpath.length ) { onComplete && onComplete(); return }
-            let p = node.followingpath.pop()
-            let dx = p.x - node.x
-            let dy = p.y - node.y
-            if ( 0 === dx && 0 === dy ) return followpath()
-            let duration = Math.sqrt( dx * dx + dy * dy ) / node.speed
-            WORLDJS.translate( node, node.x + dx, node.y + dy, duration, followpath )
-        }
-        followpath()
-    }
     function draw( node ) {
         ctx.save()
         ctx.translate( node.x, node.y )
@@ -331,135 +254,6 @@
             if ( includenonsprites || node.sprite ) nodes.push( node )
         }
         return nodes
-    }
-    class Heap {
-        constructor() {
-            this.items = []
-        }
-        push( item ) {
-            item.index = this.items.length
-            this.items.push( item )
-            this.bubbleUp( this.items.length - 1 )
-        }
-        pop() {
-            let items = this.items
-            let result = items[ 0 ]
-            let end = items.pop()
-            0 < items.length && ( items[ 0 ] = end, this.sinkDown( 0 ) )
-            return result
-        }
-        remove( item ) {
-            let items = this.items
-            let l = items.length
-            for ( let i = 0; i < l; i++ )
-                if ( items[ i ] == item ) {
-                    item = items.pop()
-                    if ( i == l - 1 ) break
-                    items[ i ] = item
-                    this.bubbleUp( i )
-                    this.sinkDown( i )
-                    break
-                }
-        }
-        size() {
-            return this.items.length
-        }
-        bubbleUp( index ) {
-            let items = this.items
-            let item = items[ index ]
-            let score = item.score
-            for ( ; 0 < index; ) {
-                let i = Math.floor( ( index + 1 ) / 2 ) - 1
-                let parent = items[ i ]
-                if ( score >= parent.score ) break
-                items[ i ] = item
-                item.index = i
-                items[ index ] = parent
-                parent.index = index
-                index = i
-            }
-        }
-        sinkDown( index ) {
-            for ( let items = this.items, l = items.length, item = items[ index ], score = item.score; ; ) {
-                let child2 = 2 * ( index + 1 )
-                let child1 = child2 - 1
-                let swap = null
-                let child1Score
-                child1 < l && ( child1Score = items[ child1 ].score, child1Score < score && ( swap = child1 ) )
-                child2 < l && items[ child2 ].score < ( null === swap ? score : child1Score ) && ( swap = child2 )
-                if ( null === swap ) break
-                items[ index ] = items[ swap ]
-                items[ index ].index = index
-                items[ swap ] = item
-                index = item.index = swap
-            }
-        }
-    }
-    function findpath( node, x, y ) {
-        findpath.id = findpath.id ? findpath.id + 1 : 1
-        let start = { x: node.x, y: node.y }
-        let end = { x: x, y: y }
-        let startcell = WORLDJS.cellXY( start.x, start.y )
-        let endcell = WORLDJS.cellXY( x, y, node )
-        if ( startcell === endcell ) return [ end ]
-        let heap = new Heap
-        startcell.parent = null
-        startcell.h = heuristic( startcell, endcell )
-        startcell.g = 0
-        let cell = startcell
-        let best = startcell
-        let neighbour
-        let cap = 500 // caps the exploration to a limited number of cells; when reached the current best path is returned
-        for ( heap.push( startcell ); heap.size(); ) {
-            cell = heap.pop()
-            if ( cell.h < best.h ) best = cell
-            if ( cell === endcell || 0 === cap-- ) break
-            cell.closed = findpath.id
-            let col = cell.col
-            let row = cell.row
-            let neighbours = [
-                WORLDJS.cellCOLROW( col, row - 1, node ),
-                WORLDJS.cellCOLROW( col + 1, row, node ),
-                WORLDJS.cellCOLROW( col, row + 1, node ),
-                WORLDJS.cellCOLROW( col - 1, row, node ),
-                WORLDJS.cellCOLROW( col + 1, row - 1, node ),
-                WORLDJS.cellCOLROW( col + 1, row + 1, node ),
-                WORLDJS.cellCOLROW( col - 1, row + 1, node ),
-                WORLDJS.cellCOLROW( col - 1, row - 1, node )
-            ]
-            for ( let i = 0, l = neighbours.length; i < l; i++ ) {
-                neighbour = neighbours[ i ]
-                if ( neighbour.closed === findpath.id ) continue
-                //cell.debug1 && WORLDJS.setSprite( cell.debug1, { name: 'debugpathfind' } )
-                let g = WORLDJS.cellsOccupiedBy( node, neighbour, true ) ? 0 : 1
-                if ( 0 === g ) continue
-                if ( neighbour === endcell && 0 === endcell.weight ) { best = neighbour; break }
-                // skip diagonal neighbour if either adjoining neighbour is blocked
-                if ( i === 4 && ( 0 === neighbours[ 0 ].weight || 0 === neighbours[ 1 ].weight ) ) continue
-                if ( i === 5 && ( 0 === neighbours[ 2 ].weight || 0 === neighbours[ 1 ].weight ) ) continue
-                if ( i === 6 && ( 0 === neighbours[ 2 ].weight || 0 === neighbours[ 3 ].weight ) ) continue
-                if ( i === 7 && ( 0 === neighbours[ 0 ].weight || 0 === neighbours[ 3 ].weight ) ) continue
-                g = cell.g + ( i < 4 ? 1 : 1.4142135623730951 ) * g
-                let visited = neighbour.visited
-                visited !== findpath.id && ( neighbour.h = heuristic( neighbour, endcell ), neighbour.g = 0 )
-                if ( visited !== findpath.id || g < neighbour.g ) {
-                    neighbour.visited = findpath.id
-                    neighbour.parent = cell
-                    neighbour.g = g
-                    neighbour.score = neighbour.g + neighbour.h
-                    visited !== findpath.id ? heap.push( neighbour ) : heap.sinkDown( neighbour.index )
-                }
-            }
-            if ( neighbour === endcell && 0 === endcell.weight ) break
-        }
-        let path = [ best === endcell ? end : best ]
-        cell = best.parent
-        while ( cell && cell.parent ) {
-            //cell.debug0 && WORLDJS.setSprite( cell.debug0, { name: 'debugpath' } )
-            path.push( cell )
-            cell = cell.parent
-        }
-        return path
     }
     WORLDJS.ray = ( a, b, node, stoponcollision ) => {
         let x = a.x
@@ -519,23 +313,6 @@
         for ( cells = WORLDJS.ray( a, b, node, testcollision ), l = cells.length, i = 0, cell = cells[ i ]; i < l; cell = cells[ ++i ] )
             if ( testcollision && 0 === cell.weight ) return true; else 0 > overlapped.indexOf( cell ) && overlapped.push( cell )
         return testcollision ? false : overlapped
-    }
-    WORLDJS.debounce = ( wait, func, delayed ) => {
-        let timeout = 0
-        let context
-        let args
-        return function () {
-            context = this
-            args = arguments
-            let now = performance.now()
-            if ( now < timeout ) return
-            timeout = now + wait
-            !delayed && func.apply( context, args )
-            setTimeout( () => {
-                timeout > 0 && delayed && func.apply( context, args )
-                timeout = 0
-            }, wait )
-        }
     }
     WORLDJS.sprites = {}
     const images_ready = {}
@@ -745,58 +522,6 @@
         window.addEventListener( 'resize', resize )
         WORLDJS.render()
     }
-    WORLDJS.mouse = {
-        screen: { x: 0, y: 0 },
-        world: { x: 0, y: 0 },
-        left: false,
-        middle: false,
-        right: false
-    }
-    window.addEventListener( 'mousemove', e => {
-        if ( 0 === WORLDJS.mouse.screen.x - e.x && 0 === WORLDJS.mouse.screen.y - e.y ) return
-        WORLDJS.mouse.screen.x = e.x
-        WORLDJS.mouse.screen.y = e.y
-        WORLDJS.mouse.world.x = ( WORLDJS.mouse.screen.x - .5 * canvas.width ) / viewport.scale + viewport.x
-        WORLDJS.mouse.world.y = ( WORLDJS.mouse.screen.y - .5 * canvas.height ) / viewport.scale + viewport.y
-        WORLDJS.dispatchEvent( WORLDJS, 'mousemove', WORLDJS.mouse )
-    } )
-    window.addEventListener( 'mousedown', e => {
-        if ( 0 === e.button ) WORLDJS.mouse.left = true
-        else if ( 1 === e.button ) WORLDJS.mouse.middle = true
-        else if ( 2 === e.button ) WORLDJS.mouse.right = true
-        WORLDJS.dispatchEvent( WORLDJS, 'mousedown', WORLDJS.mouse )
-    } )
-    document.body.addEventListener( 'touchstart', e => {
-        let touchobj = e.changedTouches[ 0 ] // reference first touch point (ie: first finger)
-        let x = parseInt( touchobj.clientX ) // get x position of touch point relative to left edge of browser
-        let y = parseInt( touchobj.clientY ) // get x position of touch point relative to left edge of browser
-        if ( 0 === WORLDJS.mouse.screen.x - x && 0 === WORLDJS.mouse.screen.y - y ) return
-        WORLDJS.mouse.screen.x = x
-        WORLDJS.mouse.screen.y = y
-        WORLDJS.mouse.world.x = ( WORLDJS.mouse.screen.x - .5 * canvas.width ) / viewport.scale + viewport.x
-        WORLDJS.mouse.world.y = ( WORLDJS.mouse.screen.y - .5 * canvas.height ) / viewport.scale + viewport.y
-        WORLDJS.dispatchEvent( WORLDJS, 'mousemove', WORLDJS.mouse )
-        WORLDJS.mouse.left = true
-        WORLDJS.dispatchEvent( WORLDJS, 'mousedown', WORLDJS.mouse )
-        e.preventDefault()
-    }, false )
-    document.body.addEventListener( 'touchend', function ( e ) {
-        var touchobj = e.changedTouches[ 0 ] // reference first touch point for this event
-        WORLDJS.mouse.left = false
-        WORLDJS.dispatchEvent( WORLDJS, 'mouseup', WORLDJS.mouse )
-        e.preventDefault()
-    }, false )
-    window.addEventListener( 'mouseup', e => {
-        if ( 0 === e.button ) WORLDJS.mouse.left = false
-        else if ( 1 === e.button ) WORLDJS.mouse.middle = false
-        else if ( 2 === e.button ) WORLDJS.mouse.right = false
-        WORLDJS.dispatchEvent( WORLDJS, 'mouseup', WORLDJS.mouse )
-    } )
-    window.addEventListener( 'contextmenu', e => {
-        e.stopPropagation()
-        e.preventDefault()
-        WORLDJS.dispatchEvent( WORLDJS, 'contextmenu', WORLDJS.mouse )
-    } )
     WORLDJS.zoom = zoom => {
         viewport.scale = zoom
     }
@@ -840,19 +565,5 @@
         return Array( length ).join().split( ',' ).map( () => { return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt( Math.floor( 62 * Math.random() ) ) } ).join( '' )
     }
     let initseed = WORLDJS.randomString( 16 )
-    console.log( 'seed', initseed )
     WORLDJS.seed( initseed )
-    // WORLDJS.defineSprite( { name: 'debugpath', fill: '#229922', width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE } )
-    // WORLDJS.defineSprite( { name: 'debugweight', fill: '#000000', width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE } )
-    // WORLDJS.defineSprite( { name: 'debugintersecthit', fill: '#ff5500', width: 5, height: 5 } )
-    // WORLDJS.defineSprite( { name: 'debugintersectmiss', fill: '#55ff00', width: 5, height: 5 } )
-    // WORLDJS.defineSprite( { name: 'debugray', fill: '#0055ff', width: 5, height: 5 } )
-    // WORLDJS.defineSprite( { name: 'debugpathfind', fill: '#ff55ff', width: 5, height: 5 } )
-    // WORLDJS.addEventListener( WORLDJS, 'oncellnew', cell => {
-    //     cell.debug0 = WORLDJS.add( { x: cell.x, y: cell.y, layer: 98, opacity: .5 } )
-    //     cell.debug1 = WORLDJS.add( { x: cell.x, y: cell.y, layer: 99, opacity: .5 } )
-    // } )
-    // WORLDJS.addEventListener( WORLDJS, 'cellchildrenchanged', cell => {
-    //     //cell.debug0 && WORLDJS.setSprite( cell.debug0, 0 === WORLDJS.cellCOLROW( cell.col, cell.row, true ).weight ? { name: 'debugweight' } : null )
-    // } )
 } )( window.WORLDJS = {} )
