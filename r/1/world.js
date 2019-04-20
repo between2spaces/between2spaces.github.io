@@ -583,7 +583,7 @@
         if ( !images_loading[ imagename ] ) {
             images_loading[ imagename ] = new Image
             images_loading[ imagename ].addEventListener( 'load', ready )
-            images_loading[ imagename ].src = './assets/' + imagename + '.png'
+            images_loading[ imagename ].src = imagename + '.png'
         } else {
             images_loading[ imagename ].addEventListener( 'load', ready )
         }
