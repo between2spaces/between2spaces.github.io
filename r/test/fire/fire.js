@@ -34,7 +34,7 @@
                 WORLDJS.remove( node )
             } else {
                 let n = WORLDJS.noise( node.x * 3333 + WORLDJS.time, node.y * 3333 + WORLDJS.time, 60000 ) * .2
-                node.sprite_scale = .3 + ( WORLDJS.time - node.created ) * .0001
+                node.sprite_scale = .5 + ( WORLDJS.time - node.created ) * .0005
                 node.opacity -= ( WORLDJS.time - node.created ) * .00000005
                 node.translate_x_delta += n
                 node.translate_y_delta += ( ( n + 1 ) * .5 ) * -.1 * node.smoke_affect
