@@ -5,7 +5,7 @@
     WORLDJS.zoom( 2 )
 
     const player = WORLDJS.add( { sprite: { image: 'frame' }, width: 5, height: 5, speed: 0.06, physical: true, rotationLock: true } )
-    WORLDJS.add( player, { sprite: { image: 'male' } } ) //, sprite_scale: .3 } )
+    WORLDJS.add( player, { sprite: { image: 'test' } } ) //, sprite_scale: .3 } )
 
     let playerspawn = null
     let campfire = null
@@ -24,7 +24,7 @@
         }
         let groundcover = Math.max( 0, Math.min( 1, ( ( ( Math.abs( n100 ) * 2 ) - 1 ) * .5 + n50 * .5 ) + .5 ) * 1.5 )
         let nodetype = 'water'
-        if ( n50 > .01 ) {
+        if ( n50 > .03 ) {
             WORLDJS.add( { sprite: { image: 'groundgrass' }, x: cell.x + n10000 * 16, y: cell.y + n10000 * 16, width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE, layer: -2, opacity: groundcover, rotation: n10000 * Math.PI } )
             nodetype = 'groundgrass'
         } else if ( n100 > 0 ) {
@@ -130,9 +130,7 @@
             node.rotation_delta = WORLDJS.noise( node.x * .0009 + n, node.y * .0009 + n ) * node.wind_affected * .02
             node.sprite_scale_delta = ( .5 + WORLDJS.noise( node.x * .005 + n, node.y * .005 + n ) ) * node.wind_affected
         } else if ( 0 < node.swell_affected ) {
-            let n = WORLDJS.time * swell * .0001
-            node.translate_x_delta = n * node.swell_affected * 5
-            node.translate_y_delta = n * node.swell_affected * 5
+            let n = WORLDJS.time * swell * .00001
             node.rotation_delta = WORLDJS.noise( node.x / 900 + n, node.y / 900 + n ) * node.swell_affected * 1.5
             node.sprite_scale_delta = ( .5 + WORLDJS.noise( node.x / 1200 + n, node.y / 1200 + n ) ) * node.swell_affected * 20
         }

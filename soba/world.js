@@ -141,7 +141,6 @@
         if ( !node ) {
             node = typeof parent.id === 'undefined' ? WORLDJS.defineNode( parent ) : parent
             assignNodeToCells( node )
-            //node.ready ? assignNodeToCells( node ) : WORLDJS.addEventListener( node, 'ready', () => { assignNodeToCells( node ) } )
             return node
         }
         node = typeof node.id === 'undefined' ? WORLDJS.defineNode( node ) : node
@@ -297,6 +296,11 @@
         for ( let i = 0, l = node.children.length; i < l; i++ ) draw( node.children[ i ] )
         ctx.restore()
     }
+    function updateVisibleNode( node ) {
+        _visibleUpdate( node )
+        for ( let i = 0, l = node.children.length; i < l; i++ )
+            updateVisibleNode( node.children[ i ] )
+    }
     WORLDJS.opacity = ( node, opacity ) => {
         node.opacity = opacity
         return node
@@ -312,9 +316,7 @@
             x: col * WORLDJS.CELLSIZE,
             y: row * WORLDJS.CELLSIZE,
             children: [],
-            inview: false,
-            noise_x: ( col + 50000 ) / 100000,
-            noise_y: ( row + 50000 ) / 100000
+            inview: false
         }
         if ( weigh ) {
             cell.weight = 1
@@ -705,24 +707,8 @@
         ctx.translate( - viewport.x, - viewport.y )
         for ( let i = 0; i < WORLDJS.inview_nodes.length; i++ ) {
             let node = WORLDJS.inview_nodes[ i ]
-            if ( !node.inview )
-                WORLDJS.inview_nodes.splice( i--, 1 )
-            else
-                _visibleUpdate( node )
-        }
-        for ( let i = 0; i < WORLDJS.inview_nodes.length; i++ ) {
-            let node = WORLDJS.inview_nodes[ i ]
-            if ( !node.inview ) {
-                WORLDJS.inview_nodes.splice( i--, 1 )
-                continue
-            } else {
-                _visibleUpdate( node )
-            }
-            if ( !node.inview ) {
-                WORLDJS.inview_nodes.splice( i--, 1 )
-            } else {
-                draw( node )
-            }
+            if ( node.inview ) updateVisibleNode( node ); else { WORLDJS.inview_nodes.splice( i--, 1 ); continue }
+            node.inview ? draw( node ) : WORLDJS.inview_nodes.splice( i--, 1 )
         }
         ctx.restore()
     }
@@ -804,8 +790,18 @@
     WORLDJS.zoom = zoom => {
         viewport.scale = zoom
     }
-    WORLDJS.noise = ( x, y ) => {
-        /* x and y should be in the range [ 0, 1 ] */
+    WORLDJS.noise = ( x, y, upperbound ) => {
+        /* ( [ 0, 1 ], [ 0, 1 ] ) -> [ -1, 1 ] */
+        if ( upperbound ) {
+            let div = x / upperbound
+            let trunc = Math.trunc( div )
+            let rem = ( div - trunc )
+            x = ( trunc % 2 ) === 0 ? rem : 1 - rem
+            div = y / upperbound
+            trunc = Math.trunc( div )
+            rem = ( div - trunc )
+            y = ( trunc % 2 ) === 0 ? rem : 1 - rem
+        }
         /* returns [ -1, 1 ] */
         let a = WORLDJS.noise, c = a.g2, n = a.perm, p = a.perm123, e = a.grad3
         a = ( x + y ) * a.f2
