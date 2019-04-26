@@ -305,7 +305,7 @@
         node.opacity = opacity
         return node
     }
-    WORLDJS.CELLSIZE = 32
+    WORLDJS.CELLSIZE = 16
     const cells = {}
     WORLDJS.cellCOLROW = ( col, row, weigh ) => {
         let key = col + ',' + row
@@ -609,7 +609,7 @@
         height: 0,
         rotation: 0,
         scale: 1,
-        overdraw: 2 * WORLDJS.CELLSIZE
+        overdraw: 2 * ( 32 / WORLDJS.CELLSIZE ) * WORLDJS.CELLSIZE
     }
     WORLDJS.inview_cells = []
     WORLDJS.inview_nodes = []
@@ -681,6 +681,7 @@
     }
     const animations = []
     WORLDJS.time = 0
+    WORLDJS.elapsed = 0
     function startAnimation( duration, stepCallback, onComplete ) {
         let animation = {
             id: nextGUID++,
@@ -714,6 +715,7 @@
     }
     function updateAnimation( t ) {
         requestAnimationFrame( updateAnimation )
+        WORLDJS.elapsed = t - WORLDJS.time
         WORLDJS.time = t
         _globalUpdate()
         for ( let i = 0; i < animations.length; i++ ) {
@@ -831,16 +833,16 @@
     console.log( 'seed', initseed )
     WORLDJS.seed( initseed )
     // WORLDJS.defineSprite( { name: 'debugpath', fill: '#229922', width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE } )
-    // WORLDJS.defineSprite( { name: 'debugweight', fill: '#000000', width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE } )
+    WORLDJS.defineSprite( { name: 'debugweight', fill: '#000000', width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE } )
     // WORLDJS.defineSprite( { name: 'debugintersecthit', fill: '#ff5500', width: 5, height: 5 } )
     // WORLDJS.defineSprite( { name: 'debugintersectmiss', fill: '#55ff00', width: 5, height: 5 } )
     // WORLDJS.defineSprite( { name: 'debugray', fill: '#0055ff', width: 5, height: 5 } )
     // WORLDJS.defineSprite( { name: 'debugpathfind', fill: '#ff55ff', width: 5, height: 5 } )
     // WORLDJS.addEventListener( WORLDJS, 'oncellnew', cell => {
     //     cell.debug0 = WORLDJS.add( { x: cell.x, y: cell.y, layer: 98, opacity: .5 } )
-    //     cell.debug1 = WORLDJS.add( { x: cell.x, y: cell.y, layer: 99, opacity: .5 } )
+    //     //cell.debug1 = WORLDJS.add( { x: cell.x, y: cell.y, layer: 99, opacity: .5 } )
     // } )
     // WORLDJS.addEventListener( WORLDJS, 'cellchildrenchanged', cell => {
-    //     //cell.debug0 && WORLDJS.setSprite( cell.debug0, 0 === WORLDJS.cellCOLROW( cell.col, cell.row, true ).weight ? { name: 'debugweight' } : null )
+    //     cell.debug0 && WORLDJS.setSprite( cell.debug0, 0 === WORLDJS.cellCOLROW( cell.col, cell.row, true ).weight ? { name: 'debugweight' } : null )
     // } )
 } )( window.WORLDJS = {} )

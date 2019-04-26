@@ -24,8 +24,8 @@
             let rand = Math.random()
             if ( rand > .98 )
                 WORLDJS.add( { sprite: { image: Math.random() > .5 ? '/r/1/assets/ember' : '/r/1/assets/ember1' }, x: node.x + 20 * ( Math.random() - .5 ), y: node.y + 20 * ( Math.random() - .5 ), ember_affect: 1, layer: node.layer + 1 } )
-            if ( rand > .998 )
-                WORLDJS.add( { sprite: { image: '/r/1/assets/smoke' }, x: node.x, y: node.y, smoke_affect: 1, layer: node.layer + 1, rotation: Math.random() * Math.PI, opacity: .5 - Math.random() * .25, created: WORLDJS.time } )
+            if ( rand > .99 )
+                WORLDJS.add( { sprite: { image: '/r/1/assets/smoke' }, x: node.x, y: node.y, smoke_affect: 1, layer: node.layer + 1, rotation: Math.random() * Math.PI, opacity: .25 - Math.random() * .2, created: WORLDJS.time } )
         } else if ( 0 < node.ember_affect ) {
             if ( node.opacity < 0.2 ) {
                 WORLDJS.remove( node )
@@ -35,14 +35,13 @@
                 node.opacity -= Math.random() * node.ember_affect * .02
             }
         } else if ( 0 < node.smoke_affect ) {
-            if ( node.opacity < 0.1 ) {
+            if ( node.opacity < 0.05 ) {
                 WORLDJS.remove( node )
             } else {
-                node.sprite_scale = .5 + ( WORLDJS.time - node.created ) * .0001
+                node.sprite_scale = .5 + ( WORLDJS.time - node.created ) * .001
                 node.opacity -= ( WORLDJS.time - node.created ) * .00000001
-                let n = positional_noise * .7 + global_noise * .3
-                node.x += n * .5
-                node.y += ( ( n * .5 + 1 ) * .5 ) * -.1 * node.smoke_affect
+                node.x += WORLDJS.elapsed * .006 + global_noise * .5
+                node.y -= WORLDJS.elapsed * .01 + global_noise * .5
             }
         }
     } )
