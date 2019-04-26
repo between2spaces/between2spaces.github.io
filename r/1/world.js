@@ -549,7 +549,7 @@
     WORLDJS.defineSprite = ( options ) => {
         options = options || {}
         let name = options.name ? options.name : options.image ? options.image : undefined
-        let imagename = options.image ? options.image : 'blank'
+        let imagename = options.image ? options.image : '/r/1/assets/blank'
         if ( WORLDJS.sprites[ name || imagename ] ) return WORLDJS.sprites[ name || imagename ]
         let sprite = WORLDJS.sprites[ name || imagename ] = {
             name: name,
@@ -790,19 +790,7 @@
     WORLDJS.zoom = zoom => {
         viewport.scale = zoom
     }
-    WORLDJS.noise = ( x, y, upperbound ) => {
-        /* ( [ 0, 1 ], [ 0, 1 ] ) -> [ -1, 1 ] */
-        if ( upperbound ) {
-            let div = x / upperbound
-            let trunc = Math.trunc( div )
-            let rem = ( div - trunc )
-            x = ( trunc % 2 ) === 0 ? rem : 1 - rem
-            div = y / upperbound
-            trunc = Math.trunc( div )
-            rem = ( div - trunc )
-            y = ( trunc % 2 ) === 0 ? rem : 1 - rem
-        }
-        /* returns [ -1, 1 ] */
+    WORLDJS.noise = ( x, y ) => {
         let a = WORLDJS.noise, c = a.g2, n = a.perm, p = a.perm123, e = a.grad3
         a = ( x + y ) * a.f2
         let f = x + a >> 0, b = y + a >> 0, d = ( f + b ) * c
