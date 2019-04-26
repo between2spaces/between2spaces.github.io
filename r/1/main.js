@@ -2,32 +2,17 @@
     'use strict'
     //WORLDJS.seed( 'FTg4NCfth3BGzZdR3sWrVDYP' )
 
-    WORLDJS.zoom( 2 )
-
-    const player = WORLDJS.add( { sprite: { image: '/r/1/assets/frame' }, width: 1.5 * WORLDJS.CELLSIZE, height: 1.5 * WORLDJS.CELLSIZE, speed: 0.06, physical: true, rotationLock: true, layer: 1 } )
-    WORLDJS.add( player, { sprite: { image: '/r/1/assets/male' }, wind_affected: 1 } ) //, sprite_scale: .3 } )
-    function createCloud() {
-        let cloud = WORLDJS.add( { sprite: { image: '/r/1/assets/cloud' }, x: player.x, y: player.y, cloud_affected: 1, layer: 999, rotation: 2 * Math.random() * Math.PI, opacity: ( WORLDJS.noise( player.x, player.y ) + 1 ) * .15, rotationLock: true, sprite_scale: 5, translate_x_delta: -1000 - Math.random() * 2000, translate_y_delta: -1000 - Math.random() * 2000 } )
-        return cloud
-    }
-    //const cloud1 = createCloud()
-    //const cloud2 = createCloud()
-    //const cloud3 = createCloud()
-
-    // WORLDJS.addEventListener( player, 'translate', () => {
-    //     WORLDJS.translate( cloud1, player.x, player.y )
-    //     WORLDJS.translate( cloud2, player.x, player.y )
-    // } )
+    const player = WORLDJS.add( { sprite: { image: '/r/1/assets/frame' }, width: .5 * WORLDJS.CELLSIZE, height: .5 * WORLDJS.CELLSIZE, speed: 0.06, physical: true, rotationLock: true, layer: 1 } )
+    WORLDJS.add( player, { sprite: { image: '/r/1/assets/female' }, wind_affected: 1 } ) //, sprite_scale: .3 } )
 
     let playerspawn = null
     let campfire = null
 
     function createCampfire( x, y ) {
-        campfire = WORLDJS.add( { sprite: { image: '/r/1/assets/campfire' }, x: x, y: y, width: 1.5 * WORLDJS.CELLSIZE, height: 1.5 * WORLDJS.CELLSIZE, physical: true } )
+        campfire = WORLDJS.add( { sprite: { image: '/r/1/assets/campfire' }, x: x, y: y, width: .5 * WORLDJS.CELLSIZE, height: .5 * WORLDJS.CELLSIZE, physical: true } )
         WORLDJS.add( { sprite: { image: '/r/1/assets/flame' }, x: campfire.x, y: campfire.y, flame_affect: 1, opacity: .5, rotation: Math.random() * 2 * Math.PI } )
         WORLDJS.add( { sprite: { image: '/r/1/assets/flame' }, x: campfire.x + 3 * ( Math.random() - .5 ), y: campfire.y + 3 * ( Math.random() - .5 ), flame_affect: 1, opacity: .5, rotation: Math.random() * 2 * Math.PI, layer: campfire.layer + 1 } )
         WORLDJS.add( { sprite: { image: Math.random() > .5 ? '/r/1/assets/ember' : '/r/1/assets/ember1' }, x: x + 20 * ( Math.random() - .5 ), y: y + 20 * ( Math.random() - .5 ), ember_affect: 1, layer: 2 } )
-
     }
 
     WORLDJS.addEventListener( WORLDJS, 'oncellnew', cell => {
@@ -40,16 +25,16 @@
         let n10000 = WORLDJS.noise( nx * 10000, ny * 10000 )
         let n30000 = WORLDJS.noise( nx * 30000, ny * 30000 )
         if ( n50 < -.1 ) {
-            WORLDJS.add( { sprite: { image: n10000 > 0 ? '/r/1/assets/water' : '/r/1/assets/water1' }, x: cell.x, y: cell.y, width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE, opacity: .8, rotation: n10000 * Math.PI, layer: 1, swell_affected: 1 } )
+            WORLDJS.add( { sprite: { image: n10000 > 0 ? '/r/1/assets/water' : '/r/1/assets/water1' }, x: cell.x, y: cell.y, width: 1, height: 1, opacity: .5, rotation: n10000 * Math.PI, layer: 1, swell_affected: 1 } )
             return
         }
         let groundcover = Math.max( 0, Math.min( 1, ( ( ( Math.abs( n100 ) * 1.5 ) - .5 ) * .8 + n500 * .2 ) + .5 ) * 1 )
         let nodetype = 'water'
         if ( n50 > .03 ) {
-            WORLDJS.add( { sprite: { image: '/r/1/assets/groundgrass' }, x: cell.x + n10000 * 16, y: cell.y + n10000 * 16, width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE, layer: -2, opacity: groundcover * groundcover, rotation: n10000 * Math.PI } )
+            WORLDJS.add( { sprite: { image: '/r/1/assets/groundgrass' }, x: cell.x + n10000 * 16, y: cell.y + n10000 * 16, width: 1, height: 1, layer: -2, opacity: groundcover * groundcover, rotation: n10000 * Math.PI } )
             nodetype = 'groundgrass'
         } else if ( n100 > 0 ) {
-            WORLDJS.add( { sprite: { image: '/r/1/assets/sand' }, x: cell.x + n10000 * 16, y: cell.y + n10000 * 16, width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE, opacity: .8, layer: -1, rotation: n10000 } )
+            WORLDJS.add( { sprite: { image: '/r/1/assets/sand' }, x: cell.x + n10000 * 16, y: cell.y + n10000 * 16, width: 1, height: 1, opacity: .8, layer: -1, rotation: n10000 } )
             nodetype = 'sand'
         }
         let offset = n5000 * 25
@@ -63,6 +48,9 @@
                     let size = ( groundcover + ( n30000 + 1 ) * .5 ) * 64
                     WORLDJS.add( { sprite: { image: '/r/1/assets/grass0', y: -.2 }, x: cell.x + offset, y: cell.y + offset, width: .6 * size, height: .1 * size, rotation: n30000 * .3, sprite_scale: size / 128, layer: 1, wind_affected: 1, opacity: .6 } )
                     nodetype = 'grass'
+                } else if ( n30000 > 0.9 ) {
+                    let rat = WORLDJS.add( { sprite: { image: '/r/1/assets/frame' }, sprite_scale: .5, x: cell.x + offset, y: cell.y + offset, width: 1, height: 1, speed: 0.06, physical: true, rotationLock: true, layer: 1 } )
+                    WORLDJS.add( rat, { sprite: { image: '/r/1/assets/rat' }, sprite_scale: .5, wind_affected: 1 } )
                 }
             }
         }
@@ -107,11 +95,8 @@
             let y = Math.round( WORLDJS.noise( 0, WORLDJS.time * .0001 ) * 100000 )
             WORLDJS.view( x, y )
         } else if ( !campfire ) {
-            createCampfire( playerspawn.x - 45, playerspawn.y + 32 )
+            createCampfire( playerspawn.x - 2 * WORLDJS.CELLSIZE, playerspawn.y + 2 * WORLDJS.CELLSIZE )
             WORLDJS.translate( player, playerspawn.x, playerspawn.y )
-            // WORLDJS.translate( cloud1, player.x, player.y )
-            // WORLDJS.translate( cloud2, player.x, player.y )
-            // WORLDJS.translate( cloud3, player.x, player.y )
             WORLDJS.follow( player )
         }
 
@@ -154,13 +139,14 @@
                 node.opacity -= Math.random() * node.ember_affect * .02
             }
         } else if ( 0 < node.smoke_affect ) {
-            if ( node.opacity < 0.05 ) {
+            let age = WORLDJS.time - node.created
+            node.opacity -= age * .00000001
+            if ( node.opacity <= 0 || age > 20000 ) {
                 WORLDJS.remove( node )
             } else {
-                node.sprite_scale = .5 + ( WORLDJS.time - node.created ) * .001
-                node.opacity -= ( WORLDJS.time - node.created ) * .00000001
-                node.x += WORLDJS.elapsed * .006 + global_noise * .5
-                node.y -= WORLDJS.elapsed * .01 + global_noise * .5
+                node.sprite_scale = .5 + age * .001
+                node.x += WORLDJS.noise( WORLDJS.time * .0001, 0 ) * .2 * ( 2 - node.opacity )
+                node.y -= WORLDJS.noise( 0, WORLDJS.time * .0001 ) * .2 * ( 2 - node.opacity )
             }
         } else if ( 0 < node.wind_affected ) {
             let scaled_time = WORLDJS.time * .0001
@@ -174,16 +160,6 @@
             let noise_50_50 = positional_noise * .5 + global_noise * .5
             node.rotation_delta = ( positional_noise * .3 + global_noise * .7 ) * .5 * node.swell_affected
             node.sprite_scale_delta = ( 1 + noise_50_50 ) * 10 * node.swell_affected
-        } else if ( 0 < node.cloud_affected ) {
-            node.translate_x_delta += WORLDJS.elapsed * .03
-            node.translate_y_delta += WORLDJS.elapsed * .03
-            if ( node.translate_x_delta > 800 ) {
-                node.rotation = Math.PI * Math.random() * 2
-                node.opacity = ( WORLDJS.noise( node.x, node.y ) + 1 ) * .15
-                node.translate_x_delta = -800
-                node.translate_y_delta = -1000 - Math.random() * 2000
-                WORLDJS.translate( node, player.x, player.y )
-            }
         }
 
     } )

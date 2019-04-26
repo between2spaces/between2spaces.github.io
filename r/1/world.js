@@ -26,7 +26,6 @@
         if ( void 0 === arr ) return
         arr = arr.slice( 0 )
         for ( let i = 0, l = arr.length; i < l; i++ ) arr[ i ].call( object, ...args )
-        //setTimeout( () => { }, 0 )
     }
     function set( vec, x, y ) {
         vec.x = x
@@ -305,7 +304,7 @@
         node.opacity = opacity
         return node
     }
-    WORLDJS.CELLSIZE = 16
+    WORLDJS.CELLSIZE = 24
     const cells = {}
     WORLDJS.cellCOLROW = ( col, row, weigh ) => {
         let key = col + ',' + row
@@ -505,7 +504,7 @@
         let overlapped = [ WORLDJS.ray( pos, pos, node, true )[ 0 ] /* centrecell, topleftcell, ..., bottomrightcell */ ]
         width = typeof width !== 'undefined' ? width : node.width
         height = typeof height !== 'undefined' ? height : node.height
-        if ( width <= WORLDJS.CELLSIZE && height <= WORLDJS.CELLSIZE ) return testcollision ? 0 === overlapped[ 0 ].weight : overlapped
+        //if ( width <= WORLDJS.CELLSIZE && height <= WORLDJS.CELLSIZE ) return testcollision ? 0 === overlapped[ 0 ].weight : overlapped
         let a = { x: 0, y: 0 }
         let b = { x: 0, y: 0 }
         let hx = .5 * width
@@ -599,6 +598,9 @@
         sprite.border && ( ctx.beginPath(), ctx.strokeStyle = sprite.bordercolour, ctx.lineWidth = .5 * sprite.border, ctx.rect( .5, .5, width - 1, height - 1 ), ctx.stroke() )
     }
     const canvas = document.createElement( 'canvas' )
+    canvas.style.width = canvas.style.height = '100%'
+    canvas.width = 640
+    canvas.height = ( window.innerHeight / window.innerWidth ) * canvas.width
     document.body.appendChild( canvas )
     const ctx = canvas.getContext( '2d', { alpha: false } )
     ctx.imageSmoothingEnabled = false
@@ -661,8 +663,7 @@
         WORLDJS.inview_nodes.sort( comparator )
     }
     function resize() {
-        canvas.width = window.innerWidth
-        canvas.height = window.innerHeight
+        canvas.height = ( window.innerHeight / window.innerWidth ) * canvas.width
         updateViewport()
     }
     WORLDJS.setOverdraw = overdraw => {
@@ -746,8 +747,8 @@
     }
     window.addEventListener( 'mousemove', e => {
         if ( 0 === WORLDJS.mouse.screen.x - e.x && 0 === WORLDJS.mouse.screen.y - e.y ) return
-        WORLDJS.mouse.screen.x = e.x
-        WORLDJS.mouse.screen.y = e.y
+        WORLDJS.mouse.screen.x = e.x / window.innerWidth * canvas.width
+        WORLDJS.mouse.screen.y = e.y / window.innerHeight * canvas.height
         WORLDJS.mouse.world.x = ( WORLDJS.mouse.screen.x - .5 * canvas.width ) / viewport.scale + viewport.x
         WORLDJS.mouse.world.y = ( WORLDJS.mouse.screen.y - .5 * canvas.height ) / viewport.scale + viewport.y
         WORLDJS.dispatchEvent( WORLDJS, 'mousemove', WORLDJS.mouse )

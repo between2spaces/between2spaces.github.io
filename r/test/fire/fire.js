@@ -1,9 +1,9 @@
 ( function () {
     'use strict'
-    WORLDJS.zoom( 5 )
+    WORLDJS.zoom( 2 )
 
     function createCampfire( x, y ) {
-        let campfire = WORLDJS.add( { sprite: { image: '/r/1/assets/campfire' }, x: x, y: y, rotation: Math.random(), width: 1.5 * WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE, physical: true } )
+        let campfire = WORLDJS.add( { sprite: { image: '/r/1/assets/campfire' }, x: x, y: y, width: 1.1 * WORLDJS.CELLSIZE, height: 1.1 * WORLDJS.CELLSIZE, physical: true } )
         WORLDJS.add( { sprite: { image: '/r/1/assets/flame' }, x: campfire.x, y: campfire.y, flame_affect: 1, opacity: .5, rotation: Math.random() * 2 * Math.PI } )
         WORLDJS.add( { sprite: { image: '/r/1/assets/flame' }, x: campfire.x + 3 * ( Math.random() - .5 ), y: campfire.y + 3 * ( Math.random() - .5 ), flame_affect: 1, opacity: .5, rotation: Math.random() * 2 * Math.PI, layer: campfire.layer + 1 } )
         WORLDJS.add( { sprite: { image: Math.random() > .5 ? '/r/1/assets/ember' : '/r/1/assets/ember1' }, x: x + 20 * ( Math.random() - .5 ), y: y + 20 * ( Math.random() - .5 ), ember_affect: 1, layer: 2 } )
@@ -40,8 +40,8 @@
             } else {
                 node.sprite_scale = .5 + ( WORLDJS.time - node.created ) * .001
                 node.opacity -= ( WORLDJS.time - node.created ) * .00000001
-                node.x += WORLDJS.elapsed * .006 + global_noise * .5
-                node.y -= WORLDJS.elapsed * .01 + global_noise * .5
+                node.x += WORLDJS.noise( WORLDJS.time * .0001, 0 ) * .2 * ( 2 - node.opacity )
+                node.y -= WORLDJS.noise( 0, WORLDJS.time * .0001 ) * .2 * ( 2 - node.opacity )
             }
         }
     } )
