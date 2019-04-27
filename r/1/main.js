@@ -66,7 +66,7 @@
     // } )
 
     const mousemove = WORLDJS.debounce( 250, () => {
-        if ( WORLDJS.mouse.right )
+        if ( WORLDJS.mouse.left || WORLDJS.mouse.right )
             WORLDJS.move( player, WORLDJS.mouse.world.x - player.x, WORLDJS.mouse.world.y - player.y )
         else {
             // let nodes = WORLDJS.nodesXY( WORLDJS.mouse.world.x, WORLDJS.mouse.world.y )
@@ -78,10 +78,10 @@
     WORLDJS.addEventListener( WORLDJS, 'mousemove', mousemove )
 
     const mousedown = WORLDJS.debounce( 90, () => {
-        if ( WORLDJS.mouse.left )
-            WORLDJS.move( player, WORLDJS.mouse.world.x - player.x, WORLDJS.mouse.world.y - player.y )
-        else if ( WORLDJS.mouse.right )
-            WORLDJS.add( { sprite: { name: 'object' }, x: WORLDJS.mouse.world.x, y: WORLDJS.mouse.world.y, physical: true } )
+        //if ( WORLDJS.mouse.left )
+        WORLDJS.move( player, WORLDJS.mouse.world.x - player.x, WORLDJS.mouse.world.y - player.y )
+        // else if ( WORLDJS.mouse.right )
+        //     WORLDJS.add( { sprite: { name: 'object' }, x: WORLDJS.mouse.world.x, y: WORLDJS.mouse.world.y, physical: true } )
     } )
 
     WORLDJS.addEventListener( WORLDJS, 'mousedown', mousedown )
