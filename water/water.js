@@ -5,7 +5,7 @@
         let nx = ( cell.x + 50000 ) / 100000
         let ny = ( cell.y + 50000 ) / 100000
         let n10000 = WORLDJS.noise( nx * 10000, ny * 10000 )
-        WORLDJS.add( { sprite: { image: n10000 > 0 ? '/r/1/assets/water' : '/r/1/assets/water1' }, x: cell.x, y: cell.y, width: WORLDJS.CELLSIZE, height: WORLDJS.CELLSIZE, opacity: .8, rotation: n10000 * Math.PI, swell_affected: 1 } )
+        WORLDJS.add( { sprite: { image: n10000 > 0 ? '/r/1/assets/water' : '/r/1/assets/water1' }, x: cell.x, y: cell.y, width: 1, height: 1, opacity: .8, rotation: n10000 * Math.PI, swell_affected: 1 } )
     } )
     let global_noise
     WORLDJS.start( () => {

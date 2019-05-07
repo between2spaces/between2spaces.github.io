@@ -102,7 +102,7 @@
         node.sprite_scale_x_delta = node.sprite_scale_y_delta = ( 1 + noise ) * 2
     }
     function createWater( cell ) {
-        WORLDJS.add( { name: 'water', sprite: { image: WORLDJS.noise( cell.x, cell.y ) > 0 ? '../1/assets/water' : '../1/assets/water1' }, x: cell.x, y: cell.y, width: 1, height: 1, opacity: .5, rotation: WORLDJS.noise( cell.x * .0001, cell.y * .0001 ) * Math.PI * 2, layer: 1, inViewUpdate: swellInViewUpdate } )
+        WORLDJS.add( { sprite: { image: WORLDJS.noise( cell.x, cell.y ) > 0 ? '../1/assets/water' : '../1/assets/water1' }, x: cell.x, y: cell.y, width: 1, height: 1, opacity: .5, rotation: WORLDJS.noise( cell.x * .0001, cell.y * .0001 ) * Math.PI * 2, layer: 1, inViewUpdate: swellInViewUpdate } )
     }
     function swellInViewUpdate( node ) {
         let time = WORLDJS.time * .0001
