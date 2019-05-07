@@ -6,9 +6,7 @@
     "licence": "ISC",
     "author": "Between2Spaces",
     "scripts": {
-        "start": "http-server . -p 7708 -C-1"
+        "start": "node devserver"
     },
-    "devDependencies": {
-        "http-server": "latest"
-    }
+    "devDependencies": {}
 }
