@@ -1,0 +1,5 @@
+2019-08-13T09:07:17 { type: 'guest',
+  username: 'Guest-DIEb',
+  token:
+   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Ikd1ZXN0LURJRWIiLCJpYXQiOjE1NjU2NTEyMzd9.vHGUp38WwKNvJP8yC_kuHorKlFGi0UpyCFQBtRHSpRs',
+  error: 'Auth token not recognised' }

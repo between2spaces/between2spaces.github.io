@@ -51,6 +51,6 @@ const methodB = () => {
 
 ```
 
-![script](/benchmark/lodash.js)
+![script](https://cdn.jsdelivr.net/npm/lodash@4.17.14/lodash.min.js)
 ![script](/benchmark/benchmark.js)
 ![script](/benchmark/bundle.js)

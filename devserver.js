@@ -4,11 +4,18 @@ const path = require( "path" )
 const fs = require( "fs" )
 
 const main = () => {
-
+    const mimetypes = {
+        "html": "text/html",
+        "jpeg": "image/jpeg",
+        "jpg": "image/jpeg",
+        "png": "image/png",
+        "js": "text/javascript",
+        "css": "text/css"
+    }
     process.on( 'SIGINT', function () {
+        console.log( 'SIGINT received, stopping...' )
         process.exit()
     } )
-
     http.createServer( ( req, res ) => {
         var uri = url.parse( req.url ).pathname
         let date = new Date
@@ -30,7 +37,8 @@ const main = () => {
                     res.end()
                     return
                 }
-                res.writeHead( 200 )
+                let mimetype = mimetypes[ filename.split( '.' ).pop() ]
+                res.writeHead( 200, { "Content-Type": mimetype || 'text/plain' } )
                 res.write( file, "binary" )
                 res.end()
             } )
