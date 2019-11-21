@@ -1,0 +1,1 @@
+docker run --name pbbg-server --rm -it -v /$(PWD):/app -p 0.0.0.0:8108:8108 pbbg-server

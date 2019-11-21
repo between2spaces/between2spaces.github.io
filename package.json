@@ -8,5 +8,7 @@
     "scripts": {
         "start": "node devserver"
     },
-    "devDependencies": {}
+    "devDependencies": {
+        "eslint-config-mdcs": "^4.2.3"
+    }
 }
