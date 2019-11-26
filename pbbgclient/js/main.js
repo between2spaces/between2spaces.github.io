@@ -1,3 +1,0 @@
-( function () {
-    PBBG.send()
-} )()
