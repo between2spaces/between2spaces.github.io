@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>iFirm Authentication</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script type="text/javascript" src="https://unpkg.com/jso/dist/jso.js"></script>
+</head>
+
+<body>
+    <script>
+        let client = new JSO( {
+            providerID: "ifirm",
+            client_id: "",
+            redirect_uri: "http://localhost:7708/",
+            authorization: "https://smithjonesau.acclipse.com/oauth2/api/Authorise/",
+            scopes: { request: [ "https://www.googleapis.com/auth/userinfo.profile" ] }
+        } )
+            ( () => {
+                const client_id = "";
+                const secret = "";
+
+                fetch( "https://smithjonesau.acclipse.com/oauth2/api/Token/", {
+                    method: "GET",
+                    body: 'grant_type=client_credentials&client_id=' + client_id + '&client_secret=' + secret,
+                    headers: {
+                        "Authorization": "",
+                        "Content-Type": "application/json"
+                    }
+                } ).then( function ( resp ) {
+
+                    // Return the response as JSON
+                    return resp.json();
+
+                } ).then( function ( data ) {
+
+                    // Log the API data
+                    console.log( 'token', data );
+
+                } ).catch( function ( err ) {
+
+                    // Log any errors
+                    console.log( 'something went wrong', err );
+
+                } );
+            } )();
+    </script>
+</body>
+
+</html>
