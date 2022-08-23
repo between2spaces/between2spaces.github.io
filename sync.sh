@@ -12,17 +12,18 @@ elif command -v cygpath &> /dev/null; then
 	PROGFILES_PATH="/c/Program\ Files"
 fi
 
+git pull
+
 windows_terminal_settingspath="${LOCALAPPDATA}/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
-if [ -f "${windows_terminal_settingspath}" ]; then
-	echo "${windows_terminal_settingspath}"
-else
+if [ ! -f "${windows_terminal_settingspath}" ]; then
 	windows_terminal_settingspath="${LOCALAPPDATA}/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json"
-	if [ -f "${windows_terminal_settingspath}" ]; then
-		echo "${windows_terminal_settingspath}"
-	fi
 fi
 
-git pull
+if [ -f "${windows_terminal_settingspath}" ]; then
+	cp "${windows_terminal_settingspath}" windows_terminal.json
+	echo "${windows_terminal_settingspath}"
+fi
+
 git add .
 git commit -m "sync"
 git push
