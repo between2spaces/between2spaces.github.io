@@ -22,5 +22,8 @@ else
 	fi
 fi
 
-exit 0
+git pull
+git add .
+git commit -m "sync"
+git push
 
