@@ -16,6 +16,7 @@ elif command -v cygpath &> /dev/null; then
 	PROGFILES_PATH="/c/Program\ Files/Git"
 fi
 
+
 # configure credential.helper
 GCM_REL_EXE="mingw64/libexec/git-core/git-credential-manager-core.exe"
 if [ -f "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}" ]; then
@@ -23,12 +24,6 @@ if [ -f "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}" ]; then
 elif [ -f "${PROGFILES_PATH}$/{GCM_REL_EXE}" ]; then
 	git config --global credential.helper "${PROGFILES_PATH}/${GCM_REL_EXE}"
 fi
-
-ls -al "${LOCALAPPDATA}/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/"
-if [ -f "${LOCALAPPDATA}/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/" ]; then
-	echo "${LOCALAPPDATA}/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/"
-fi
-exit 0
 
 
 # disable login banner
@@ -203,6 +198,4 @@ if grep -qi microsoft /proc/version; then
 	esac
 
 fi
-
-
 
