@@ -3,6 +3,7 @@
 # global git config
 git config user.email "between2spaces@gmail.com"
 git config user.name "between2spaces"
+git remote set-url origin https://between2spaces@github.com/between2spaces/between2spaces.github.io.git
 
 if grep -qi microsoft /proc/version; then
 	# in a WSL environment
