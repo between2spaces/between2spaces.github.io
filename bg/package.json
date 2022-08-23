@@ -1,0 +1,22 @@
+{
+    "name": "pbbg",
+    "version": "0.1.0",
+    "description": "An attempt at a PBBG",
+	"author": "Sunladen",
+    "license": "MIT",
+    "main": "server.js",
+    "type": "module",
+    "scripts": {
+        "dev": "(npc ncu -u; npm install; trap 'kill 0' SIGINT; python3 -m http.server & npm start)",
+        "start": "if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; export $(sed -e '/^[ ]*#/d' .env | xargs) && npm install && node server.js"
+    },
+    "dependencies": {
+        "ws": "^8.8.1"
+    },
+    "engines": {
+        "node": "16.x"
+    },
+    "repository": {
+        "url": "https://github.com/sunladen/sunladen.github.io/tree/master/pbbg"
+    }
+  }
