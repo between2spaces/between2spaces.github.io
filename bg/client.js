@@ -89,7 +89,7 @@ class Entity {
 
 		let domNavParent = this.parent && this.parent.domNavContents ? this.parent.domNavContents : domNav;
 
-		this.domNav = E( domNavParent, 'div', this.id, this.constructor.name );
+		this.domNav = E( domNavParent, 'div', this.id, `entity ${this.constructor.name}` );
 		this.domNavLabel = E( this.domNav, 'div', null, 'label' );
 		this.domNavIcon = E( this.domNavLabel, 'div', null, 'icon', getGlyph( this.constructor.name ) );
 		this.domNavName = E( this.domNavLabel, 'div', null, 'name', this.name );
@@ -99,13 +99,13 @@ class Entity {
 			this.showMain();
 		} );
 
-		this.domFocus = E( null, 'div', this.id, this.constructor.name );
+		this.domFocus = E( null, 'div', this.id, `entity ${this.constructor.name}` );
 		this.domFocusLabel = E( this.domFocus, 'div', null, 'label' );
 		this.domFocusIcon = E( this.domFocusLabel, 'div', null, 'icon', getGlyph( this.constructor.name ) );
 		this.domFocusName = E( this.domFocusLabel, 'div', null, 'name', this.name );
 		this.domFocusContents = E( this.domFocus, 'div', null, 'contents' );
 
-		this.domItem = E( null, 'div', this.id, this.constructor.name );
+		this.domItem = E( null, 'div', this.id, `entity ${this.constructor.name}` );
 		this.domItemLabel = E( this.domItem, 'div', null, 'label' );
 		this.domItemIcon = E( this.domItemLabel, 'div', null, 'icon', getGlyph( this.constructor.name ) );
 		this.domItemName = E( this.domItemLabel, 'div', null, 'name', this.name );

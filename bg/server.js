@@ -77,9 +77,13 @@ function save( entity, data = {} ) {
 	for ( const content of entity.contents ) save( content, data );
 
 	if ( entity.type === 'Entity' ) {
+
 		fs.writeFileSync( '.data/world.json', JSON.stringify( data ) );
+
 	} else if ( entity.type === 'Player' ) {
+
 		fs.writeFileSync( `.data/players/${wsById[ entity.id ].secret}-${entity.name}.json`, JSON.stringify( data ) );
+
 	}
 
 	return data;
@@ -138,8 +142,10 @@ class Entity {
 
 		const index = this.contents.indexOf( entity );
 		if ( index === - 1 ) {
+
 			this.contents.push( entity );
 			this.world.contents.push( entity.world );
+
 		}
 
 		return entity;
@@ -147,15 +153,19 @@ class Entity {
 	}
 
 	destroy() {
+
 		if ( this.parent ) {
+
 			for ( const content of this.contents ) this.parent.add( content, true );
 			const siblings = this.parent.contents;
 			const index = siblings.indexOf( this );
 			if ( index > - 1 ) siblings.splice( index, 1 );
+
 		}
 		if ( this.id in dirtyEntities ) delete dirtyEntities[ this.id ];
 		send( 'destroy', { id: this.id } );
 		this.destroyed = true;
+
 	}
 
 	update() {
@@ -181,13 +191,17 @@ class Entity {
 	forContent( type, callback ) {
 
 		if ( typeof type === 'function' ) {
+
 			callback = type;
 			type = null;
+
 		}
 
 		if ( ! type ) {
+
 			for ( const content of this.contents ) callback( content );
 			return;
+
 		}
 
 		for ( const content of this.contents ) content.type === type && callback( content );
@@ -265,7 +279,9 @@ class InstancedMob extends Mob {
 		character.setProperty( 'healthAmount', character.healthAmount > 0 ? character.healthAmount - 1 : 0 );
 
 		this.forContent( content => {
+
 			console.log( content.name );
+
 		} );
 
 		return true;
@@ -283,6 +299,49 @@ class Rabbit extends NPC {
 	}
 
 }
+
+
+class Damage {
+
+	// https://pathofexile.fandom.com/wiki/Hit
+	// https://pathofexile.fandom.com/wiki/Damage
+	// https://pathofexile.fandom.com/wiki/Receiving_damage
+
+	constructor( source, target ) {
+
+		this.type = this.constructor.name;
+		this.source = source;
+		this.target = target;
+		this.amount = source.damage;
+
+	}
+
+}
+
+
+class PhysicalDamage extends Damage {
+
+	constructor( args = {} ) {
+
+		super( args );
+
+	}
+
+}
+
+
+class Attack {
+
+	constructor( source, target, damages = [] ) {
+
+		this.source = source;
+		this.target = target;
+		this.damages = damages;
+
+	}
+
+}
+
 
 function buildNewWorld() {
 
@@ -337,7 +396,11 @@ world = buildNewWorld();
 
 process.on( 'exit', () => save( world ) );
 process.on( 'SIGINT', () => process.exit( 2 ) );
-process.on( 'uncaughtException', ( e ) => { console.log( e.stack ); process.exit( 99 ); } );
+process.on( 'uncaughtException', ( e ) => {
+
+	console.log( e.stack ); process.exit( 99 );
+
+} );
 
 const wsById = {};
 const wsBySecret = {};
@@ -360,6 +423,7 @@ const heartbeat = 3333;
 function update() {
 
 	try {
+
 		const _inMessages = inMessages;
 		inMessages = [];
 
@@ -368,24 +432,30 @@ function update() {
 		const disconnectedHorizon = Date.now() - heartbeat * 2;
 
 		for ( const id in wsById ) {
+
 			const ws = wsById[ id ];
 			if ( ws.timestamp < disconnectedHorizon ) {
+
 			    disconnected( id );
 			    delete wsById[ id ];
-				wsCount--;
+				wsCount --;
 			    delete wsBySecret[ ws.secret ];
 			    ws.terminate();
 				send( 'disconnected', { id } );
+
 			}
+
 		}
 
 		const _dirtyEntities = dirtyEntities;
 		dirtyEntities = {};
 
 		for ( const id in _dirtyEntities ) {
+
 			const entity = _dirtyEntities[ id ];
 			if ( entity.destroyed ) continue;
 			if ( entity.update() ) dirtyEntities[ id ] = entity;
+
 		}
 
 		const _outMessages = outMessages;
@@ -399,8 +469,10 @@ function update() {
 			const message = JSON.stringify( _global.length ? _outMessages[ id ].concat( _global ) : _outMessages[ id ] );
 
 			if ( ! ( id in wsById ) ) {
+
 				id !== 'global' && console.log( `WARN: disconnected @${id} <- ${message}` );
 				continue;
+
 			}
 
 			wsById[ id ].send( message );
@@ -415,13 +487,17 @@ function update() {
 		console.log( `@global <- ${message}` );
 
 		for ( const id in wsById ) {
+
 			if ( id in sent ) continue;
 			const ws = wsById[ id ];
 			ws.send( message );
+
 		}
 
 	} catch ( e ) {
+
 		console.error( e );
+
 	}
 
 }
@@ -440,18 +516,24 @@ function listen() {
 		let secret = secretRE.exec( req.url );
 
 		if ( secret ) {
+
 			ws.secret = secret[ 1 ];
 			if ( ws.secret in wsBySecret ) ws.id = wsBySecret[ ws.secret ].id;
+
 		}
 
 		if ( ! ws.id && ws.secret ) {
+
 			const player = loadPlayerBySecret( ws.secret );
 			if ( player ) ws.id = player.id;
+
 		}
 
 		if ( ! ws.id ) {
+
 			while ( ! ws.id || ws.id in wsById ) ws.id = uuid();
 			while ( ! ws.secret || ws.secret in wsBySecret ) ws.secret = uuid();
+
 		}
 
 		ws.on( 'message', ( data ) => {
@@ -464,7 +546,9 @@ function listen() {
 				for ( const message of ( messages.constructor !== Array ) ? [ messages ] : messages ) inMessages.push( { message: message, from: ws.id } );
 
 			} catch ( e ) {
+
 				console.error( e );
+
 			}
 
 		} );
@@ -473,13 +557,15 @@ function listen() {
 
 		const isNewConnection = ! ( ws.id in wsById );
 		wsById[ ws.id ] = wsBySecret[ ws.secret ] = ws;
-		wsCount++;
+		wsCount ++;
 
 		send( 'verified', { id: ws.id, secret: ws.secret, heartbeat: heartbeat, world: world.world }, ws.id );
 
 		if ( isNewConnection ) {
+
 			send( 'connected', { id: ws.id } );
 			connected( ws.id );
+
 		}
 
 	} );
