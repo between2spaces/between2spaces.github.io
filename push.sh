@@ -19,7 +19,7 @@ fi
 
 if [ -f "${windows_terminal_settingspath}" ]; then
 	cp "${windows_terminal_settingspath}" windows_terminal.json
-	echo "${windows_terminal_settingspath}"
+	echo "copied ${windows_terminal_settingspath} to windows_terminal.json"
 fi
 
 git diff

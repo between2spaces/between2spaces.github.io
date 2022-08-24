@@ -27,6 +27,22 @@ elif [ -f "${PROGFILES_PATH}$/{GCM_REL_EXE}" ]; then
 fi
 
 
+# get any updates from repo
+git pull
+
+
+# copy windows_terminal.json to app location
+windows_terminal_settingspath="${LOCALAPPDATA}/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
+if [ ! -f "${windows_terminal_settingspath}" ]; then
+	windows_terminal_settingspath="${LOCALAPPDATA}/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json"
+fi
+
+if [ -f "${windows_terminal_settingspath}" ]; then
+	cp windows_terminal.json "${windows_terminal_settingspath}"
+	echo "copied windows_termina.json to ${windows_terminal_settingspath}"
+fi
+
+
 # disable login banner
 touch ~/.hushlogin
 
