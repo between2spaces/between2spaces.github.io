@@ -4,8 +4,9 @@ import fs from 'fs';
 
 function connected( id ) {
 
-	let player;
-	player = 'Player' in entitiesByType && id in entitiesByType[ 'Player' ] ? entitiesByType[ 'Player' ][ id ] : new Player( { id } );
+	send( 'connected', { id: ws.id } );
+
+	let player = 'Player' in entitiesByType && id in entitiesByType[ 'Player' ] ? entitiesByType[ 'Player' ][ id ] : new Player( { id } );
 	if ( ! player.parent ) playerspawn.add( player );
 
 }
@@ -312,7 +313,6 @@ class Damage {
 		this.type = this.constructor.name;
 		this.source = source;
 		this.target = target;
-		this.amount = source.damage;
 
 	}
 
@@ -321,22 +321,33 @@ class Damage {
 
 class PhysicalDamage extends Damage {
 
-	constructor( args = {} ) {
+	constructor( source, target ) {
 
-		super( args );
+		super( source, target );
+
+		this.amount = source.physicalDamage;
 
 	}
 
 }
 
 
+const attacks = [];
+
 class Attack {
 
-	constructor( source, target, damages = [] ) {
+	constructor( initiator, target ) {
 
-		this.source = source;
+		this.initiator = initiator;
 		this.target = target;
-		this.damages = damages;
+
+		attacks.push( this );
+
+	}
+
+	update() {
+
+		let physicalDamage = this.initiator.physicalDamage;
 
 	}
 
@@ -561,12 +572,7 @@ function listen() {
 
 		send( 'verified', { id: ws.id, secret: ws.secret, heartbeat: heartbeat, world: world.world }, ws.id );
 
-		if ( isNewConnection ) {
-
-			send( 'connected', { id: ws.id } );
-			connected( ws.id );
-
-		}
+		if ( isNewConnection ) connected( ws.id );
 
 	} );
 
