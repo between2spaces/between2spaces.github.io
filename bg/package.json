@@ -7,8 +7,7 @@
     "main": "server.js",
     "type": "module",
     "scripts": {
-        "dev": "(npc ncu -u; npm install; trap 'kill 0' SIGINT; npm start)",
-        "start": "if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; export $(sed -e '/^[ ]*#/d' .env | xargs) && node server.js"
+        "start": "(npx ncu -u; npm install; if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; trap 'kill 0' SIGINT; export $(sed -e '/^[ ]*#/d' .env | xargs) && node server.js)"
     },
     "dependencies": {
         "ws": "^8.8.1"

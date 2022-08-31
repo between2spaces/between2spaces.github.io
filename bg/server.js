@@ -4,7 +4,7 @@ import fs from 'fs';
 
 function connected( id ) {
 
-	send( 'connected', { id: ws.id } );
+	send( 'connected', { id } );
 
 	let player = 'Player' in entitiesByType && id in entitiesByType[ 'Player' ] ? entitiesByType[ 'Player' ][ id ] : new Player( { id } );
 	if ( ! player.parent ) playerspawn.add( player );
@@ -163,6 +163,7 @@ class Entity {
 			if ( index > - 1 ) siblings.splice( index, 1 );
 
 		}
+
 		if ( this.id in dirtyEntities ) delete dirtyEntities[ this.id ];
 		send( 'destroy', { id: this.id } );
 		this.destroyed = true;

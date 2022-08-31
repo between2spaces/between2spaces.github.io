@@ -10,11 +10,11 @@
     	"url": "https://github.com/between2spaces/between2spaces.git"
     },
     "scripts": {
-        "start": "(npm install; npc ncu -u; npm install; trap 'kill 0' SIGINT; python3 -m http.server)"
+        "start": "(npm install; npx ncu -u; npm install; trap 'kill 0' SIGINT; python3 -m http.server)"
     },
     "devDependencies": {
-		"eslint": "^8.22.0",
-        "eslint-config-mdcs": "^4.2.3",
-		"npm-check-updates": "^16.0.5"
+		"eslint": "^8.23.0",
+        "eslint-config-mdcs": "^5.0.0",
+		"npm-check-updates": "^16.0.6"
     }
 }

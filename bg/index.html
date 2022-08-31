@@ -3,64 +3,10 @@
   <head>
     <meta charset="UTF-8">
     <title>BG</title>
-    <style>
-    	* {
-			cursor: default;
-		}
-      html {
-        height: 100%;
-      }
-      body {
-        margin: 0;
-        background: #fff;
-        font-family: monospace;
-        font-size: 20pt;
-        height: 100%;
-		display: flex;
-      }
-      #nav {
-        border-right: 3px solid #777;
-		padding-right: 0.5em;
-        height: 100%;
-      }
-	  #main {
-		flex: 1;
-	  }
-	  #main .entity {
-		  display: inline-block;
-	  }
-	  .label {
-	  	position: relative;
-		border: 1px solid #ddd;
-		border-top: 5px solid #ddd;
-	  }
-      .icon {
-        display: inline-block;
-        color: #555;
-        width: 1em;
-      }
-	  .name {
-		display: inline-block;
-		position: relative;
-		z-index: 2;
-	  }
-	  .health {
-		display: inline-block;
-		position: absolute;
-		margin-top: -5px;
-		border-top: 5px solid #7f7;
-		left: 0;
-		height: 100%;
-		z-index: 1;
-	  }
-      #nav .contents {
-        margin-left: 1em;
-      }
-    </style>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <link rel="stylesheet" href="./style.css">
   </head>
   <body>
-    <div id="nav"></div>
-    <div id="main"></div>
     <script type="module">
   	import './client.js';
     </script>

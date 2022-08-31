@@ -1,7 +1,5 @@
 const serverURL = new URL( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://daffodil-polite-seat.glitch.me/' );
 
-const domNav = document.getElementById( 'nav' );
-const domMain = document.getElementById( 'main' );
 
 function onverified( message ) {
 
@@ -339,3 +337,11 @@ socket.onmessage = ( e ) => {
 		}
 	}
 }
+
+
+const tableOfContents = {
+
+	dom: E( document.body, 'table' )
+
+};
+
