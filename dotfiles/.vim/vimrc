@@ -58,7 +58,7 @@ map <C-p> :find *<Tab>
 
 
 " Enable system clipboard integration
-set clipboard+=unnamedplus
+set clipboard=unnamed
 
 
 nnoremap <SPACE> <Nop>

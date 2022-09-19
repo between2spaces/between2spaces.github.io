@@ -1,0 +1,17 @@
+{
+    "name": "txt",
+    "version": "0.1.0",
+    "description": "",
+	"author": "between2spaces",
+    "license": "MIT",
+    "main": "index.html",
+    "type": "module",
+    "scripts": {
+        "start": "(npx ncu -u; npm install; if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; trap 'kill 0' SIGINT; export $(sed -e '/^[ ]*#/d' .env | xargs) && python3 -m http.server)"
+    },
+    "dependencies": {
+    },
+    "repository": {
+        "url": "https://github.com/sunladen/sunladen.github.io/tree/master/txt"
+    }
+  }
