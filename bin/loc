@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+import requests
+from lxml import html, etree
+response = requests.get("https://sydney.locanto.com.au/Personals/P/?sort=date")
+tree = html.fromstring(response.text)
+entries = tree.xpath('//div[contains(@class, "bp_ad ") and not(contains(@class, "--native_ad"))]')
+for entry in entries:
+    if len(entry.xpath('.//a[@href="https://sydney.locanto.com.au/Men-Looking-for-Women/20701/"]')) > 0:
+        continue
+    if len(entry.xpath('.//a[@href="https://sydney.locanto.com.au/Men-Looking-for-Men/20704/"]')) > 0:
+        continue
+    if len(entry.xpath('.//a[@href="https://sydney.locanto.com.au/Transgender-Adventures/20711/"]')) > 0:
+        continue
+    if len(entry.xpath('.//a[@href="https://sydney.locanto.com.au/tag/Crossdresser/"]')) > 0:
+        continue
+    title = entry.xpath('.//a[@class="bp_ad__title_link"]')[0]
+    desc = entry.xpath('.//a[@class="bp_ad__desc_link"]')[0]
+    print(etree.tostring(entry))
+    print()
+    print(title.text)
+    print()
+    print(desc.text)
+    print()

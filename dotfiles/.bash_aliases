@@ -2,6 +2,7 @@ alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 alias code='code -r'
+alias open='code -r'
 alias closure='java -jar ~/bin/closure-compiler-v20220601.jar'
 
 if command -v batcat &> /dev/null; then alias bat='batcat'; fi
