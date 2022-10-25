@@ -114,8 +114,8 @@
     "defaultProfile": "{e381fe40-9d15-58b7-99ea-5908cd6561e5}",
     "experimental.rendering.forceFullRepaint": true,
     "focusFollowMouse": true,
-    "initialCols": 140,
-    "initialRows": 80,
+    "initialCols": 120,
+    "initialRows": 30,
     "language": "en-AU",
     "launchMode": "default",
     "profiles": 
@@ -132,7 +132,7 @@
             "font": 
             {
                 "face": "Cascadia Code PL",
-                "size": 14
+                "size": 14.0
             },
             "padding": "0",
             "scrollbarState": "hidden",
