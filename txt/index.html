@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <title>txt</title>
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <script src="lib/gl-matrix-min-3.3.0.js"></script>
+	<meta charset="UTF-8">
+	<title>txt</title>
+	<style>
+		div { background: yellow; display: flex; margin-bottom: 10px; }
+		input { flex: 2; }
+	</style>
   </head>
   <body>
-    <canvas id="glCanvas" width="640" height="480"></canvas>
-    <script type="module">
-  	import './main.js';
-    </script>
+	<div>
+		<input id="fileupload" type="file" name="fileupload" />
+		<button id="upload-button">Upload</button>
+	</div>
+	<canvas id="a" width="640" height="480"></canvas>
+	<canvas id="b" width="640" height="480"></canvas>
+	<script type="module">
+	import './main.js';
+	</script>
   </body>
 </html>

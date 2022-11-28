@@ -2,25 +2,55 @@ import { WebSocketServer } from 'ws';
 import crypto from 'crypto';
 import fs from 'fs';
 
+
 function connected( id ) {
 
 	send( 'connected', { id } );
 
-	let player = 'Player' in entitiesByType && id in entitiesByType[ 'Player' ] ? entitiesByType[ 'Player' ][ id ] : new Player( { id } );
-	if ( ! player.parent ) playerspawn.add( player );
+	const client = id in clientById ? clientById[ id ] : new Client( { id } );
+	if ( ! client.parent ) clientlanding.add( client );
 
 }
 
 function disconnected( id ) {
 
-	const player = entitiesByType[ 'Player' ][ id ];
-	save( player );
-	player.destroy();
-	delete entitiesByType[ 'Player' ][ id ];
+	const client = clientById[ id ];
+
+	client.destroy();
+
+	delete entitiesByType[ 'Client' ][ id ];
+	delete clientById[ id ];
+	delete clientBySecret[ client.secret ];
+
+	send( 'disconnected', { id } );
 
 }
 
-function load( file ) {
+
+const clientById = {};
+const clientBySecret = {};
+const entitiesById = {};
+const entitiesByType = {};
+const world = read( '.data/world.json' ) || new Entity();
+
+const clientlanding = world.add( new Location() );
+
+function clientlandingUpdate() {
+
+	clientlanding.forContent( 'Client', client => {
+
+
+	} );
+
+	return true;
+
+}
+
+clientlanding.update = clientlandingUpdate.bind( clientlanding );
+
+
+
+function read( file ) {
 
 	if ( ! fs.existsSync( file ) ) return null;
 
@@ -52,47 +82,29 @@ function load( file ) {
 
 }
 
-function loadPlayerBySecret( secret ) {
 
-	if ( ! secret ) return;
 
-	console.log( `loadPlayerBySecret( "${secret}" )` );
-
-	for ( const file of fs.readdirSync( '.data/players' ) ) {
-
-		if ( file.startsWith( `${secret}-` ) ) return load( `.data/players/${file}` );
-
-	}
-
-}
-
-function save( entity, data = {} ) {
+function write( entity, data = {} ) {
 
 	if ( ! entity ) return;
 
-	if ( entity.type === 'Player' ) data = {};
+	if ( entity.type === 'Client' ) data = {};
 
 	entity.type in data || ( data[ entity.type ] = [] );
 	data[ entity.type ].push( [ entity.id, entity.name, entity.parent ? entity.parent.id : null ] );
 
-	for ( const content of entity.contents ) save( content, data );
+	for ( const content of entity.contents ) write( content, data );
 
-	if ( entity.type === 'Entity' ) {
+	const dir = '.data/{}'.format( entity.type );
+	if ( ! fs.existsSync( dir ) ) fs.mkdirSync( dir, { recursive: true } );
 
-		fs.writeFileSync( '.data/world.json', JSON.stringify( data ) );
-
-	} else if ( entity.type === 'Player' ) {
-
-		fs.writeFileSync( `.data/players/${wsById[ entity.id ].secret}-${entity.name}.json`, JSON.stringify( data ) );
-
-	}
+	fs.writeFileSync( '{}/{}.json'.format( entity.type, entity.type === 'Client' ? `${clientById[ entity.id ].secret}-${entity.name}` : `${entity.id}-${entity.name}` ), JSON.stringify( data ) );
 
 	return data;
 
 }
 
-let entitiesById = {};
-let entitiesByType = {};
+
 let dirtyEntities = {};
 
 class Entity {
@@ -222,191 +234,30 @@ class Location extends Entity {
 
 }
 
-class Character extends Entity {
-
-	constructor( args = {} ) {
-
-		super( args );
-
-		this.setProperty( 'healthTotal', 100 );
-		this.setProperty( 'healthAmount', 100 );
-
-	}
-
-}
-
-class Player extends Character {
+class Client extends Entity {
 
 	constructor( args = {} ) {
 
 		super( Object.assign( { name: `Guest-${args.id}` }, args ) );
-
-	}
-
-}
-
-class NPC extends Character {
-
-	constructor( args = {} ) {
-
-		super( Object.assign( { type: 'NPC' }, args ) );
-
-	}
-
-}
-
-class Mob extends Entity {
-
-	constructor( args = {} ) {
-
-		args.id = args.id || uuid();
-		super( Object.assign( { name: `Mob-${args.id}` }, args ) );
-
-	}
-
-}
-
-class InstancedMob extends Mob {
-
-	constructor( args = {} ) {
-
-		super( args );
-
-	}
-
-	update() {
-
-		const character = this.parent;
-
-		character.setProperty( 'healthAmount', character.healthAmount > 0 ? character.healthAmount - 1 : 0 );
-
-		this.forContent( content => {
-
-			console.log( content.name );
-
-		} );
-
-		return true;
-
-	}
-
-}
-
-class Rabbit extends NPC {
-
-	constructor( args = {} ) {
-
-		super( Object.assign( { name: 'Rabbit' }, args ) );
+		this.secret = uuid();
 
 	}
 
 }
 
 
-class Damage {
-
-	// https://pathofexile.fandom.com/wiki/Hit
-	// https://pathofexile.fandom.com/wiki/Damage
-	// https://pathofexile.fandom.com/wiki/Receiving_damage
-
-	constructor( source, target ) {
-
-		this.type = this.constructor.name;
-		this.source = source;
-		this.target = target;
-
-	}
-
-}
-
-
-class PhysicalDamage extends Damage {
-
-	constructor( source, target ) {
-
-		super( source, target );
-
-		this.amount = source.physicalDamage;
-
-	}
-
-}
-
-
-const attacks = [];
-
-class Attack {
-
-	constructor( initiator, target ) {
-
-		this.initiator = initiator;
-		this.target = target;
-
-		attacks.push( this );
-
-	}
-
-	update() {
-
-		let physicalDamage = this.initiator.physicalDamage;
-
-	}
-
-}
-
-
-function buildNewWorld() {
-
-	entitiesById = {};
-	entitiesByType = {};
-
-	const world = new Entity();
-
-	playerspawn = world.add( new Location( { name: 'Start Location' } ) );
-
-	function playerspawnUpdate() {
-
-		playerspawn.forContent( 'Player', player => {
-
-			const instancedMobName = `InstancedMob-${player.id}`;
-
-			if ( ! player.containsType( /^InstancedMob$/ ) ) {
-
-				const mob = new InstancedMob( { name: 'Mob of rabbits' } );
-				mob.add( new Rabbit() );
-				player.add( mob );
-
-			}
-
-		} );
-
-		return true;
-
-	}
-
-	playerspawn.update = playerspawnUpdate.bind( playerspawn );
-
-	return world;
-
-}
-
-function uuid( bytes = uuid.size, id ) {
+function uuid( bytes = 4, id ) {
 
 	while ( ! id || id in uuid.used ) id = crypto.randomBytes( bytes ).toString( 'hex' );
 	return uuid.used[ id ] = id;
 
 }
 
-uuid.size = 4;
 uuid.used = {};
 
-if ( ! fs.existsSync( '.data/players' ) ) fs.mkdirSync( '.data/players', { recursive: true } );
 
-let playerspawn;
-let world = load( '.data/world.json' ) || buildNewWorld();
-world = buildNewWorld();
 
-process.on( 'exit', () => save( world ) );
+process.on( 'exit', () => write( world ) );
 process.on( 'SIGINT', () => process.exit( 2 ) );
 process.on( 'uncaughtException', ( e ) => {
 
@@ -414,8 +265,7 @@ process.on( 'uncaughtException', ( e ) => {
 
 } );
 
-const wsById = {};
-const wsBySecret = {};
+
 
 let wsCount = 0;
 
@@ -443,15 +293,15 @@ function update() {
 
 		const disconnectedHorizon = Date.now() - heartbeat * 2;
 
-		for ( const id in wsById ) {
+		for ( const id in clientById ) {
 
-			const ws = wsById[ id ];
+			const ws = clientById[ id ].ws;
 			if ( ws.timestamp < disconnectedHorizon ) {
 
 			    disconnected( id );
-			    delete wsById[ id ];
+			    delete clientById[ id ];
 				wsCount --;
-			    delete wsBySecret[ ws.secret ];
+			    delete clientBySecret[ ws.secret ];
 			    ws.terminate();
 				send( 'disconnected', { id } );
 
@@ -514,6 +364,7 @@ function update() {
 
 }
 
+
 function listen() {
 
 	const port = process.env.PORT;
@@ -530,13 +381,25 @@ function listen() {
 		if ( secret ) {
 
 			ws.secret = secret[ 1 ];
-			if ( ws.secret in wsBySecret ) ws.id = wsBySecret[ ws.secret ].id;
+			if ( ws.secret in clientBySecret ) ws.id = clientBySecret[ ws.secret ].id;
 
 		}
 
 		if ( ! ws.id && ws.secret ) {
 
-			const player = loadPlayerBySecret( ws.secret );
+			let player;
+
+			for ( const file of fs.readdirSync( '.data/client' ) ) {
+
+				if ( file.startsWith( `${secret}-` ) ) {
+
+					player = read( `.data/client/${file}` );
+					break;
+
+				}
+
+			}
+
 			if ( player ) ws.id = player.id;
 
 		}
@@ -544,7 +407,7 @@ function listen() {
 		if ( ! ws.id ) {
 
 			while ( ! ws.id || ws.id in wsById ) ws.id = uuid();
-			while ( ! ws.secret || ws.secret in wsBySecret ) ws.secret = uuid();
+			while ( ! ws.secret || ws.secret in clientBySecret ) ws.secret = uuid();
 
 		}
 
@@ -568,7 +431,7 @@ function listen() {
 		ws.timestamp = Date.now();
 
 		const isNewConnection = ! ( ws.id in wsById );
-		wsById[ ws.id ] = wsBySecret[ ws.secret ] = ws;
+		wsById[ ws.id ] = clientBySecret[ ws.secret ] = ws;
 		wsCount ++;
 
 		send( 'verified', { id: ws.id, secret: ws.secret, heartbeat: heartbeat, world: world.world }, ws.id );

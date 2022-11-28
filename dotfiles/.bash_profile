@@ -2,7 +2,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 export LANGUAGE=en_US.UTF-8
 
-export DISPLAY=localhost:0
+export DISPLAY=:0
 export LIBGL_ALWAYS_INDIRECT=1
 
 export EDITOR=vi

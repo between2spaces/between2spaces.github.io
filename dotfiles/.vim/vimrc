@@ -24,6 +24,7 @@ set cursorline
 set showbreak=↪\
 set scrolloff=8
 set listchars=space:·,tab:→\ ,eol:↲,nbsp:␣,trail:•,extends:⟩,precedes:⟨
+set list
 set signcolumn=number
 set background=dark
 
@@ -32,19 +33,17 @@ set background=dark
 "hi Normal ctermbg=NONE
 "hi StatusLine ctermbg=1
 "hi ColorColumn ctermbg=Black
-hi LineNr ctermfg=black
+hi LineNr ctermfg=darkgrey
 hi CursorLine cterm=bold
 hi CursorLineNr cterm=bold ctermfg=grey
-hi NonText ctermfg=black
-hi SpecialKey ctermfg=black
+hi NonText ctermfg=darkgrey
+hi SpecialKey ctermfg=darkgrey
 hi VertSplit cterm=NONE ctermfg=black
 
 
 let g:netrw_dirhistmax = 0
 
-set wildcharm=<Tab>
-set wildmenu
-set wildmode=full
+set wildcharm=<Tab> wildmenu wildmode=full
 set wildignore+=*.bmp,*.gif,*.ico,*.jpg,*.png,*.ico
 set wildignore+=*.pdf,*.psd
 set wildignore+=node_modules/*,.git/*
@@ -114,15 +113,6 @@ autocmd VimEnter * normal! :startinsert :stopinsert
 
 
 
-" Project Drawer
-let g:netrw_banner = 0
-let g:netrw_liststyle = 3
-let g:netrw_browse_split = 4
-let g:netrw_altv = 1
-let g:netrw_winsize = 15
-
-
-
 " Plugins
 if empty(glob('~/.vim/autoload/plug.vim'))
 	silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
@@ -140,6 +130,7 @@ call plug#begin('~/.vim/plugged')
 	Plug 'junegunn/fzf.vim'
 	Plug 'itchyny/lightline.vim'
 	Plug 'pangloss/vim-javascript'
+	Plug 'djoshea/vim-autoread'
 call plug#end()
 
 
@@ -150,10 +141,6 @@ autocmd VimEnter *
 
 
 
-"let g:syntastic_javascript_eslint_exe = '/usr/bin/ls' "[ -f $(npm bin)/eslint ] && $(npm bin)/eslint || eslint'
-" Enable the eslint checker
-"let g:syntastic_debug=33
-"let g:syntastic_debug_file="~/syntastic.log"
 let g:syntastic_javascript_checkers=['eslint']
 let g:syntastic_javascript_eslint_generic = 1
 let g:syntastic_javascript_eslint_exec = '/bin/ls'
@@ -171,10 +158,6 @@ let g:syntastic_loc_list_height = 5
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 
-" read changed javascript file after eslint applied fixes
-set autoread
-au BufReadPost *.js checktime
-au VimEnter *.js au BufWritePost *.js checktime
 
 
 let g:lightline = {
@@ -184,6 +167,7 @@ let g:lightline = {
 	\ }
 
 syntax enable
+
 
 
 " fzf shortcuts

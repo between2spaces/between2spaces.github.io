@@ -2,110 +2,78 @@ window.onload = main;
 
 function main() {
 
-	const canvas = document.querySelector( "#glCanvas" );
-	const gl = canvas.getContext( "webgl" );
-	gl.clearColor( 0.0, 0.0, 0.0, 1.0 );
-	gl.clear( gl.COLOR_BUFFER_BIT );
+	const imgcanvas = document.querySelector( '#a' );
+	const img2d = imgcanvas.getContext( '2d' );
+	img2d.fillStyle = 'blue';
+	img2d.fillRect( 0, 0, 640, 480 );
 
-	const shaderProgram = initShaderProgram( gl, `
-	  attribute vec4 aVertexPosition;
-	  uniform mat4 uModelViewMatrix;
-	  uniform mat4 uProjectionMatrix;
-	  void main() {
-	    gl_Position = uModelViewMatrix * aVertexPosition;
-	  }
-	`, `
-	  void main() {
-	    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-	  }
-	` );
+	const b = document.querySelector( '#b' );
+	const b2d = b.getContext( '2d' );
+	b2d.fillStyle = 'red';
+	b2d.fillRect( 0, 0, 640, 480 );
 
-	const programInfo = {
-		program: shaderProgram,
-		attribLocations: {
-			vertexPosition: gl.getAttribLocation( shaderProgram, "aVertexPosition" ),
-		},
-		uniformLocations: {
-			modelViewMatrix: gl.getUniformLocation( shaderProgram, "uModelViewMatrix" ),
+	const fileupload = document.querySelector( '#fileupload' );
+	const uploadBtn = document.querySelector( '#upload-button' );
+	uploadBtn.addEventListener( 'click', event => {
+		let formData = new FormData();
+		formData.append("file", fileupload.files[0]);
+		await fetch('/upload.php', {
+				method: "POST",
+				body: formData
+		});
+
+		if ( event.key === 'Enter' ) {
+
+			var img = document.createElement( 'img' );
+			img.crossOrigin = 'anonymous';
+			img.onload = () => {
+
+				//	// console.log( img.width, img.height, imgcanvas.width, imgcanvas.height );
+				img2d.drawImage( img, 0, 0, img.width, img.height, 0, 0, imgcanvas.width, imgcanvas.height );
+				const dataURL = imgcanvas.toDataURL();
+				console.log( dataURL );
+				//	// const imgData = img2d.getImageData( 0, 0, imgcanvas.width, imgcanvas.height );
+				//	// for ( let i = 0; i < imgData.data.length; i += 4 ) {
+
+				//	//	let count = imgData.data[ i ] + imgData.data[ i + 1 ] + imgData.data[ i + 2 ];
+				//	//	let colour = 0;
+				//	//	if ( count > 510 ) colour = 255;
+				//	//	else if ( count > 255 ) colour = 127.5;
+
+				//	//	imgData.data[ i ] = colour;
+				//	//	imgData.data[ i + 1 ] = colour;
+				//	//	imgData.data[ i + 2 ] = colour;
+				//	//	imgData.data[ i + 3 ] = 255;
+
+				//	// }
+
+				//	// img2d.putImageData( imgData, 0, 0 );
+
+			};
+
+			img.src = imgsrc.value;
+
 		}
-	};
 
-
-	initBuffers( gl );
-
-	drawScene( gl, programInfo );
-
+	} );
 
 }
 
-function initBuffers( gl ) {
+async function getBase64FromUrl( url ) {
 
-	const positionBuffer = gl.createBuffer();
-	gl.bindBuffer( gl.ARRAY_BUFFER, positionBuffer );
-	const positions = [
-		 1.0, 1.0,
-		- 1.0, 1.0,
-		 1.0, - 1.0,
-		- 1.0, - 1.0
-	];
-	gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( positions ), gl.STATIC_DRAW );
+	const data = await fetch( url );
+	const blob = await data.blob();
+	return new Promise( ( resolve ) => {
 
-}
+	  const reader = new FileReader();
+	  reader.readAsDataURL( blob );
+	  reader.onloadend = () => {
 
-function drawScene( gl, programInfo ) {
+			const base64data = reader.result;
+			resolve( base64data );
 
-	gl.clearColor( 0.0, 0.0, 0.0, 1.0 ); // Clear to black, fully opaque
-	gl.clearDepth( 1.0 ); // Clear everything
-	gl.enable( gl.DEPTH_TEST ); // Enable depth testing
-	gl.depthFunc( gl.LEQUAL ); // Near things obscure far things
-	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+		};
 
-	// Create a perspective matrix
-	//const projectionMatrix = glMatrix.mat4.create();
-	//glMatrix.mat4.perspective( projectionMatrix, 45 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.1, 100.0 );
-
-	// Set drawing position to the "identity" point, which is the centre of the scene
-	const modelViewMatrix = glMatrix.mat4.create();
-
-	// Move drawing position
-	// DEBUG: offset -0.1 to remember we're drawing something over black background
-	glMatrix.mat4.translate( modelViewMatrix, modelViewMatrix, [ - 0.1, 0.0, - 0.0 ] );
-
-	// Tell WebGL how to pull out positions form position buffer into the vertexPosition attribute
-	gl.vertexAttribPointer( programInfo.attribLocations.vertexPosition, 2, gl.FLOAT, false, 0, 0 );
-	gl.enableVertexAttribArray( programInfo.attribLocations.vertexPosition );
-
-	gl.useProgram( programInfo.program );
-
-	//gl.uniformMatrix4fv( programInfo.uniformLocations.projectionMatrix, false, projectionMatrix );
-	gl.uniformMatrix4fv( programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix );
-
-	gl.drawArrays( gl.TRIANGLE_STRIP, 0, 4 );
-
-}
-
-function initShaderProgram( gl, vertexShaderSource, fragmentShaderSource ) {
-
-	const vertexShader = loadShader( gl, gl.VERTEX_SHADER, vertexShaderSource );
-	const fragmentShader = loadShader( gl, gl.FRAGMENT_SHADER, fragmentShaderSource );
-	const shaderProgram = gl.createProgram();
-	gl.attachShader( shaderProgram, vertexShader );
-	gl.attachShader( shaderProgram, fragmentShader );
-	gl.linkProgram( shaderProgram );
-	if ( gl.getProgramParameter( shaderProgram, gl.LINK_STATUS ) ) return shaderProgram;
-	alert( `Unable to initialize the shader program:
-${gl.getProgramInfoLog( shaderProgram )}` );
-
-}
-
-function loadShader( gl, type, source ) {
-
-	const shader = gl.createShader( type );
-	gl.shaderSource( shader, source );
-	gl.compileShader( shader );
-	if ( gl.getShaderParameter( shader, gl.COMPILE_STATUS ) ) return shader;
-	alert( `An error occurred compiling the shaders:
-${gl.getShaderInfoLog( shader )}` );
-	gl.deleteShader( shader );
+	} );
 
 }

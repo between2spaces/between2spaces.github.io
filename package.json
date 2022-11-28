@@ -1,20 +1,20 @@
 {
-    "name": "between2spaces.github.io",
-    "description": "between2spaces github",
-    "author": "Between2Spaces",
-    "version": "0.1.0",
-    "private": true,
-    "licence": "MIT",
+	"name": "between2spaces.github.io",
+	"description": "between2spaces github",
+	"author": "Between2Spaces",
+	"version": "0.1.0",
+	"private": true,
+	"licence": "MIT",
 	"type": "module",
 	"repository": {
-    	"url": "https://github.com/between2spaces/between2spaces.git"
-    },
-    "scripts": {
-        "start": "(npm install; npx ncu -u; npm install; trap 'kill 0' SIGINT; python3 -m http.server)"
-    },
-    "devDependencies": {
-		"eslint": "^8.23.0",
-        "eslint-config-mdcs": "^5.0.0",
-		"npm-check-updates": "^16.0.6"
-    }
+		"url": "https://github.com/between2spaces/between2spaces.git"
+	},
+	"scripts": {
+		"start": "(npm install; npx ncu -u; npm install; trap 'kill 0' SIGINT; python3 -m http.server)"
+	},
+	"devDependencies": {
+		"eslint": "^8.28.0",
+		"eslint-config-mdcs": "^5.0.0",
+		"npm-check-updates": "^16.4.3"
+	}
 }
