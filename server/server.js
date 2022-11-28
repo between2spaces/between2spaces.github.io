@@ -14,11 +14,10 @@ wss.on( 'connection', ( ws, req ) => {
 
 	const secret = /[?&]{1}secret=([0-9a-fA-F]{8})/.exec( req.url );
 
-	const isNewConnection = secret && secret in Client.bySecret;
-	const client = secret ? secret in Client.bySecret ? Client.bySecret[ secret ] : Client.readBySecret( secret ) : new Client();
-	Client.wsById[ client.id ] = ws;
+	const isNewConnection = secret && secret in clientBySecret;
+	const client = secret ? secret in clientBySecret ? clientBySecret[ secret ] : readClientBySecret( secret ) : new Entity( { type: 'Client', value: `Client-$id`, secret: uuid() } );
+	wsById[ client.id ] = ws;
 	console.log( client );
-	Client.count ++;
 
 	ws.on( 'message', ( data ) => {
 
@@ -63,48 +62,67 @@ class Entity {
 		Object.assign( this, args );
 
 		this.id || ( this.id = uuid() );
-		this.type = this.type || this.constructor.name;
-		this.value = this.value ?? null;
-		this.parentId = null;
-		this.delta = { type: this.type, value: this.value };
-
+		this.type = 'Entity';
+		this.delta = { type: this.type };
 
 		if ( ! ( this.id in Entity.byId ) ) Entity.byId[ this.id ] = {};
 		Entity.byId[ this.id ] = Entity.dirty[ this.id ] = this;
+
+		for ( const property of Object.keys( args ) ) {
+
+			if ( property !== 'id' ) this.setProperty( property, args[ property ] );
+
+		}
 
 	}
 
 	setProperty( property, value ) {
 
 		if ( this[ property ] === value ) return;
-		this[ property ] !== value && ( this[ property ] = this.delta[ property ] = value, Entity.dirty[ this.id ] = this );
 
-	}
+		if ( property === 'parentId' ) {
 
-	add( entity ) {
+			if ( this.parentId in Entity.byParentId ) {
 
-		console.log( `add; ${entity.value}(${entity.id}) -> ${this.value}(${this.id})` );
+				const index = Entity.byParentId[ this.parentId ].indexOf( this );
+				if ( index > - 1 ) Entity.byParentId[ this.parentId ].splice( index, 1 );
 
-		let parentId = entity.parentId;
-
-		if ( parentId === this.id ) return;
-
-		if ( parentId in Entity.byParentId ) {
-
-			const siblings = Entity.byParentId[ parentId ];
-			const index = siblings.indexOf( entity );
-			if ( index > - 1 ) siblings.splice( index, 1 );
+			}
 
 		}
 
-		parentId = this.id;
-		entity.setProperty( 'parentId', parentId );
+		if ( property === 'type' ) {
 
-		const siblings = Entity.byParentId[ parentId ];
-		const index = siblings.indexOf( entity );
-		if ( index === - 1 ) siblings.push( entity );
+			if ( this.type in Entity.byType ) {
 
-		return entity;
+				const index = Entity.byType[ this.type ].indexOf( this );
+				if ( index > - 1 ) Entity.byType[ this.type ].splice( index, 1 );
+
+			}
+
+		}
+
+		this[ property ] = this.delta[ property ] = value;
+
+		if ( property === 'parentId' ) {
+
+			if ( this.parentId ) {
+
+				if ( ! ( this.parentId in Entity.byParentId ) ) Entity.byParentId[ this.parentId ] = [];
+				Entity.byParentId.push( this );
+
+			}
+
+		}
+
+		if ( property === 'type' ) {
+
+			if ( ! ( this.type in Entity.byType ) ) Entity.byType[ this.type ] = [];
+			Entity.byType[ this.type ].push( this );
+
+		}
+
+		Entity.dirty[ this.id ] = this;
 
 	}
 
@@ -114,13 +132,23 @@ class Entity {
 		const contents = this.id in Entity.byParentId ? Entity.byParentId[ this.id ] : [];
 
 		if ( siblings ) {
+
 			const index = siblings.indexOf( this );
 			if ( index > - 1 ) siblings.splice( index, 1 );
 			for ( const entity of contents ) siblings.push( entity );
 			delete Entity.byParentId[ this.parentId ];
+
 		}
 
 		if ( this.id in Entity.byId ) delete Entity.byId[ this.id ];
+
+		if ( this.type in Entity.byType ) {
+
+			const index = Entity.byType[ this.type ].indexOf( this );
+			if ( index > - 1 ) Entity.byType[ this.type ].splice( index, 1 );
+
+		}
+
 		if ( this.id in Entity.dirty ) delete Entity.dirty[ this.id ];
 		send( 'destroy', { id: this.id } );
 		this.destroyed = true;
@@ -138,6 +166,7 @@ class Entity {
 }
 
 Entity.byId = {};
+Entity.byType = {};
 Entity.byParentId = {};
 Entity.dirty = {};
 
@@ -151,7 +180,7 @@ class Client extends Entity {
 		this.secret = uuid();
 		Client.byId[ this.id ] = this;
 		Client.bySecret[ this.secret ] = this;
-		Client.count++;
+		Client.count ++;
 
 	}
 

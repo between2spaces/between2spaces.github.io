@@ -3,4 +3,4 @@
 [github](https://github.com/between2spaces) | [pages](https://between2spaces.github.io)
 
 
-[bg](/bg)
+[server](/server)
