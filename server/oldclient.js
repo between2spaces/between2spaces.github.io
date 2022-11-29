@@ -44,7 +44,7 @@ function read( entityData ) {
 			const Class = eval( entityData.type );
 			entity = new Class( entityData );
 
-		} catch( err ) {
+		} catch ( err ) {
 
 			console.log( `Unknown type "${entityData.type}"`, err );
 
@@ -59,7 +59,7 @@ function read( entityData ) {
 }
 
 const entitiesById = {};
-const entitiesByType = {}
+const entitiesByType = {};
 
 class Entity {
 
@@ -83,9 +83,13 @@ class Entity {
 		property === 'parent' ? entitiesById[ value ].add( this ) : this[ property ] = value;
 		const onproperty = `on${property}`;
 		try {
+
 			if ( onproperty in this ) this[ onproperty ]( value );
-		} catch( e ) {
+
+		} catch ( e ) {
+
 			console.log( e );
+
 		}
 
 	}
@@ -93,13 +97,17 @@ class Entity {
 	forContent( type, callback ) {
 
 		if ( typeof type === 'function' ) {
+
 			callback = type;
 			type = null;
+
 		}
 
 		if ( ! type ) {
+
 			for ( const content of this.contents ) callback( content );
 			return;
+
 		}
 
 		for ( const content of this.contents ) content.type === type && callback( content );
@@ -130,10 +138,12 @@ class Entity {
 	destroy() {
 
 		if ( this.parent ) {
+
 			for ( const content of this.contents ) this.parent.add( content, true );
 			const siblings = this.parent.contents;
 			const index = siblings.indexOf( this );
 			if ( index > - 1 ) siblings.splice( index, 1 );
+
 		}
 
 	}
@@ -158,7 +168,7 @@ function send( message ) {
 
 }
 
-let identity = JSON.parse( localStorage.getItem( 'client.identity' ) ) ?? {};
+let identity = JSON.parse( localStorage.getItem( 'client.identity' ) ) || {};
 
 if ( identity.secret ) serverURL.search = `secret=${identity.secret}`;
 
@@ -187,11 +197,15 @@ connect();
 
 var socketWorker = new Worker( URL.createObjectURL( new Blob( [ SocketWorkerProg ] ) ) );
 socketWorker.onmessage = ( msg ) => {
+
 	msg = JSON.parse( msg.data );
 	if ( 'log' in msg ) {
+
 		console.log( msg.log );
+
 	}
 	//socket.send( JSON.stringify( outMessages ) ); outMessages = [];
+
 };
 //socketWorker.postMessage( 0 );
 

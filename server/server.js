@@ -13,10 +13,19 @@ wss.on( 'connection', ( ws, req ) => {
 	console.log( `-> ${req.url}` );
 
 	const secret = /[?&]{1}secret=([0-9a-fA-F]{8})/.exec( req.url );
-
 	const isNewConnection = secret && secret in clientBySecret;
-	const client = secret ? secret in clientBySecret ? clientBySecret[ secret ] : readClientBySecret( secret ) : new Entity( { type: 'Client', value: `Client-$id`, secret: uuid() } );
-	wsById[ client.id ] = ws;
+
+	let client;
+
+	if ( secret ) client = secret in clientBySecret ? client = clientBySecret[ secret ] : readClientBySecret( secret );
+	if ( ! client ) {
+
+		client = new Entity( { type: 'Client', secret: uuid() } );
+		client.setProperty( 'value', `Client-${client.id}` );
+
+	}
+
+	wsByClientId[ client.id ] = ws;
 	console.log( client );
 
 	ws.on( 'message', ( data ) => {
@@ -40,7 +49,7 @@ wss.on( 'connection', ( ws, req ) => {
 
 	send( 'verified', { id: client.id, secret: client.secret, heartbeat: heartbeat, world: world }, client.id );
 
-	if ( isNewConnection ) client.connected();
+	if ( isNewConnection ) onClientConnected();
 
 } );
 
@@ -65,8 +74,9 @@ class Entity {
 		this.type = 'Entity';
 		this.delta = { type: this.type };
 
-		if ( ! ( this.id in Entity.byId ) ) Entity.byId[ this.id ] = {};
-		Entity.byId[ this.id ] = Entity.dirty[ this.id ] = this;
+		if ( ! ( this.type in Entity.byTypebyId ) ) Entity.byTypebyId[ this.type ] = {};
+
+		Entity.byId[ this.id ] = Entity.byTypebyId[ this.type ][ this.id ] = Entity.dirty[ this.id ] = this;
 
 		for ( const property of Object.keys( args ) ) {
 
@@ -80,45 +90,29 @@ class Entity {
 
 		if ( this[ property ] === value ) return;
 
-		if ( property === 'parentId' ) {
+		if ( property === 'parentId' && this.parentId in Entity.byParentId ) {
 
-			if ( this.parentId in Entity.byParentId ) {
-
-				const index = Entity.byParentId[ this.parentId ].indexOf( this );
-				if ( index > - 1 ) Entity.byParentId[ this.parentId ].splice( index, 1 );
-
-			}
+			const index = Entity.byParentId[ this.parentId ].indexOf( this );
+			if ( index > - 1 ) Entity.byParentId[ this.parentId ].splice( index, 1 );
 
 		}
 
-		if ( property === 'type' ) {
-
-			if ( this.type in Entity.byType ) {
-
-				const index = Entity.byType[ this.type ].indexOf( this );
-				if ( index > - 1 ) Entity.byType[ this.type ].splice( index, 1 );
-
-			}
-
-		}
+		if ( property === 'type' && this.type in Entity.byTypebyId && this.id in Entity.byTypebyId[ this.type ] )
+			delete Entity.byTypebyId[ this.type ][ this.id ];
 
 		this[ property ] = this.delta[ property ] = value;
 
-		if ( property === 'parentId' ) {
+		if ( property === 'parentId' && this.parentId ) {
 
-			if ( this.parentId ) {
-
-				if ( ! ( this.parentId in Entity.byParentId ) ) Entity.byParentId[ this.parentId ] = [];
-				Entity.byParentId.push( this );
-
-			}
+			if ( ! ( this.parentId in Entity.byParentId ) ) Entity.byParentId[ this.parentId ] = [];
+			Entity.byParentId.push( this );
 
 		}
 
 		if ( property === 'type' ) {
 
-			if ( ! ( this.type in Entity.byType ) ) Entity.byType[ this.type ] = [];
-			Entity.byType[ this.type ].push( this );
+			if ( ! ( this.type in Entity.byTypebyId ) ) Entity.byTypebyId[ this.type ] = {};
+			Entity.byTypebyId[ this.type ][ this.id ] = this;
 
 		}
 
@@ -141,14 +135,8 @@ class Entity {
 		}
 
 		if ( this.id in Entity.byId ) delete Entity.byId[ this.id ];
-
-		if ( this.type in Entity.byType ) {
-
-			const index = Entity.byType[ this.type ].indexOf( this );
-			if ( index > - 1 ) Entity.byType[ this.type ].splice( index, 1 );
-
-		}
-
+		if ( this.type in Entity.byTypebyId && this.id in Entity.byTypebyId[ this.type ] )
+			delete Entity.byTypebyId[ this.type ][ this.id ];
 		if ( this.id in Entity.dirty ) delete Entity.dirty[ this.id ];
 		send( 'destroy', { id: this.id } );
 		this.destroyed = true;
@@ -166,58 +154,47 @@ class Entity {
 }
 
 Entity.byId = {};
-Entity.byType = {};
+Entity.byTypebyId = {};
 Entity.byParentId = {};
 Entity.dirty = {};
 
 
+const clientById = Entity.byTypebyId[ 'Client' ] = {};
 
-class Client extends Entity {
 
-	constructor( args = {} ) {
+function readClientBySecret( secret, dir = '.data/Client' ) {
 
-		super( Object.assign( { value: `Client-${args.id}` }, args ) );
-		this.secret = uuid();
-		Client.byId[ this.id ] = this;
-		Client.bySecret[ this.secret ] = this;
-		Client.count ++;
+	if ( ! fs.existsSync( dir ) ) return;
 
-	}
+	for ( const file of fs.readdirSync( dir ) ) {
 
-	static readBySecret( secret, dir = '.data/Client' ) {
-
-		for ( const file of fs.readdirSync( dir ) ) {
-
-			if ( file.startsWith( `${secret}-` ) ) return read( `${dir}/${file}` );
-
-		}
-
-	}
-
-	connected() {
-
-		send( 'connected', { id: this.id } );
-
-		if ( ! this.parentId ) world.add( this );
-
-	}
-
-	disconnect() {
-
-		delete Client.byId[ this.id ];
-		delete Client.bySecret[ this.secret ];
-		Client.count --;
-		Client.wsById[ this.id ].terminate();
-		send( 'disconnected', { id: this.id } );
+		//if ( file.startsWith( `${secret}-` ) ) return read( `${dir}/${file}` );
 
 	}
 
 }
 
-Client.byId = {};
-Client.bySecret = {};
-Client.wsById = {};
-Client.count = 0;
+function onClientConnected( client ) {
+
+	send( 'connected', { id: client.id } );
+
+	if ( ! client.parentId ) client.setProperty( 'parentId', world.id );
+
+}
+
+function onClientDisconnect( client ) {
+
+	client.destroy();
+	delete clientBySecret[ client.secret ];
+	wsByClientId[ client.id ].terminate();
+	delete wsByClientId[ client.id ];
+	send( 'disconnected', { id: client.id } );
+
+}
+
+
+const clientBySecret = {};
+const wsByClientId = {};
 
 
 const world = new Entity();
@@ -233,6 +210,8 @@ function send( event, message, to = 'global' ) {
 
 }
 
+
+
 const heartbeat = 3333;
 
 function update() {
@@ -246,10 +225,10 @@ function update() {
 
 		const disconnectedHorizon = Date.now() - heartbeat * 2;
 
-		for ( const id in Client.byId ) {
+		for ( const id in clientById ) {
 
-			const client = Client.byId[ id ];
-			if ( client.timestamp < disconnectedHorizon ) client.disconnect();
+			const client = clientById[ id ];
+			if ( client.timestamp < disconnectedHorizon ) onClientDisconnect( client );
 
 		}
 
@@ -274,14 +253,14 @@ function update() {
 
 			const message = JSON.stringify( _global.length ? _outMessages[ id ].concat( _global ) : _outMessages[ id ] );
 
-			if ( ! ( id in Client.byId ) ) {
+			if ( ! ( id in clientById ) ) {
 
 				id !== 'global' && console.log( `WARN: disconnected @${id} <- ${message}` );
 				continue;
 
 			}
 
-			Client.wsById[ id ].send( message );
+			wsByClientId[ id ].send( message );
 			console.log( `@${id} <- ${message}` );
 			sent[ id ] = null;
 
@@ -292,10 +271,10 @@ function update() {
 		const message = JSON.stringify( _global );
 		console.log( `@global <- ${message}` );
 
-		for ( const id in Client.byId ) {
+		for ( const id in wsByClientId ) {
 
 			if ( id in sent ) continue;
-			Client.wsById[ id ].send( message );
+			wsByClientId[ id ].send( message );
 
 		}
 

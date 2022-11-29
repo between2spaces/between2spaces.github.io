@@ -27,7 +27,7 @@ set listchars=space:·,tab:→\ ,eol:↲,nbsp:␣,trail:•,extends:⟩,precedes
 set list
 set signcolumn=number
 set background=dark
-
+set splitbelow
 
 
 "hi Normal ctermbg=NONE
@@ -158,13 +158,6 @@ let g:syntastic_loc_list_height = 5
 let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 
-
-
-let g:lightline = {
-	\ 'colorscheme': '16color',
-	\ 'separator': { 'left': "", 'right': "" },
- 	\ 'subseparator': { 'left': "", 'right': "" },
-	\ }
 
 syntax enable
 
