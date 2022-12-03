@@ -1,74 +1,97 @@
-const serverURL = new URL( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://daffodil-polite-seat.glitch.me/' );
+const serverURL = ( () => {
+
+	let url = 'wss://daffodil-polite-seat.glitch.me/';
+	if ( document.location.host === 'localhost:8000' ) url = 'ws://localhost:6500/';
+	return new URL( url );
+
+} )();
+
 let identity = JSON.parse( localStorage.getItem( 'client.identity' ) ) || {};
 if ( identity.secret ) serverURL.search = `secret=${identity.secret}`;
 
+
 const socketWorker = new Worker( URL.createObjectURL( new Blob( [ `
 let ws;
-let heartbeat = 3333;
+let clientHeartbeat = 1000;
+let clientUnheardLimit = 10000;
+let serverHeartbeat = 3333;
 let timeout;
 
 function connect() {
 
-	const postJSON = json => postMessage( JSON.stringify( json ) );
-
-	postJSON( [ { log: 'Connecting to ${serverURL}...' } ] );
+	sendClient( { log: 'Connecting to ${serverURL}...' } );
 
 	ws = new WebSocket( '${serverURL}' );
 
-	ws.onopen = () => postJSON( [ { log: 'Connected.' } ] );
+	ws.onopen = () => sendClient( { log: 'Connected.' } );
 
 	ws.onclose = () => {
 		ws = null;
-		postJSON( [ { log: 'Socket closed. Reconnect attempt in 5 second.' } ] );
-		setTimeout( () => connect(), 5000 );
+		sendClient( { log: 'Socket closed. Reconnect attempt in 5 second.' } );
+		setTimeout( connect, 5000 );
 	};
 
 	ws.onerror = err => {
-		postJSON( [ { log: 'Socket error. Closing socket.' } ] );
+		sendClient( { log: 'Socket error. Closing socket.' } );
 		ws.close();
 	};
 
 	ws.onmessage = event => {
 
 		const messages = JSON.parse( event.data );
-		postJSON( messages );
+
+		for ( const message of messages ) {
+
+			if ( 'clientUnheardLimit' in message ) clientUnheardLimit = message.clientUnheardLimit;
+			if ( 'serverHeartbeat' in message ) serverHeartbeat = message.serverHeartbeat;
+
+			sendClient( message );
+
+		}
 
 	};
 
-	setInterval( () => postJSON( [ { event: 'heartbeat' } ] ), heartbeat );
-	timeout = setTimeout( () => ws.send( 0 ), heartbeat );
+	timeout && clearTimeout( timeout );
+	timeout = setTimeout( sendServer, clientUnheardLimit );
+
 }
 
 connect();
 
 onmessage = event => {
-	timeout && clearTimeout( timeout );
-	ws && ws.send( event.data );
-	timeout = setTimeout( () => ws.send( 0 ), heartbeat );
+	sendServer( event.data );
 };
+
+function sendServer( message ) {
+	timeout && clearTimeout( timeout );
+	ws && ws.send( message );
+	timeout = setTimeout( sendServer, clientUnheardLimit );
+}
+
+function sendClient( json ) {
+	postMessage( JSON.stringify( json ) );
+}
+
+setInterval( () => sendClient( { event: 'Heartbeat' } ), clientHeartbeat );
 ` ] ) ) );
+
 
 socketWorker.onmessage = event => {
 
-	const messages = JSON.parse( event.data );
+	const message = JSON.parse( event.data );
+	const onevent = 'event' in message ? `on${message.event}` : 'id' in message ? 'onUpdate' : null;
 
-	for ( const message of messages ) {
+	if ( 'log' in message ) console.log( message.log ); else if ( onevent !== 'onHeartbeat' ) console.log( message );
 
-		if ( 'log' in message ) console.log( message.log ); else console.log( message );
+	if ( ! onevent ) return;
 
-		const funcName = 'event' in message ? `on${message.event}` : 'id' in message ? 'onupdate' : null;
+	try {
 
-		if ( ! funcName ) continue;
+		eval( onevent )( message );
 
-		try {
+	} catch ( err ) {
 
-			eval( funcName )( message );
-
-		} catch ( err ) {
-
-			console.log( err );
-
-		}
+		console.log( err );
 
 	}
 
@@ -83,7 +106,7 @@ class Entity {
 		this.type = data.type;
 
 		if ( ! ( this.id in Entity.byId ) ) Entity.byId[ this.id ] = {};
-		Entity.byId[ this.id ] = Entity.dirty[ this.id ] = this;
+		Entity.byId[ this.id ] = this;
 
 	}
 
@@ -96,52 +119,46 @@ class Entity {
 
 	update( data ) {
 
-		for ( const property of Object.keys( data ) ) property !== 'id' && this.setProperty( property, data[ property ] );
+		for ( const property of Object.keys( data ) ) {
+
+			const value = data[ property ];
+
+			if ( property === 'id' || this[ property ] === value ) continue;
+
+			if ( property === 'parentId' && this.parentId in Entity.byParentId ) {
+
+				const index = Entity.byParentId[ this.parentId ].indexOf( this );
+				if ( index > - 1 ) Entity.byParentId[ this.parentId ].splice( index, 1 );
+
+			}
+
+			if ( property === 'type' && this.type in Entity.byTypebyId && this.id in Entity.byTypebyId[ this.type ] )
+				delete Entity.byTypebyId[ this.type ][ this.id ];
+
+			this[ property ] = value;
+
+			if ( property === 'parentId' && this.parentId ) {
+
+				if ( ! ( this.parentId in Entity.byParentId ) ) Entity.byParentId[ this.parentId ] = [];
+				Entity.byParentId[ this.parentId ].push( this );
+
+			}
+
+			if ( property === 'type' ) {
+
+				if ( ! ( this.type in Entity.byTypebyId ) ) Entity.byTypebyId[ this.type ] = {};
+				Entity.byTypebyId[ this.type ][ this.id ] = this;
+
+			}
+
+		}
 
 	}
 
 	setProperty( property, value ) {
-
-		if ( this[ property ] === value ) return;
-
-		if ( property === 'parentId' && this.parentId in Entity.byParentId ) {
-
-			const index = Entity.byParentId[ this.parentId ].indexOf( this );
-			if ( index > - 1 ) Entity.byParentId[ this.parentId ].splice( index, 1 );
-
-		}
-
-		if ( property === 'type' && this.type in Entity.byTypebyId && this.id in Entity.byTypebyId[ this.type ] )
-			delete Entity.byTypebyId[ this.type ][ this.id ];
-
-		this[ property ] = value;
-
-		if ( property === 'parentId' && this.parentId ) {
-
-			if ( ! ( this.parentId in Entity.byParentId ) ) Entity.byParentId[ this.parentId ] = [];
-			Entity.byParentId.push( this );
-
-		}
-
-		if ( property === 'type' ) {
-
-			if ( ! ( this.type in Entity.byTypebyId ) ) Entity.byTypebyId[ this.type ] = {};
-			Entity.byTypebyId[ this.type ][ this.id ] = this;
-
-		}
-
-
-		Entity.dirty[ this.id ] = this;
-
 	}
 
 	destroy() {
-
-		if ( this.id in Entity.byId ) delete Entity.byId[ this.id ];
-		if ( this.type in Entity.byTypebyId && this.id in Entity.byTypebyId[ this.type ] )
-			delete Entity.byTypebyId[ this.type ][ this.id ];
-		if ( this.id in Entity.byParentId ) delete Entity.byParentId[ this.id ];
-		if ( this.id in Entity.dirty ) delete Entity.dirty[ this.id ];
 
 	}
 
@@ -153,35 +170,44 @@ Entity.byParentId = {};
 Entity.dirty = {};
 
 
-function onverified( message ) {
+function onConnect( message ) {
 
 	identity = { id: message.id, secret: message.secret };
-	console.log( identity );
+	//console.log( identity );
 	localStorage.setItem( 'client.identity', JSON.stringify( identity ) );
 	//read( message.world );
 
 }
 
 
-function onupdate( message ) {
+function onUpdate( message ) {
 
 	Entity.read( message );
 
 }
 
 
-function ondestroy( message ) {
+function onDestroy( message ) {
 
-	message.id in Entity.byId && Entity.byId[ message.id ].destroy();
+	if ( message.id in Entity.byId ) {
+
+		const entity = Entity.byId[ message.id ];
+		delete Entity.byId[ entity.id ];
+		if ( entity.type in Entity.byTypebyId && entity.id in Entity.byTypebyId[ entity.type ] )
+			delete Entity.byTypebyId[ entity.type ][ entity.id ];
+		if ( entity.id in Entity.byParentId ) delete Entity.byParentId[ entity.id ];
+
+	}
+
+}
+
+
+function onDisconnect( message ) {
 
 }
 
 
-function ondisconnected( message ) {
+function onHeartbeat( message ) {
 
 }
 
-function onheartbeat( message ) {
-
-
-}

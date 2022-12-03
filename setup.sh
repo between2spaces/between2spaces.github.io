@@ -65,6 +65,9 @@ fi
 
 if grep -qi microsoft /proc/version; then
 	# in a WSL environment
+	
+	# link to Windows Terminal settings.json
+	ln -s /mnt/c/Users/Stephen.Carmody/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json ./windows_terminal/settings.json
 
 	# question whether to go on and perform package management and tool installs
 	read -r -p "run package purge, installs and updates (requires sudo)? [Yn] " response

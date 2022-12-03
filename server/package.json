@@ -6,7 +6,7 @@
     "main": "server.js",
     "type": "module",
     "scripts": {
-        "start": "(npx ncu -u; npm install; if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; trap 'kill 0' SIGINT; export $(sed -e '/^[ ]*#/d' .env | xargs) && node server.js)"
+        "start": "(npx ncu -u; npm install; if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; trap 'kill 0' SIGINT; export $(sed -e '/^[ ]*#/d' .env | xargs) && node wurmserver.js)"
     },
     "dependencies": {
         "ws": "^8.11.0"
