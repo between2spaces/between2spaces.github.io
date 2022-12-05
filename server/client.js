@@ -1,16 +1,144 @@
-const serverURL = ( () => {
+class Client {
 
-	let url = 'wss://daffodil-polite-seat.glitch.me/';
-	if ( document.location.host === 'localhost:8000' ) url = 'ws://localhost:6500/';
-	return new URL( url );
+	constructor( serverUrl ) {
 
-} )();
+		this.entityId = {};
+		this.entityTypeId = {};
+		this.entityParentId = {};
 
-let identity = JSON.parse( localStorage.getItem( 'client.identity' ) ) || {};
-if ( identity.secret ) serverURL.search = `secret=${identity.secret}`;
+		this.serverURL = new URL( serverUrl );
+		this.identity = JSON.parse( localStorage.getItem( 'client.identity' ) ) || {};
+
+		if ( this.identity.secret ) this.serverURL.search = `secret=${identity.secret}`;
+
+		this.socketWorker = new Worker( SocketWorkerObjURL );
+
+		this.socketWorker.onmessage = event => {
+
+			const message = event.data;
+			const onevent = 'event' in message ? `on${message.event}` : 'id' in message ? 'onUpdate' : null;
+
+			if ( 'log' in message ) console.log( message.log ); else if ( onevent !== 'onHeartbeat' ) console.log( message );
+
+			if ( ! onevent ) return;
+
+			if ( onevent in this ) {
+
+				this[ onevent ]( message );
+
+			} else {
+
+				console.log( `${onevent}( message ) not found` );
+
+			}
+
+		};
+
+	}
 
 
-const socketWorker = new Worker( URL.createObjectURL( new Blob( [ `
+	onConnect( message ) {
+
+		this.identity = { id: message.id, secret: message.secret };
+		localStorage.setItem( 'client.identity', JSON.stringify( this.identity ) );
+
+	}
+
+
+	onUpdate( data ) {
+
+		if ( ! ( data.id in this.entityId ) ) {
+
+			this.entityId[ data.id ] = new Entity();
+			this.entityId[ data.id ].id = data.id;
+
+		}
+
+		const entity = this.entityId[ data.id ];
+
+		for ( const property of Object.keys( data ) ) {
+
+			const value = data[ property ];
+
+			if ( property === 'id' || entity[ property ] === value ) continue;
+
+			if ( property === 'parentId' && entity.parentId in this.entityParentId ) {
+
+				const index = this.entityParentId[ entity.parentId ].indexOf( entity );
+				if ( index > - 1 ) this.entityParentId[ entity.parentId ].splice( index, 1 );
+
+			}
+
+			if ( property === 'type' && entity.type in this.entityTypebyId && entity.id in this.entityTypebyId[ entity.type ] )
+				delete this.entityTypebyId[ entity.type ][ entity.id ];
+
+			entity[ property ] = value;
+
+			if ( property === 'parentId' && entity.parentId ) {
+
+				if ( ! ( entity.parentId in this.entityParentId ) ) this.entityParentId[ entity.parentId ] = [];
+				this.entityParentId[ entity.parentId ].push( entity );
+
+			}
+
+			if ( property === 'type' ) {
+
+				if ( ! ( entity.type in this.entityTypebyId ) ) this.entityTypeId[ entity.type ] = {};
+				this.entityTypeId[ entity.type ][ entity.id ] = entity;
+
+			}
+
+		}
+
+		this.onNewEntity( entity );
+
+	}
+
+	setProperty( entity, property, value ) {
+
+	}
+
+	destroy( entity ) {
+
+	}
+
+	onDestroy( message ) {
+
+		if ( message.id in this.entityId ) {
+
+			const entity = this.entityId[ message.id ];
+			delete this.entityId[ entity.id ];
+			if ( entity.type in this.entityTypeId && entity.id in this.entityTypeId[ entity.type ] )
+				delete this.entityTypeId[ entity.type ][ entity.id ];
+			if ( entity.id in this.entityParentId ) delete this.entityParentId[ entity.id ];
+
+		}
+
+	}
+
+
+	onDisconnect( message ) {
+
+	}
+
+
+	onHeartbeat( message ) {
+
+	}
+
+
+	send( event, message ) {
+
+		if ( event ) message.event = event;
+		console.log( `<- ${JSON.stringify( message )}` );
+		this.socketWorker.postMessage( message );
+
+	}
+
+}
+
+
+const SocketWorkerObjURL = URL.createObjectURL( new Blob( [ `
 let ws;
 let clientHeartbeat = 1000;
 let clientUnheardLimit = 10000;
@@ -64,150 +192,46 @@ onmessage = event => {
 
 function sendServer( message ) {
 	timeout && clearTimeout( timeout );
-	ws && ws.send( message );
+	ws && ws.send( JSON.stringify( message ) );
 	timeout = setTimeout( sendServer, clientUnheardLimit );
 }
 
 function sendClient( json ) {
-	postMessage( JSON.stringify( json ) );
+	postMessage( json );
 }
 
 setInterval( () => sendClient( { event: 'Heartbeat' } ), clientHeartbeat );
-` ] ) ) );
-
-
-socketWorker.onmessage = event => {
-
-	const message = JSON.parse( event.data );
-	const onevent = 'event' in message ? `on${message.event}` : 'id' in message ? 'onUpdate' : null;
-
-	if ( 'log' in message ) console.log( message.log ); else if ( onevent !== 'onHeartbeat' ) console.log( message );
-
-	if ( ! onevent ) return;
-
-	try {
-
-		eval( onevent )( message );
-
-	} catch ( err ) {
-
-		console.log( err );
-
-	}
-
-};
+` ] ) );
 
 
 class Entity {
 
-	constructor( data ) {
-
-		this.id = data.id;
-		this.type = data.type;
-
-		if ( ! ( this.id in Entity.byId ) ) Entity.byId[ this.id ] = {};
-		Entity.byId[ this.id ] = this;
-
-	}
-
-	static read( data ) {
-
-		const entity = data.id in Entity.byId ? Entity.byId[ data.id ] : new Entity( data );
-		entity.update( data );
-
-	}
-
-	update( data ) {
-
-		for ( const property of Object.keys( data ) ) {
-
-			const value = data[ property ];
-
-			if ( property === 'id' || this[ property ] === value ) continue;
-
-			if ( property === 'parentId' && this.parentId in Entity.byParentId ) {
-
-				const index = Entity.byParentId[ this.parentId ].indexOf( this );
-				if ( index > - 1 ) Entity.byParentId[ this.parentId ].splice( index, 1 );
-
-			}
-
-			if ( property === 'type' && this.type in Entity.byTypebyId && this.id in Entity.byTypebyId[ this.type ] )
-				delete Entity.byTypebyId[ this.type ][ this.id ];
-
-			this[ property ] = value;
-
-			if ( property === 'parentId' && this.parentId ) {
-
-				if ( ! ( this.parentId in Entity.byParentId ) ) Entity.byParentId[ this.parentId ] = [];
-				Entity.byParentId[ this.parentId ].push( this );
-
-			}
-
-			if ( property === 'type' ) {
-
-				if ( ! ( this.type in Entity.byTypebyId ) ) Entity.byTypebyId[ this.type ] = {};
-				Entity.byTypebyId[ this.type ][ this.id ] = this;
-
-			}
-
-		}
-
-	}
-
-	setProperty( property, value ) {
-	}
-
-	destroy() {
-
-	}
-
 }
 
-Entity.byId = {};
-Entity.byTypebyId = {};
-Entity.byParentId = {};
-Entity.dirty = {};
 
-
-function onConnect( message ) {
-
-	identity = { id: message.id, secret: message.secret };
-	//console.log( identity );
-	localStorage.setItem( 'client.identity', JSON.stringify( identity ) );
-	//read( message.world );
+class WurmClient extends Client {
 
 }
 
 
-function onUpdate( message ) {
+const client = new WurmClient( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://daffodil-polite-seat.glitch.me/' );
 
-	Entity.read( message );
+let player;
 
-}
+function move( dx, dy ) {
 
-
-function onDestroy( message ) {
-
-	if ( message.id in Entity.byId ) {
-
-		const entity = Entity.byId[ message.id ];
-		delete Entity.byId[ entity.id ];
-		if ( entity.type in Entity.byTypebyId && entity.id in Entity.byTypebyId[ entity.type ] )
-			delete Entity.byTypebyId[ entity.type ][ entity.id ];
-		if ( entity.id in Entity.byParentId ) delete Entity.byParentId[ entity.id ];
-
-	}
+	send( 'Move', { dx, dy } );
 
 }
 
+document.addEventListener( 'keydown', event => {
 
-function onDisconnect( message ) {
+	const key = event.key;
 
-}
+	if ( key === 'k' ) move( 0, - 1 );
+	if ( key === 'k' ) move( 0, - 1 );
+	if ( key === 'k' ) move( 0, - 1 );
+	if ( key === 'k' ) move( 0, - 1 );
 
-
-function onHeartbeat( message ) {
-
-}
+} );
 

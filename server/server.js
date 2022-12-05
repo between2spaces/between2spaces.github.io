@@ -71,7 +71,7 @@ export default class Server {
 					if ( `${data}` === 'undefined' ) return;
 					const messages = JSON.parse( data );
 					for ( const message of ( messages.constructor !== Array ) ? [ messages ] : messages )
-						inMessages.push( { message: message, from: client.id } );
+						this.inMessages.push( { message: message, from: client.id } );
 
 				} catch ( e ) {
 
@@ -95,7 +95,7 @@ export default class Server {
 
 			}
 
-			this.onConnect();
+			this.onConnect( client );
 
 		} );
 
@@ -219,8 +219,17 @@ export default class Server {
 
 			for ( const message of inMessages ) {
 
-				console.log( message );
-				this[ `on${message.message.event}` ]( message.message, _in.from );
+				const onevent = `on${message.message.event}`;
+
+				if ( onevent in this ) {
+
+					this[ onevent ]( message.message, message.from );
+
+				} else {
+
+					console.log( `${onevent}( message, from ) not found` );
+
+				}
 
 			}
 
