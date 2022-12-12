@@ -15,6 +15,6 @@
 	"devDependencies": {
 		"eslint": "^8.29.0",
 		"eslint-config-mdcs": "^5.0.0",
-		"npm-check-updates": "^16.4.3"
+		"npm-check-updates": "^16.5.6"
 	}
 }

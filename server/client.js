@@ -1,4 +1,4 @@
-class Client {
+export default class Client {
 
 	constructor( serverUrl ) {
 
@@ -9,9 +9,9 @@ class Client {
 		this.serverURL = new URL( serverUrl );
 		this.identity = JSON.parse( localStorage.getItem( 'client.identity' ) ) || {};
 
-		if ( this.identity.secret ) this.serverURL.search = `secret=${identity.secret}`;
+		if ( this.identity.secret ) this.serverURL.search = `secret=${this.identity.secret}`;
 
-		this.socketWorker = new Worker( SocketWorkerObjURL );
+		this.socketWorker = new Worker( getSocketWorkerObjURL( this.serverURL ) );
 
 		this.socketWorker.onmessage = event => {
 
@@ -37,6 +37,15 @@ class Client {
 	}
 
 
+	send( event, message ) {
+
+		if ( event ) message.event = event;
+		console.log( `<- ${JSON.stringify( message )}` );
+		this.socketWorker.postMessage( message );
+
+	}
+
+
 	onConnect( message ) {
 
 		this.identity = { id: message.id, secret: message.secret };
@@ -45,20 +54,22 @@ class Client {
 	}
 
 
-	onUpdate( data ) {
+	onUpdate( delta ) {
 
-		if ( ! ( data.id in this.entityId ) ) {
+		let isNew = ! ( delta.id in this.entityId );
 
-			this.entityId[ data.id ] = new Entity();
-			this.entityId[ data.id ].id = data.id;
+		if ( isNew ) {
+
+			this.entityId[ delta.id ] = new Entity();
+			this.entityId[ delta.id ].id = delta.id;
 
 		}
 
-		const entity = this.entityId[ data.id ];
+		const entity = this.entityId[ delta.id ];
 
-		for ( const property of Object.keys( data ) ) {
+		for ( const property of Object.keys( delta ) ) {
 
-			const value = data[ property ];
+			const value = delta[ property ];
 
 			if ( property === 'id' || entity[ property ] === value ) continue;
 
@@ -69,8 +80,8 @@ class Client {
 
 			}
 
-			if ( property === 'type' && entity.type in this.entityTypebyId && entity.id in this.entityTypebyId[ entity.type ] )
-				delete this.entityTypebyId[ entity.type ][ entity.id ];
+			if ( property === 'type' && entity.type in this.entityTypeId && entity.id in this.entityTypeId[ entity.type ] )
+				delete this.entityTypeId[ entity.type ][ entity.id ];
 
 			entity[ property ] = value;
 
@@ -83,14 +94,14 @@ class Client {
 
 			if ( property === 'type' ) {
 
-				if ( ! ( entity.type in this.entityTypebyId ) ) this.entityTypeId[ entity.type ] = {};
+				if ( ! ( entity.type in this.entityTypeId ) ) this.entityTypeId[ entity.type ] = {};
 				this.entityTypeId[ entity.type ][ entity.id ] = entity;
 
 			}
 
 		}
 
-		this.onNewEntity( entity );
+		if ( isNew ) this.onNewEntity( entity );
 
 	}
 
@@ -127,18 +138,14 @@ class Client {
 	}
 
 
-	send( event, message ) {
-
-		if ( event ) message.event = event;
-		console.log( `<- ${JSON.stringify( message )}` );
-		this.socketWorker.postMessage( message );
+	onNewEntity( entity ) {
 
 	}
 
 }
 
 
-const SocketWorkerObjURL = URL.createObjectURL( new Blob( [ `
+const getSocketWorkerObjURL = serverURL => URL.createObjectURL( new Blob( [ `
 let ws;
 let clientHeartbeat = 1000;
 let clientUnheardLimit = 10000;
@@ -209,29 +216,4 @@ class Entity {
 }
 
 
-class WurmClient extends Client {
-
-}
-
-
-const client = new WurmClient( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://daffodil-polite-seat.glitch.me/' );
-
-let player;
-
-function move( dx, dy ) {
-
-	send( 'Move', { dx, dy } );
-
-}
-
-document.addEventListener( 'keydown', event => {
-
-	const key = event.key;
-
-	if ( key === 'k' ) move( 0, - 1 );
-	if ( key === 'k' ) move( 0, - 1 );
-	if ( key === 'k' ) move( 0, - 1 );
-	if ( key === 'k' ) move( 0, - 1 );
-
-} );
 

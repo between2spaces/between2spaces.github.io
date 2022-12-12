@@ -5,7 +5,10 @@ import fs from 'fs';
 
 export default class Server {
 
-	constructor( allowedOrigins = [ 'http://localhost:8000' ] ) {
+	constructor( args ) {
+
+		args.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
+		args.serverHeartbeat = 'serverHeartbeat' in args ? args.serverHeartbeat : 3333;
 
 		this.entityId = {};
 		this.entityTypeId = {};
@@ -19,7 +22,7 @@ export default class Server {
 		this.clientSecret = {};
 		this.inMessages = [];
 		this.outMessages = [];
-		this.serverHeartbeat = 3333;
+		this.serverHeartbeat = args.serverHeartbeat;
 		this.clientTimeout = 10000;
 		this.usedUUIDs = {};
 
@@ -27,7 +30,7 @@ export default class Server {
 
 		const wss = new WebSocketServer( {
 			port: process.env.PORT,
-			verifyClient: info => allowedOrigins.indexOf( info.req.headers.origin ) > - 1
+			verifyClient: info => args.allowedOrigins.indexOf( info.req.headers.origin ) > - 1
 		} );
 
 
@@ -247,7 +250,7 @@ export default class Server {
 					delete this.clientTimestamp[ client.id ];
 					delete this.secret2Client[ this.clientSecret[ client.id ] ];
 					delete this.clientSecret[ client.id ];
-					send( 'Disconnect', { id: client.id } );
+					this.send( 'Disconnect', { id: client.id } );
 					this.onDisconnect( client );
 
 				}
@@ -262,8 +265,12 @@ export default class Server {
 				const entity = this.entityId[ id ];
 				if ( entity.destroyed ) continue;
 				const delta = dirtyEntities[ id ];
-				delta.id = id;
-				this.send( null, delta );
+				if ( Object.keys( delta ).length ) {
+
+					delta.id = id;
+					this.send( null, delta );
+
+				}
 
 				if ( entity.onUpdate() ) this.entityDirty[ id ] = entity;
 

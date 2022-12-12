@@ -3831,6 +3831,7 @@ Texture.prototype = Object.assign( Object.create( EventDispatcher.prototype ), {
 						uv.x = uv.x - Math.floor( uv.x );
 
 					}
+
 					break;
 
 			}
@@ -3862,6 +3863,7 @@ Texture.prototype = Object.assign( Object.create( EventDispatcher.prototype ), {
 						uv.y = uv.y - Math.floor( uv.y );
 
 					}
+
 					break;
 
 			}
@@ -8546,6 +8548,7 @@ Object3D.prototype = Object.assign( Object.create( EventDispatcher.prototype ), 
 				values.push( data );
 
 			}
+
 			return values;
 
 		}
@@ -15901,6 +15904,7 @@ function setValue1fv( gl, v ) {
 	copyArray( cache, v );
 
 }
+
 function setValue1iv( gl, v ) {
 
 	var cache = this.cache;
@@ -17427,7 +17431,9 @@ function reversePainterSortStable( a, b ) {
 
 		return a.renderOrder - b.renderOrder;
 
-	} if ( a.z !== b.z ) {
+	}
+
+	if ( a.z !== b.z ) {
 
 		return b.z - a.z;
 
@@ -19207,6 +19213,7 @@ function WebGLState( gl, extensions, utils, capabilities ) {
 							gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
 
 						}
+
 						break;
 
 					case SubtractiveBlending:
@@ -19222,6 +19229,7 @@ function WebGLState( gl, extensions, utils, capabilities ) {
 							gl.blendFunc( gl.ZERO, gl.ONE_MINUS_SRC_COLOR );
 
 						}
+
 						break;
 
 					case MultiplyBlending:
@@ -19237,6 +19245,7 @@ function WebGLState( gl, extensions, utils, capabilities ) {
 							gl.blendFunc( gl.ZERO, gl.SRC_COLOR );
 
 						}
+
 						break;
 
 					default:
@@ -24503,106 +24512,118 @@ Object.assign( Spherical.prototype, {
 
 class EditorControls extends EventDispatcher {
 
-    constructor( object, domElement ) {
+	constructor( object, domElement ) {
 
-        super();
+		super();
 
-        this.object = object;
-        this.domElement = ( domElement !== undefined ) ? domElement : document;
+		this.object = object;
+		this.domElement = ( domElement !== undefined ) ? domElement : document;
 
-        this.enabled = true;
-        this.center = new Vector3();
-        this.panSpeed = 0.001;
-        this.zoomSpeed = 0.1;
-        this.rotationSpeed = 0.005;
+		this.enabled = true;
+		this.center = new Vector3();
+		this.panSpeed = 0.001;
+		this.zoomSpeed = 0.1;
+		this.rotationSpeed = 0.005;
 
-        let _this = this;
-        this.domElement.addEventListener( 'contextmenu', event => { scope = _this; contextmenu( event ); }, false );
-        this.domElement.addEventListener( 'mousedown', event => { scope = _this; onMouseDown( event ); }, false );
-        this.domElement.addEventListener( 'wheel', event => { scope = _this; onMouseWheel( event ); }, false );
+		let _this = this;
+		this.domElement.addEventListener( 'contextmenu', event => {
 
-    }
+			scope = _this; contextmenu( event );
 
-    focus( target ) {
+		}, false );
+		this.domElement.addEventListener( 'mousedown', event => {
 
-        var distance;
+			scope = _this; onMouseDown( event );
 
-        box.setFromObject( target );
+		}, false );
+		this.domElement.addEventListener( 'wheel', event => {
 
-        if ( box.isEmpty() === false ) {
+			scope = _this; onMouseWheel( event );
 
-            this.center.copy( box.getCenter() );
-            distance = box.getBoundingSphere().radius;
+		}, false );
 
-        } else {
+	}
 
-            // Focusing on an Group, AmbientLight, etc
+	focus( target ) {
 
-            this.center.setFromMatrixPosition( target.matrixWorld );
-            distance = 0.1;
+		var distance;
 
-        }
+		box.setFromObject( target );
 
-        delta.set( 0, 0, 1 );
-        delta.applyQuaternion( this.object.quaternion );
-        delta.multiplyScalar( distance * 4 );
+		if ( box.isEmpty() === false ) {
 
-        this.object.position.copy( this.center ).add( delta );
+			this.center.copy( box.getCenter() );
+			distance = box.getBoundingSphere().radius;
 
-        this.dispatchEvent( changeEvent );
+		} else {
 
-    }
+			// Focusing on an Group, AmbientLight, etc
 
-    pan( delta ) {
+			this.center.setFromMatrixPosition( target.matrixWorld );
+			distance = 0.1;
 
-        var distance = this.object.position.distanceTo( this.center );
+		}
 
-        delta.multiplyScalar( distance * this.panSpeed );
-        delta.applyMatrix3( normalMatrix.getNormalMatrix( this.object.matrix ) );
+		delta.set( 0, 0, 1 );
+		delta.applyQuaternion( this.object.quaternion );
+		delta.multiplyScalar( distance * 4 );
 
-        this.object.position.add( delta );
-        this.center.add( delta );
+		this.object.position.copy( this.center ).add( delta );
 
-        this.dispatchEvent( changeEvent );
+		this.dispatchEvent( changeEvent );
 
-    }
+	}
 
-    zoom( delta ) {
+	pan( delta ) {
 
-        var distance = this.object.position.distanceTo( this.center );
+		var distance = this.object.position.distanceTo( this.center );
 
-        delta.multiplyScalar( distance * this.zoomSpeed );
+		delta.multiplyScalar( distance * this.panSpeed );
+		delta.applyMatrix3( normalMatrix.getNormalMatrix( this.object.matrix ) );
 
-        if ( delta.length() > distance ) return;
+		this.object.position.add( delta );
+		this.center.add( delta );
 
-        delta.applyMatrix3( normalMatrix.getNormalMatrix( this.object.matrix ) );
+		this.dispatchEvent( changeEvent );
 
-        this.object.position.add( delta );
+	}
 
-        this.dispatchEvent( changeEvent );
+	zoom( delta ) {
 
-    }
+		var distance = this.object.position.distanceTo( this.center );
 
-    rotate( delta ) {
+		delta.multiplyScalar( distance * this.zoomSpeed );
 
-        vector.copy( this.object.position ).sub( this.center );
+		if ( delta.length() > distance ) return;
 
-        spherical.setFromVector3( vector );
+		delta.applyMatrix3( normalMatrix.getNormalMatrix( this.object.matrix ) );
 
-        spherical.theta += delta.x;
-        spherical.phi += delta.y;
+		this.object.position.add( delta );
 
-        spherical.makeSafe();
+		this.dispatchEvent( changeEvent );
 
-        vector.setFromSpherical( spherical );
+	}
 
-        this.object.position.copy( this.center ).add( vector );
+	rotate( delta ) {
 
-        this.object.lookAt( this.center );
+		vector.copy( this.object.position ).sub( this.center );
 
-        this.dispatchEvent( changeEvent );
+		spherical.setFromVector3( vector );
 
-    }
+		spherical.theta += delta.x;
+		spherical.phi += delta.y;
+
+		spherical.makeSafe();
+
+		vector.setFromSpherical( spherical );
+
+		this.object.position.copy( this.center ).add( vector );
+
+		this.object.lookAt( this.center );
+
+		this.dispatchEvent( changeEvent );
+
+	}
 
 }
 
@@ -24610,81 +24631,81 @@ class EditorControls extends EventDispatcher {
 
 const onMouseDown = event => {
 
-    if ( scope.enabled === false ) return;
+	if ( scope.enabled === false ) return;
 
-    if ( event.button === 0 ) {
+	if ( event.button === 0 ) {
 
-        state = STATE.ROTATE;
+		state = STATE.ROTATE;
 
-    } else if ( event.button === 1 ) {
+	} else if ( event.button === 1 ) {
 
-        state = STATE.ZOOM;
+		state = STATE.ZOOM;
 
-    } else if ( event.button === 2 ) {
+	} else if ( event.button === 2 ) {
 
-        state = STATE.PAN;
+		state = STATE.PAN;
 
-    }
+	}
 
-    pointerOld.set( event.clientX, event.clientY );
+	pointerOld.set( event.clientX, event.clientY );
 
-    scope.domElement.addEventListener( 'mousemove', onMouseMove, false );
-    scope.domElement.addEventListener( 'mouseup', onMouseUp, false );
-    scope.domElement.addEventListener( 'mouseout', onMouseUp, false );
-    scope.domElement.addEventListener( 'dblclick', onMouseUp, false );
+	scope.domElement.addEventListener( 'mousemove', onMouseMove, false );
+	scope.domElement.addEventListener( 'mouseup', onMouseUp, false );
+	scope.domElement.addEventListener( 'mouseout', onMouseUp, false );
+	scope.domElement.addEventListener( 'dblclick', onMouseUp, false );
 
 };
 
 const onMouseMove = event => {
 
-    if ( scope.enabled === false ) return;
+	if ( scope.enabled === false ) return;
 
-    pointer.set( event.clientX, event.clientY );
+	pointer.set( event.clientX, event.clientY );
 
-    var movementX = pointer.x - pointerOld.x;
-    var movementY = pointer.y - pointerOld.y;
+	var movementX = pointer.x - pointerOld.x;
+	var movementY = pointer.y - pointerOld.y;
 
-    if ( state === STATE.ROTATE ) {
+	if ( state === STATE.ROTATE ) {
 
-        scope.rotate( delta.set( - movementX * scope.rotationSpeed, - movementY * scope.rotationSpeed, 0 ) );
+		scope.rotate( delta.set( - movementX * scope.rotationSpeed, - movementY * scope.rotationSpeed, 0 ) );
 
-    } else if ( state === STATE.ZOOM ) {
+	} else if ( state === STATE.ZOOM ) {
 
-        scope.zoom( delta.set( 0, 0, movementY ) );
+		scope.zoom( delta.set( 0, 0, movementY ) );
 
-    } else if ( state === STATE.PAN ) {
+	} else if ( state === STATE.PAN ) {
 
-        scope.pan( delta.set( - movementX, movementY, 0 ) );
+		scope.pan( delta.set( - movementX, movementY, 0 ) );
 
-    }
+	}
 
-    pointerOld.set( event.clientX, event.clientY );
+	pointerOld.set( event.clientX, event.clientY );
 
 };
 
 const onMouseUp = event => {
 
-    scope.domElement.removeEventListener( 'mousemove', onMouseMove, false );
-    scope.domElement.removeEventListener( 'mouseup', onMouseUp, false );
-    scope.domElement.removeEventListener( 'mouseout', onMouseUp, false );
-    scope.domElement.removeEventListener( 'dblclick', onMouseUp, false );
+	scope.domElement.removeEventListener( 'mousemove', onMouseMove, false );
+	scope.domElement.removeEventListener( 'mouseup', onMouseUp, false );
+	scope.domElement.removeEventListener( 'mouseout', onMouseUp, false );
+	scope.domElement.removeEventListener( 'dblclick', onMouseUp, false );
 
-    state = STATE.NONE;
+	state = STATE.NONE;
 
 };
 
 const onMouseWheel = event => {
 
-    event.preventDefault();
+	event.preventDefault();
 
-    // Normalize deltaY due to https://bugzilla.mozilla.org/show_bug.cgi?id=1392460
-    scope.zoom( delta.set( 0, 0, event.deltaY > 0 ? 1 : - 1 ) );
+	// Normalize deltaY due to https://bugzilla.mozilla.org/show_bug.cgi?id=1392460
+	scope.zoom( delta.set( 0, 0, event.deltaY > 0 ? 1 : - 1 ) );
 
 };
 
 const contextmenu = event => {
 
-    event.preventDefault();
+	event.preventDefault();
 
 };
 
@@ -24710,23 +24731,23 @@ scene.add( new AmbientLight( new Color( 0xffffff ) ) );
 
 const addDirectionalLight = ( colour, intensity, x, y, z ) => {
 
-    let dirLight = new DirectionalLight( colour, intensity );
-    dirLight.position.set( x, y, z );
+	let dirLight = new DirectionalLight( colour, intensity );
+	dirLight.position.set( x, y, z );
 
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = dirLight.shadow.mapSize.height = 1024 * 2;
+	dirLight.castShadow = true;
+	dirLight.shadow.mapSize.width = dirLight.shadow.mapSize.height = 1024 * 2;
 
-    dirLight.shadow.camera.left = dirLight.shadow.camera.bottom = -300;
-    dirLight.shadow.camera.right = dirLight.shadow.camera.top = 300;
+	dirLight.shadow.camera.left = dirLight.shadow.camera.bottom = - 300;
+	dirLight.shadow.camera.right = dirLight.shadow.camera.top = 300;
 
-    dirLight.shadow.camera.far = 3500;
-    dirLight.shadow.bias = -0.0001;
+	dirLight.shadow.camera.far = 3500;
+	dirLight.shadow.bias = - 0.0001;
 
-    scene.add( dirLight );
+	scene.add( dirLight );
 
 };
 
-addDirectionalLight( 0xffffff, 0.5, -1, 1, -1 );
+addDirectionalLight( 0xffffff, 0.5, - 1, 1, - 1 );
 
 const fov = 90;
 // const camera = new PerspectiveCamera( fov, window.innerWidth / window.innerHeight, 0.0001, 5000 )
@@ -24746,57 +24767,61 @@ const DEG2RAD = Math.PI / 180;
 
 const setSize = ( width, height ) => {
 
-    halfWidth = width / 2;
-    halfHeight = height / 2;
-    renderer.setSize( width, height );
-    updateProjectionMatrix();
+	halfWidth = width / 2;
+	halfHeight = height / 2;
+	renderer.setSize( width, height );
+	updateProjectionMatrix();
 
 };
 
 const updateProjectionMatrix = () => {
 
-    let aspect = halfWidth / halfHeight;
+	let aspect = halfWidth / halfHeight;
 
-    if ( camera.isPerspectiveCamera ) {
+	if ( camera.isPerspectiveCamera ) {
 
-        camera.aspect = aspect;
+		camera.aspect = aspect;
 
-    } else if ( camera.isOrthographicCamera ) {
+	} else if ( camera.isOrthographicCamera ) {
 
-        let distance = camera.position.distanceTo( lookAt.position );
-        let frustumHeight = distance * ( 2.0 * Math.tan( fov * 0.5 * DEG2RAD ) );
-        let frustumWidth = frustumHeight * aspect;
+		let distance = camera.position.distanceTo( lookAt.position );
+		let frustumHeight = distance * ( 2.0 * Math.tan( fov * 0.5 * DEG2RAD ) );
+		let frustumWidth = frustumHeight * aspect;
 
-        camera.left = frustumWidth / - 2;
-        camera.right = frustumWidth / 2;
-        camera.top = frustumHeight / 2;
-        camera.bottom = frustumHeight / - 2;
+		camera.left = frustumWidth / - 2;
+		camera.right = frustumWidth / 2;
+		camera.top = frustumHeight / 2;
+		camera.bottom = frustumHeight / - 2;
 
-    }
+	}
 
-    camera.updateProjectionMatrix();
+	camera.updateProjectionMatrix();
 
 };
 
-window.addEventListener( "resize", () => { setSize( window.innerWidth, window.innerHeight ); }, false );
+window.addEventListener( "resize", () => {
+
+	setSize( window.innerWidth, window.innerHeight );
+
+}, false );
 
 let lookAt = scene;
 
 const setCamera = ( px, py, pz, focus ) => {
 
-    camera.position.set( px, py, pz );
-    if ( focus ) lookAt = focus;
-    camera.lookAt( lookAt.position );
-    updateProjectionMatrix();
+	camera.position.set( px, py, pz );
+	if ( focus ) lookAt = focus;
+	camera.lookAt( lookAt.position );
+	updateProjectionMatrix();
 
 };
 
 const focus = ( object ) => {
 
-    lookAt = object;
-    object.mesh.add( camera );
-    camera.lookAt( lookAt.position );
-    updateProjectionMatrix();
+	lookAt = object;
+	object.mesh.add( camera );
+	camera.lookAt( lookAt.position );
+	updateProjectionMatrix();
 
 };
 
@@ -24806,7 +24831,9 @@ setCamera( 0, 5, 0 );
 let controls = new EditorControls( camera );
 
 controls.addEventListener( changeEvent.type, () => {
-    updateProjectionMatrix(); // setSize( window.innerWidth, window.innerHeight )
+
+	updateProjectionMatrix(); // setSize( window.innerWidth, window.innerHeight )
+
 } );
 
 let mouseX = 0;
@@ -24814,8 +24841,8 @@ let mouseY = 0;
 
 const onDocumentMouseMove = event => {
 
-    mouseX = event.clientX - halfWidth;
-    mouseY = event.clientY - halfHeight;
+	mouseX = event.clientX - halfWidth;
+	mouseY = event.clientY - halfHeight;
 
 };
 
@@ -24823,89 +24850,89 @@ document.addEventListener( "mousemove", onDocumentMouseMove, false );
 
 const update = () => {
 
-    renderer.render( scene, camera );
+	renderer.render( scene, camera );
 
 };
 
 class Heap {
 
-    constructor() {
+	constructor() {
 
-        this.length = 0;
-        this._list = new Array( 100 );
+		this.length = 0;
+		this._list = new Array( 100 );
 
-    }
+	}
 
-    push( item, score ) {
+	push( item, score ) {
 
-        item.heapscore = score;
+		item.heapscore = score;
 
-        let idx = ++this.length;
-        let list = this._list;
+		let idx = ++ this.length;
+		let list = this._list;
 
-        list[ idx ] = item;
+		list[ idx ] = item;
 
-        while ( idx > 1 ) {
+		while ( idx > 1 ) {
 
-            let parentidx = idx >> 1;
-            let parentitm = list[ parentidx ];
+			let parentidx = idx >> 1;
+			let parentitm = list[ parentidx ];
 
-            if ( item.heapscore >= parentitm.heapscore ) break
+			if ( item.heapscore >= parentitm.heapscore ) break;
 
-            list[ idx ] = parentitm;
-            idx = parentidx;
+			list[ idx ] = parentitm;
+			idx = parentidx;
 
-        }
+		}
 
-        list[ idx ] = item;
+		list[ idx ] = item;
 
-    }
+	}
 
-    peek() {
+	peek() {
 
-        return this.length > 0 ? this._list[ 1 ] : undefined
+		return this.length > 0 ? this._list[ 1 ] : undefined;
 
-    }
+	}
 
-    pop() {
+	pop() {
 
-        if ( this.length < 1 ) return undefined
+		if ( this.length < 1 ) return undefined;
 
-        let list = this._list;
-        let retitm = list[ 1 ];
-        let itm = list[ this.length ];
+		let list = this._list;
+		let retitm = list[ 1 ];
+		let itm = list[ this.length ];
 
-        let r = 1;
-        let c = 2;
-        let curitm;
-        let length = this.length;
+		let r = 1;
+		let c = 2;
+		let curitm;
+		let length = this.length;
 
-        while ( c < length ) {
+		while ( c < length ) {
 
-            curitm = list[ c ];
+			curitm = list[ c ];
 
-            if ( list[ c + 1 ].heapscore < curitm.heapscore ) {
+			if ( list[ c + 1 ].heapscore < curitm.heapscore ) {
 
-                c = c + 1;
-                curitm = list[ c ];
+				c = c + 1;
+				curitm = list[ c ];
 
-            }
+			}
 
-            if ( curitm.heapscore >= itm.heapscore ) break
+			if ( curitm.heapscore >= itm.heapscore ) break;
 
-            list[ r ] = curitm;
-            r = c;
-            c = c << 1;
+			list[ r ] = curitm;
+			r = c;
+			c = c << 1;
 
-        }
+		}
 
-        list[ length ] = 0;
-        this.length = --length;
-        if ( length ) list[ r ] = itm;
+		list[ length ] = 0;
+		this.length = -- length;
+		if ( length ) list[ r ] = itm;
 
-        return retitm
+		return retitm;
 
-    }
+	}
 
 }
 
@@ -24914,30 +24941,30 @@ let size = 0;
 
 const setPlayerObject = object => {
 
-    player = object;
+	player = object;
 
 };
 
 const add = object => {
 
-    objects.push( object );
-    move( object, 0, 0, 0 );
+	objects.push( object );
+	move( object, 0, 0, 0 );
 
 };
 
 const move = ( object, dx, dy, dz ) => {
 
-    let destinationPartition = partitionOfXZ( object.position.x + dx, object.position.x + dz );
+	let destinationPartition = partitionOfXZ( object.position.x + dx, object.position.x + dz );
 
-    if ( !destinationPartition ) return // delta is outside world; don't move
+	if ( ! destinationPartition ) return; // delta is outside world; don't move
 
-    if ( object.partition ) object.partition.remove( object );
-    destinationPartition.insert( object );
+	if ( object.partition ) object.partition.remove( object );
+	destinationPartition.insert( object );
 
-    object.position.x += dx;
-    object.position.y += dy;
-    object.position.z += dz;
-    object.mesh.position.copy( object.position );
+	object.position.x += dx;
+	object.position.y += dy;
+	object.position.z += dz;
+	object.mesh.position.copy( object.position );
 
 };
 
@@ -24946,130 +24973,152 @@ const partitions = [];
 
 class Partition {
 
-    constructor( x, z ) {
+	constructor( x, z ) {
 
-        this.objects = null;
-        this.x = x;
-        this.z = z;
-        partitions[ z * size + x ] = this;
-        scheduleNextUpdate( this );
+		this.objects = null;
+		this.x = x;
+		this.z = z;
+		partitions[ z * size + x ] = this;
+		scheduleNextUpdate( this );
 
-    }
+	}
 
-    insert( object ) {
+	insert( object ) {
 
-        let current = this.objects;
-        let previous = null;
-        let ylevel = object.ylevel;
-        while ( current && current.ylevel <= ylevel ) {
-            previous = current;
-            current = current.above;
-        }
+		let current = this.objects;
+		let previous = null;
+		let ylevel = object.ylevel;
+		while ( current && current.ylevel <= ylevel ) {
 
-        object.above = current;
-        object.below = previous;
+			previous = current;
+			current = current.above;
 
-        if ( current ) current.below = object;
-        if ( previous ) previous.above = object;
-        if ( current === this.objects ) this.objects = object;
+		}
 
-        object.partition = this;
+		object.above = current;
+		object.below = previous;
 
-        this.dirty = object.dirty = true;
+		if ( current ) current.below = object;
+		if ( previous ) previous.above = object;
+		if ( current === this.objects ) this.objects = object;
 
-    }
+		object.partition = this;
 
-    remove( object ) {
+		this.dirty = object.dirty = true;
 
-        this.dirty = true;
+	}
 
-        if ( object.above ) {
-            object.above.dirty = true;
-        }
+	remove( object ) {
 
-        if ( this.objects === object ) this.objects = object.above;
-        if ( object.above ) object.above.below = object.below;
-        if ( object.below ) object.below.above = object.above;
+		this.dirty = true;
 
-        object.above = null;
-        object.below = null;
-        object.partition = null;
+		if ( object.above ) {
 
-    }
+			object.above.dirty = true;
 
-    blockAtYLevel( ylevel ) {
-        let current = this.objects;
-        while ( current && current.ylevel <= ylevel ) {
-            if ( current.ylevel === ylevel ) return current
-            current = current.above;
-        }
-        return null
-    }
+		}
 
-    distanceToPartitionSquared( partition ) {
+		if ( this.objects === object ) this.objects = object.above;
+		if ( object.above ) object.above.below = object.below;
+		if ( object.below ) object.below.above = object.above;
 
-        let dx = this.x - partition.x;
-        let dz = this.z - partition.z;
-        return dx * dx + dz * dz
+		object.above = null;
+		object.below = null;
+		object.partition = null;
 
-    }
+	}
 
-    update() {
+	blockAtYLevel( ylevel ) {
 
-        if ( this.dirty ) {
+		let current = this.objects;
+		while ( current && current.ylevel <= ylevel ) {
 
-            this.dirty = false;
+			if ( current.ylevel === ylevel ) return current;
+			current = current.above;
 
-            let object = this.objects;
-            while ( object ) {
-                if ( object.dirty ) {
-                    object.dirty = false;
-                    object.update();
-                }
-                object = object.above;
-            }
+		}
 
-        }
+		return null;
 
-        scheduleNextUpdate( this );
+	}
 
-    }
+	distanceToPartitionSquared( partition ) {
+
+		let dx = this.x - partition.x;
+		let dz = this.z - partition.z;
+		return dx * dx + dz * dz;
+
+	}
+
+	update() {
+
+		if ( this.dirty ) {
+
+			this.dirty = false;
+
+			let object = this.objects;
+			while ( object ) {
+
+				if ( object.dirty ) {
+
+					object.dirty = false;
+					object.update();
+
+				}
+
+				object = object.above;
+
+			}
+
+		}
+
+		scheduleNextUpdate( this );
+
+	}
 
 }
 
 const scheduleNextUpdate = ( partition ) => {
-    let distanceSquared = player ? partition.distanceToPartitionSquared( player.partition ) : ( partition.x * partition.x + partition.z * partition.z ) + 1;
-    schedule( () => {
-        partition.update();
-    }, performance.now() + MINSCHEDULEINTERVAL + distanceSquared * SCHEDULEINTERVALBYDISTANCE );
+
+	let distanceSquared = player ? partition.distanceToPartitionSquared( player.partition ) : ( partition.x * partition.x + partition.z * partition.z ) + 1;
+	schedule( () => {
+
+		partition.update();
+
+	}, performance.now() + MINSCHEDULEINTERVAL + distanceSquared * SCHEDULEINTERVALBYDISTANCE );
+
 };
 
 const partitionOfXZ = ( x, z ) => {
-    if ( x <= -halfsize || z <= -halfsize || x > halfsize || z > halfsize ) return null
-    return partitions[ z * size + x ]
+
+	if ( x <= - halfsize || z <= - halfsize || x > halfsize || z > halfsize ) return null;
+	return partitions[ z * size + x ];
+
 };
 
 const update$1 = () => {
 
-    interval = performance.now() - time;
-    time += interval;
+	interval = performance.now() - time;
+	time += interval;
 
-    let index = animationlist.length;
+	let index = animationlist.length;
 
-    while ( index-- ) {
+	while ( index -- ) {
 
-        animationlist[ index ]();
+		animationlist[ index ]();
 
-    }
+	}
 
-    // catch any unexpectedly large frame rate spikes
-    if ( interval > 1000 ) interval = MINSCHEDULEINTERVAL;
+	// catch any unexpectedly large frame rate spikes
+	if ( interval > 1000 ) interval = MINSCHEDULEINTERVAL;
 
-    let head = logicheap.peek();
-    while ( head && head.heapscore <= time ) {
-        logicheap.pop()();
-        head = logicheap.peek();
-    }
+	let head = logicheap.peek();
+	while ( head && head.heapscore <= time ) {
+
+		logicheap.pop()();
+		head = logicheap.peek();
+
+	}
 
 };
 
@@ -25083,31 +25132,39 @@ const animationlist = [];
 
 const schedule = ( callback, when ) => {
 
-    logicheap.push( callback, ( when === undefined ) ? time + 1 : when );
+	logicheap.push( callback, ( when === undefined ) ? time + 1 : when );
 
 };
 
 const setSize$1 = ( r ) => {
 
-    halfsize = r;
-    size = halfsize * 2;
-    partitions.length = 0;
+	halfsize = r;
+	size = halfsize * 2;
+	partitions.length = 0;
 
-    for ( let z = -halfsize + 1; z < halfsize; z++ ) {
-        for ( let x = -halfsize + 1; x < halfsize; x++ ) {
-            new Partition( x, z );
-        }
-    }
+	for ( let z = - halfsize + 1; z < halfsize; z ++ ) {
 
-    for ( let z = -halfsize + 1; z < halfsize; z++ ) {
-        for ( let x = -halfsize + 1; x < halfsize; x++ ) {
-            let partition = partitionOfXZ( x, z );
-            partition.north = z > -halfsize + 1 ? partitionOfXZ( x, z + 1 ) : null;
-            partition.south = z < halfsize - 1 ? partitionOfXZ( x, z - 1 ) : null;
-            partition.west = x > -halfsize + 1 ? partitionOfXZ( x - 1, z ) : null;
-            partition.east = x < halfsize - 1 ? partitionOfXZ( x + 1, z ) : null;
-        }
-    }
+		for ( let x = - halfsize + 1; x < halfsize; x ++ ) {
+
+			new Partition( x, z );
+
+		}
+
+	}
+
+	for ( let z = - halfsize + 1; z < halfsize; z ++ ) {
+
+		for ( let x = - halfsize + 1; x < halfsize; x ++ ) {
+
+			let partition = partitionOfXZ( x, z );
+			partition.north = z > - halfsize + 1 ? partitionOfXZ( x, z + 1 ) : null;
+			partition.south = z < halfsize - 1 ? partitionOfXZ( x, z - 1 ) : null;
+			partition.west = x > - halfsize + 1 ? partitionOfXZ( x - 1, z ) : null;
+			partition.east = x < halfsize - 1 ? partitionOfXZ( x + 1, z ) : null;
+
+		}
+
+	}
 
 };
 
@@ -25128,28 +25185,34 @@ setSize$1( 1 );
  */
 const seed = seed => {
 
-    currentSeed = 0;
+	currentSeed = 0;
 
-    for ( let index = 0; index < seed.length; ++index ) {
-        currentSeed = ( ( currentSeed << 5 ) - currentSeed ) + seed.charCodeAt( index );
-        currentSeed |= 0;
-    }
+	for ( let index = 0; index < seed.length; ++ index ) {
 
-    // Initialise the noise constants
+		currentSeed = ( ( currentSeed << 5 ) - currentSeed ) + seed.charCodeAt( index );
+		currentSeed |= 0;
 
-    let C = 256;
+	}
 
-    while ( C-- ) {
-        P[ C ] = ( ( ( currentSeed = Math.sin( currentSeed ) * 10000 ) - Math.floor( currentSeed ) ) * 256 ) | 0;
-    }
+	// Initialise the noise constants
 
-    // To remove the need for index wrapping, double the permutation table length
-    C = 512;
+	let C = 256;
 
-    while ( C-- ) {
-        perm[ C ] = P[ C & 255 ];
-        perm123[ C ] = ( perm[ C ] % 12 ) * 3;
-    }
+	while ( C -- ) {
+
+		P[ C ] = ( ( ( currentSeed = Math.sin( currentSeed ) * 10000 ) - Math.floor( currentSeed ) ) * 256 ) | 0;
+
+	}
+
+	// To remove the need for index wrapping, double the permutation table length
+	C = 512;
+
+	while ( C -- ) {
+
+		perm[ C ] = P[ C & 255 ];
+		perm123[ C ] = ( perm[ C ] % 12 ) * 3;
+
+	}
 
 };
 
@@ -25160,7 +25223,11 @@ const seed = seed => {
  */
 const randomString = n => {
 
-    return Array( n ).join().split( "," ).map( () => { return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt( Math.floor( Math.random() * 62 ) ) } ).join( "" )
+	return Array( n ).join().split( "," ).map( () => {
+
+		return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt( Math.floor( Math.random() * 62 ) );
+
+	} ).join( "" );
 
 };
 
@@ -25357,60 +25424,62 @@ MeshPhongMaterial.prototype.copy = function ( source ) {
 
 class Block extends EventDispatcher {
 
-    constructor( params ) {
+	constructor( params ) {
 
-        super();
+		super();
 
-        // construct the material and geometries just in time for the first Block
-        if ( !material ) material = createMaterialConstructGeometries();
+		// construct the material and geometries just in time for the first Block
+		if ( ! material ) material = createMaterialConstructGeometries();
 
-        params = params || {};
+		params = params || {};
 
-        this.matter = params.hasOwnProperty( "matter" ) ? params.matter : "unknown";
-        this.type = params.hasOwnProperty( "type" ) ? params.type : "unknown";
+		this.matter = params.hasOwnProperty( "matter" ) ? params.matter : "unknown";
+		this.type = params.hasOwnProperty( "type" ) ? params.type : "unknown";
 
-        let x = params.hasOwnProperty( "x" ) ? params.x : 0;
-        let y = params.hasOwnProperty( "y" ) ? params.y : 0;
-        let z = params.hasOwnProperty( "z" ) ? params.z : 0;
+		let x = params.hasOwnProperty( "x" ) ? params.x : 0;
+		let y = params.hasOwnProperty( "y" ) ? params.y : 0;
+		let z = params.hasOwnProperty( "z" ) ? params.z : 0;
 
-        this.position = new Vector3( x, y, z );
+		this.position = new Vector3( x, y, z );
 
-        this.updateMesh(
-            params.hasOwnProperty( "char" ) ? params.char : "?",
-            params.hasOwnProperty( "width" ) ? params.width : 1,
-            params.hasOwnProperty( "height" ) ? params.height : 1,
-            params.hasOwnProperty( "depth" ) ? params.depth : 1
-        );
+		this.updateMesh(
+			params.hasOwnProperty( "char" ) ? params.char : "?",
+			params.hasOwnProperty( "width" ) ? params.width : 1,
+			params.hasOwnProperty( "height" ) ? params.height : 1,
+			params.hasOwnProperty( "depth" ) ? params.depth : 1
+		);
 
-        add( this );
+		add( this );
 
-    }
+	}
 
-    get ylevel() {
-        return Math.floor( this.position.y )
-    }
+	get ylevel() {
 
-    updateMesh( char, width, height, depth ) {
+		return Math.floor( this.position.y );
 
-        this.char = "" + char;
-        this.width = width;
-        this.height = height;
-        this.depth = depth;
+	}
 
-        if ( this.mesh ) scene.remove( this.mesh );
+	updateMesh( char, width, height, depth ) {
 
-        this.position.y = Math.floor( this.position.y ) + this.height * 0.5;
+		this.char = "" + char;
+		this.width = width;
+		this.height = height;
+		this.depth = depth;
 
-        this.mesh = new Mesh( createGeometry( this.char, this.width, this.height, this.depth ), material );
-        this.mesh.position.copy( this.position );
+		if ( this.mesh ) scene.remove( this.mesh );
 
-        scene.add( this.mesh );
+		this.position.y = Math.floor( this.position.y ) + this.height * 0.5;
 
-    }
+		this.mesh = new Mesh( createGeometry( this.char, this.width, this.height, this.depth ), material );
+		this.mesh.position.copy( this.position );
 
-    update() {
+		scene.add( this.mesh );
 
-    }
+	}
+
+	update() {
+
+	}
 
 }
 
@@ -25428,235 +25497,247 @@ let material = null;
 
 const createMaterialConstructGeometries = () => {
 
-    const canvas = document.createElement( "canvas" );
-    canvas.width = canvas.height = TEXTURESIZE;
+	const canvas = document.createElement( "canvas" );
+	canvas.width = canvas.height = TEXTURESIZE;
 
-    const ctx = canvas.getContext( "2d" );
-    ctx.imageSmoothingEnabled = true;
+	const ctx = canvas.getContext( "2d" );
+	ctx.imageSmoothingEnabled = true;
 
-    ctx.font = Math.floor( size$1 * 0.7 ) + "px Monospace";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+	ctx.font = Math.floor( size$1 * 0.7 ) + "px Monospace";
+	ctx.textAlign = "center";
+	ctx.textBaseline = "middle";
 
-    const alphanumberic = /[a-z0-9]/i;
+	const alphanumberic = /[a-z0-9]/i;
 
-    for ( let i = 0, y = 0; y < lettersperside; y++ ) {
+	for ( let i = 0, y = 0; y < lettersperside; y ++ ) {
 
-        for ( let x = 0; x < lettersperside; x++ , i++ ) {
+		for ( let x = 0; x < lettersperside; x ++, i ++ ) {
 
-            if ( i >= chars.length ) break
-            let x1 = ( x / lettersperside ) * TEXTURESIZE;
-            let y1 = ( y / lettersperside ) * TEXTURESIZE;
-            let char = chars[ i ];
-            let style = styles[ '?' ];
+			if ( i >= chars.length ) break;
+			let x1 = ( x / lettersperside ) * TEXTURESIZE;
+			let y1 = ( y / lettersperside ) * TEXTURESIZE;
+			let char = chars[ i ];
+			let style = styles[ '?' ];
 
-            if ( alphanumberic.test( char ) ) {
-                style = styles[ 'alphanumeric' ];
-            } else if ( styles.hasOwnProperty( char ) ) {
-                style = styles[ char ];
-            }
+			if ( alphanumberic.test( char ) ) {
 
-            ctx.fillStyle = style.fill;
-            ctx.fillRect( x1 + GLYPHEDGESIZE - 0.5, y1 + GLYPHEDGESIZE - 0.5, tilesize - GLYPHEDGESIZE * 2 + 0.5, tilesize - GLYPHEDGESIZE * 2 + 0.5 );
+				style = styles[ 'alphanumeric' ];
 
-            ctx.beginPath();
-            ctx.strokeStyle = style.edge;
-            ctx.lineWidth = GLYPHEDGESIZE;
-            ctx.rect( x1 + GLYPHEDGESIZE * 0.5, y1 + GLYPHEDGESIZE * 0.5, tilesize - GLYPHEDGESIZE, tilesize - GLYPHEDGESIZE );
-            ctx.stroke();
+			} else if ( styles.hasOwnProperty( char ) ) {
 
-            ctx.fillStyle = style.glyph;
-            ctx.fillText( char, Math.round( halftile + x1 ), Math.round( halftile * 0.9 + y1 ) );
+				style = styles[ char ];
 
-        }
+			}
 
-    }
+			ctx.fillStyle = style.fill;
+			ctx.fillRect( x1 + GLYPHEDGESIZE - 0.5, y1 + GLYPHEDGESIZE - 0.5, tilesize - GLYPHEDGESIZE * 2 + 0.5, tilesize - GLYPHEDGESIZE * 2 + 0.5 );
 
-    return new MeshPhongMaterial( {
-        color: 0xffffff,
-        specular: 0x050505,
-        map: new CanvasTexture( canvas ),
-        transparent: true
-    } )
+			ctx.beginPath();
+			ctx.strokeStyle = style.edge;
+			ctx.lineWidth = GLYPHEDGESIZE;
+			ctx.rect( x1 + GLYPHEDGESIZE * 0.5, y1 + GLYPHEDGESIZE * 0.5, tilesize - GLYPHEDGESIZE, tilesize - GLYPHEDGESIZE );
+			ctx.stroke();
+
+			ctx.fillStyle = style.glyph;
+			ctx.fillText( char, Math.round( halftile + x1 ), Math.round( halftile * 0.9 + y1 ) );
+
+		}
+
+	}
+
+	return new MeshPhongMaterial( {
+		color: 0xffffff,
+		specular: 0x050505,
+		map: new CanvasTexture( canvas ),
+		transparent: true
+	} );
 
 };
 
 const createGeometry = ( char, width, height, depth ) => {
 
-    let i = chars.indexOf( char );
-    let x = i % lettersperside;
-    let y = Math.floor( i / lettersperside );
-    let x1 = ( x / lettersperside ) * TEXTURESIZE;
-    let y1 = ( y / lettersperside ) * TEXTURESIZE;
+	let i = chars.indexOf( char );
+	let x = i % lettersperside;
+	let y = Math.floor( i / lettersperside );
+	let x1 = ( x / lettersperside ) * TEXTURESIZE;
+	let y1 = ( y / lettersperside ) * TEXTURESIZE;
 
-    let uvx1 = ( x1 + 1 ) / TEXTURESIZE;
-    let uvx2 = ( x1 + tilesize - 2 ) / TEXTURESIZE;
-    let uvy1 = 1 - ( y1 + tilesize - 2 ) / TEXTURESIZE;
-    let uvy2 = 1 - ( y1 + 1 ) / TEXTURESIZE;
+	let uvx1 = ( x1 + 1 ) / TEXTURESIZE;
+	let uvx2 = ( x1 + tilesize - 2 ) / TEXTURESIZE;
+	let uvy1 = 1 - ( y1 + tilesize - 2 ) / TEXTURESIZE;
+	let uvy2 = 1 - ( y1 + 1 ) / TEXTURESIZE;
 
-    let geometry = new BoxGeometry( width, height, depth );
+	let geometry = new BoxGeometry( width, height, depth );
 
-    if ( char === "▢" ) return // special char to map entire texture for debuging
+	if ( char === "▢" ) return; // special char to map entire texture for debuging
 
-    let uvs = geometry.faceVertexUvs[ 0 ];
+	let uvs = geometry.faceVertexUvs[ 0 ];
 
-    for ( let f = 0; f < 12; f++ ) {
+	for ( let f = 0; f < 12; f ++ ) {
 
-        let faceuvs = uvs[ f ];
-        //if ( f === 4 || f === 5 ) {
-        faceuvs[ 0 ].x = faceuvs[ 0 ].x ? uvx2 : uvx1;
-        faceuvs[ 0 ].y = faceuvs[ 0 ].y ? uvy2 : uvy1;
-        faceuvs[ 1 ].x = faceuvs[ 1 ].x ? uvx2 : uvx1;
-        faceuvs[ 1 ].y = faceuvs[ 1 ].y ? uvy2 : uvy1;
-        faceuvs[ 2 ].x = faceuvs[ 2 ].x ? uvx2 : uvx1;
-        faceuvs[ 2 ].y = faceuvs[ 2 ].y ? uvy2 : uvy1;
-        // } else {
-        //     faceuvs[ 0 ].x = faceuvs[ 1 ].x = faceuvs[ 2 ].x = x2
-        //     faceuvs[ 0 ].y = faceuvs[ 1 ].y = faceuvs[ 2 ].y = y2
-        // }
+		let faceuvs = uvs[ f ];
+		//if ( f === 4 || f === 5 ) {
+		faceuvs[ 0 ].x = faceuvs[ 0 ].x ? uvx2 : uvx1;
+		faceuvs[ 0 ].y = faceuvs[ 0 ].y ? uvy2 : uvy1;
+		faceuvs[ 1 ].x = faceuvs[ 1 ].x ? uvx2 : uvx1;
+		faceuvs[ 1 ].y = faceuvs[ 1 ].y ? uvy2 : uvy1;
+		faceuvs[ 2 ].x = faceuvs[ 2 ].x ? uvx2 : uvx1;
+		faceuvs[ 2 ].y = faceuvs[ 2 ].y ? uvy2 : uvy1;
+		// } else {
+		//     faceuvs[ 0 ].x = faceuvs[ 1 ].x = faceuvs[ 2 ].x = x2
+		//     faceuvs[ 0 ].y = faceuvs[ 1 ].y = faceuvs[ 2 ].y = y2
+		// }
 
-    }
+	}
 
-    return geometry
+	return geometry;
 
 };
 
 const register = ( char, style ) => {
 
-    styles[ char ] = style;
+	styles[ char ] = style;
 
 };
 
 register( "?", {
-    edge: "rgba( 255, 0, 0, 0.2 )",
-    fill: "rgba( 128, 0, 0, 0.5 )",
-    glyph: "rgba( 255, 0, 0, 1 )"
+	edge: "rgba( 255, 0, 0, 0.2 )",
+	fill: "rgba( 128, 0, 0, 0.5 )",
+	glyph: "rgba( 255, 0, 0, 1 )"
 } );
 
 register( "alphanumeric", {
-    edge: "rgba( 0, 0, 0, 0 )",
-    fill: "rgba( 0, 0, 0, 0 )",
-    glyph: "rgba( 255, 255, 255, 1 )"
+	edge: "rgba( 0, 0, 0, 0 )",
+	fill: "rgba( 0, 0, 0, 0 )",
+	glyph: "rgba( 255, 255, 255, 1 )"
 } );
 
 const blockType = {};
 
 const registerBlockType = ( type, class_ ) => {
 
-    blockType[ type ] = class_;
+	blockType[ type ] = class_;
 
 };
 
 const createBlock = ( type, params ) => {
 
-    return new blockType[ type ]( params )
+	return new blockType[ type ]( params );
 
 };
 
 class Solid extends Block {
 
-    constructor( params ) {
+	constructor( params ) {
 
-        super( Object.assign( params || {}, { matter: "solid" } ) );
+		super( Object.assign( params || {}, { matter: "solid" } ) );
 
-    }
+	}
 
-    update() {
+	update() {
 
-        super.update();
+		super.update();
 
-        if ( this.below && this.below.material === "solid" && this.below.ylevel == this.ylevel ) {
-            move( this, 0, 1, 0 );
-        }
+		if ( this.below && this.below.material === "solid" && this.below.ylevel == this.ylevel ) {
 
-    }
+			move( this, 0, 1, 0 );
+
+		}
+
+	}
 
 }
 
 class Rock extends Solid {
 
-    constructor( params ) {
+	constructor( params ) {
 
-        super( Object.assign( params || {}, { type: "rock", char: "." } ) );
+		super( Object.assign( params || {}, { type: "rock", char: "." } ) );
 
-    }
+	}
 
-    update() {
+	update() {
 
-        super.update();
+		super.update();
 
-    }
+	}
 
 }
 
 register( ".", {
-    edge: "rgba( 20, 20, 20, 1 )",
-    fill: "rgba( 10, 10, 10, 1 )",
-    glyph: "rgba( 20, 20, 20, 1 )"
+	edge: "rgba( 20, 20, 20, 1 )",
+	fill: "rgba( 10, 10, 10, 1 )",
+	glyph: "rgba( 20, 20, 20, 1 )"
 } );
 
 register( "-", {
-    edge: "#996531",
-    fill: "#704112",
-    glyph: "#996531"
+	edge: "#996531",
+	fill: "#704112",
+	glyph: "#996531"
 } );
 
 class Liquid extends Block {
 
-    constructor( params ) {
+	constructor( params ) {
 
-        super( Object.assign( params || {}, { matter: "liquid" } ) );
+		super( Object.assign( params || {}, { matter: "liquid" } ) );
 
-    }
+	}
 
-    update() {
+	update() {
 
-        super.update();
+		super.update();
 
-        let ylevel = this.ylevel;
+		let ylevel = this.ylevel;
 
-        if ( this.below && this.below.ylevel === ylevel ) {
-            return move( this, 0, 1, 0 )
-        }
+		if ( this.below && this.below.ylevel === ylevel ) {
 
-        if ( this.below && this.below.ylevel < ylevel - 1 ) {
-            return move( this, 0, -1, 0 )
-        }
+			return move( this, 0, 1, 0 );
 
-        if ( this.height <= 0.1 ) return
+		}
 
-        let n = this.partition.north.blockAtYLevel( ylevel );
-        let e = this.partition.east.blockAtYLevel( ylevel );
-        let s = this.partition.south.blockAtYLevel( ylevel );
-        let w = this.partition.west.blockAtYLevel( ylevel );
+		if ( this.below && this.below.ylevel < ylevel - 1 ) {
 
-        let division = 1 + ( n ? 0 : 1 ) + ( e ? 0 : 1 ) + ( s ? 0 : 1 ) + ( w ? 0 : 1 );
+			return move( this, 0, - 1, 0 );
 
-        if ( division > 1 ) {
-            this.updateMesh( this.char, 1, this.height / division, 1 );
-            if ( !n ) createBlock( this.type, { x: this.partition.north.x, y: this.position.y, z: this.partition.north.z, height: 1.0 / division } );
-        }
+		}
 
-        this.partition.dirty = this.dirty = true;
+		if ( this.height <= 0.1 ) return;
 
-    }
+		let n = this.partition.north.blockAtYLevel( ylevel );
+		let e = this.partition.east.blockAtYLevel( ylevel );
+		let s = this.partition.south.blockAtYLevel( ylevel );
+		let w = this.partition.west.blockAtYLevel( ylevel );
+
+		let division = 1 + ( n ? 0 : 1 ) + ( e ? 0 : 1 ) + ( s ? 0 : 1 ) + ( w ? 0 : 1 );
+
+		if ( division > 1 ) {
+
+			this.updateMesh( this.char, 1, this.height / division, 1 );
+			if ( ! n ) createBlock( this.type, { x: this.partition.north.x, y: this.position.y, z: this.partition.north.z, height: 1.0 / division } );
+
+		}
+
+		this.partition.dirty = this.dirty = true;
+
+	}
 
 }
 
 class Water extends Liquid {
 
-    constructor( params ) {
+	constructor( params ) {
 
-        super( Object.assign( params || {}, { type: "Water", char: "∼" } ) );
+		super( Object.assign( params || {}, { type: "Water", char: "∼" } ) );
 
-    }
+	}
 
-    update() {
+	update() {
 
-        super.update();
-        this.updateMesh( this.char === "∼" ? "~" : "∼", this.width, this.height, this.depth );
+		super.update();
+		this.updateMesh( this.char === "∼" ? "~" : "∼", this.width, this.height, this.depth );
 
-    }
+	}
 
 }
 
@@ -25664,61 +25745,67 @@ registerBlockType( "Water", Water );
 
 
 register( "~", {
-    edge: "rgba( 100, 100, 255, 0.3 )",
-    fill: "rgba( 100, 100, 255, 0.3 )",
-    glyph: "rgba( 0, 0, 100, 0.5 )"
+	edge: "rgba( 100, 100, 255, 0.3 )",
+	fill: "rgba( 100, 100, 255, 0.3 )",
+	glyph: "rgba( 0, 0, 100, 0.5 )"
 } );
 
 register( "∼", {
-    edge: "rgba( 100, 100, 255, 0.3 )",
-    fill: "rgba( 100, 100, 255, 0.3 )",
-    glyph: "rgba( 0, 0, 100, 0.5 )"
+	edge: "rgba( 100, 100, 255, 0.3 )",
+	fill: "rgba( 100, 100, 255, 0.3 )",
+	glyph: "rgba( 0, 0, 100, 0.5 )"
 } );
 
 class Person extends Solid {
 
-    constructor( params ) {
+	constructor( params ) {
 
-        super( Object.assign( params || {}, { type: "person", char: "▢" } ) );
+		super( Object.assign( params || {}, { type: "person", char: "▢" } ) );
 
-    }
+	}
 
-    update() {
+	update() {
 
-        super.update();
+		super.update();
 
-    }
+	}
 
 }
 
 register( "@", {
-    edge: "rgba( 0, 0, 0, 0 )",
-    fill: "rgba( 0, 0, 0, 0 )",
-    glyph: "rgba( 255, 255, 255, 1 )"
+	edge: "rgba( 0, 0, 0, 0 )",
+	fill: "rgba( 0, 0, 0, 0 )",
+	glyph: "rgba( 255, 255, 255, 1 )"
 } );
 
 function update$2() {
 
-    requestAnimationFrame( update$2 );
-    update();
-    update$1();
+	requestAnimationFrame( update$2 );
+	update();
+	update$1();
 
 }
 
 setSize$1( 20 );
 setCamera( 0, 5, 0 );
 
-for ( let z = -halfsize + 1; z < halfsize; z++ ) {
-    for ( let x = -halfsize + 1; x < halfsize; x++ ) {
-        let height = 1; // Math.floor( 1 + 1 * noise( ( ( x + world.halfsize ) / max ) * hills, ( ( z + world.halfsize ) / max ) * hills ) )
-        while ( height-- ) {
-            new Rock( { x: x, z: z } );
-        }
-    }
+for ( let z = - halfsize + 1; z < halfsize; z ++ ) {
+
+	for ( let x = - halfsize + 1; x < halfsize; x ++ ) {
+
+		let height = 1; // Math.floor( 1 + 1 * noise( ( ( x + world.halfsize ) / max ) * hills, ( ( z + world.halfsize ) / max ) * hills ) )
+		while ( height -- ) {
+
+			new Rock( { x: x, z: z } );
+
+		}
+
+	}
+
 }
 
 
-new Water( { x: 2, z: -2 } );
+new Water( { x: 2, z: - 2 } );
 
 const player$1 = new Person( { x: 0, z: 0 } );
 
@@ -25727,14 +25814,14 @@ focus( player$1 );
 
 document.addEventListener( "keydown", function ( event ) {
 
-    if ( player$1 ) {
+	if ( player$1 ) {
 
-        if ( event.key === "h" ) move( player$1, -1, 0 );
-        else if ( event.key === "l" ) move( player$1, 1, 0 );
-        else if ( event.key === "j" ) move( player$1, 0, 1 );
-        else if ( event.key === "k" ) move( player$1, 0, -1 );
+		if ( event.key === "h" ) move( player$1, - 1, 0 );
+		else if ( event.key === "l" ) move( player$1, 1, 0 );
+		else if ( event.key === "j" ) move( player$1, 0, 1 );
+		else if ( event.key === "k" ) move( player$1, 0, - 1 );
 
-    }
+	}
 
 } );
 
