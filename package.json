@@ -6,11 +6,8 @@
 	"private": true,
 	"licence": "MIT",
 	"type": "module",
-	"repository": {
-		"url": "https://github.com/between2spaces/between2spaces.git"
-	},
 	"scripts": {
-		"start": "(npm install; npx ncu -u; npm install; trap 'kill 0' SIGINT; python3 -m http.server)"
+		"start": "sh ./start.sh"
 	},
 	"devDependencies": {
 		"eslint": "^8.29.0",

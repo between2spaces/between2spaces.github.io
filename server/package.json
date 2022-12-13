@@ -6,15 +6,12 @@
     "main": "server.js",
     "type": "module",
     "scripts": {
-        "start": "(npx -u npm-check-updates -u; npm install; if [ ! -f '.env' ]; then echo 'PORT=6500' > .env; fi; trap 'kill 0' SIGINT; export $(sed -e '/^[ ]*#/d' .env | xargs) && node wurmserver.js"
+        "start": "sh ./start.sh"
     },
     "dependencies": {
         "ws": "^8.11.0"
     },
     "engines": {
         "node": "16.x"
-    },
-    "repository": {
-        "url": "https://github.com/between2spaces/between2spaces.github.io/tree/master/server"
     }
   }
