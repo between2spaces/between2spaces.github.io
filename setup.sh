@@ -28,8 +28,9 @@ if [ -f "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}" ]; then
 	git config --global credential.helper "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}"
 	echo "git config --global credential.helper ${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}"
 elif [ -f "${PROGFILES_PATH}/${GCM_REL_EXE}" ]; then
-	git config --global credential.helper "${PROGFILES_PATH}/${GCM_REL_EXE}"
-	echo "git config --global credential.helper ${PROGFILES_PATH}/${GCM_REL_EXE}"
+	ESCAPED_PATH=$(echo "$PROGFILES_PATH/$GCM_REL_EXE" | tr " " "\\ ")
+	git config --global credential.helper "$ESCAPED_PATH"
+	echo "git config --global credential.helper $ESCAPED_PATH"
 fi
 
 exit 0
