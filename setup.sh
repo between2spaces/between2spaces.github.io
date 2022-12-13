@@ -19,7 +19,7 @@ fi
 
 
 # configure credential.helper
-GCM_REL_EXE="mingw64/libexec/git-core/git-credential-manager-core.exe"
+GCM_REL_EXE="mingw64/libexec/git-core/git-credential-manager.exe"
 if [ -f "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}" ]; then
 	git config --global credential.helper "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}"
 elif [ -f "${PROGFILES_PATH}$/{GCM_REL_EXE}" ]; then
