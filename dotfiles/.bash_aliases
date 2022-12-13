@@ -30,6 +30,7 @@ ssh-scarmody-newsagent() { ssh scarmody@zaue1pcchiqap02.wkap.int; }
 # alias for the full apt update, upgrade, remove, clean cycle
 apt-update-remove-clean() { sudo -- sh -c 'apt update; apt upgrade -y; apt dist-upgrade -y; apt autoremove -y; apt autoclean -y'; }
 
-# start tbl project services
-tbl() { cd ~/sunladen.github.io && python3 -m http.server &> /dev/null & cd ~/sunladen.github.io/tbl && npm start; } 
+if [[ "$OSTYPE" =~ ^msys ]]; then
+	alias python3="py -3"
+fi
 
