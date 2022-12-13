@@ -5,13 +5,17 @@ git config user.email "between2spaces@gmail.com"
 git config user.name "between2spaces"
 git remote set-url origin https://between2spaces@github.com/between2spaces/between2spaces.github.io.git
 
-if grep -qi microsoft /proc/version; then
+
+if [[ "$OSTYPE" =~ ^linux ]]; then
 	# in a WSL environment
+	
 	USERPROFILE=$(wslpath "$(wslvar USERPROFILE)")
 	LOCALAPPDATA=$(wslpath "$(wslvar LOCALAPPDATA)")
 	PROGFILES_PATH="/mnt/c/Program\ Files/Git"
-elif command -v cygpath &> /dev/null; then
+
+elif [[ "$OSTYPE" =~ ^msys ]]; then
 	# in a Git for Windows environment
+	
 	USERPROFILE="${HOME}"
 	LOCALAPPDATA="${HOME}/AppData/Local"
 	PROGFILES_PATH="/c/Program\ Files/Git"
