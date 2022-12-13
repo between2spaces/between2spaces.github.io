@@ -65,9 +65,6 @@ fi
 
 if grep -qi microsoft /proc/version; then
 	# in a WSL environment
-	
-	# link to Windows Terminal settings.json
-	ln -s /mnt/c/Users/Stephen.Carmody/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json ./windows_terminal/settings.json
 
 	# question whether to go on and perform package management and tool installs
 	read -r -p "run package purge, installs and updates (requires sudo)? [Yn] " response
@@ -106,12 +103,12 @@ if grep -qi microsoft /proc/version; then
 
 			# Check for tooling updates and install if available
 			compareInstalled() {
-			
+
 				latest_version="${1}"
 				cmd="${2}"
 				cmd_read_version="${3}"
 				cmp=0
-			
+
 				if command -v "${cmd}" &> /dev/null; then
 					installed_version="$(eval ${cmd} ${cmd_read_version})"
 					if [ "${installed_version}" != "${latest_version}" ]; then
@@ -124,7 +121,7 @@ if grep -qi microsoft /proc/version; then
 					echo "${cmd} not installed"
 					cmp=1
 				fi
-			
+
 				if [ "${cmp}" -eq "1" ]; then
 					read -r -p "install $latest_version? [Yn] " response
 					case "$response" in
@@ -137,16 +134,16 @@ if grep -qi microsoft /proc/version; then
 				else
 					exit 0
 				fi
-			
+
 			}
-			
-			
-			
+
+
+
 			installDependancies() {
-			
+
 			  required=("${@}")
 			  missing=()
-			
+
 			  for package in "${required[@]}"; do
 					checking="checking for ${package}... "
 					if dpkg-query -l "$package" &> /dev/null; then
@@ -157,41 +154,41 @@ if grep -qi microsoft /proc/version; then
 					fi
 					echo ${checking}
 			  done
-			
+
 			  if [ ${#missing[@]} -gt 0 ]; then
 					echo "installing ${#missing[@]} packages..."
 			  fi
-			
+
 			  for package in "${missing[@]}"; do
 					sudo apt --yes install "${package}"
 			  done
-			
+
 			}
-			
-			
+
+
 			downloadAndInstall() {
 			 	tarball_url="${1}"
 				configure_args="${2}"
-			
+
 				tmp_filename=$(mktemp -q /tmp/XXXXXX)
-			
+
 				cd /tmp
-			
+
 				wget -O "${tmp_filename}" "${tarball_url}"
 				extracted_dir=$(tar -tf "${tmp_filename}" | head -1 | cut -d "/" -f1)
 				tar xvf "${tmp_filename}"
-			
+
 				cd "${extracted_dir}"
 				./configure ${configure_args}
 				make
 				sudo make install
-			
-			
+
+
 				# Clean up
 				cd ..
 				rm -rf "${extracted_dir}"
 				rm -f "${tmp_filename}"
-			
+
 			}
 
 			# Vim
@@ -204,4 +201,3 @@ if grep -qi microsoft /proc/version; then
 	esac
 
 fi
-
