@@ -11,7 +11,7 @@ if [[ "$OSTYPE" =~ ^linux ]]; then
 	
 	USERPROFILE=$(wslpath "$(wslvar USERPROFILE)")
 	LOCALAPPDATA=$(wslpath "$(wslvar LOCALAPPDATA)")
-	PROGFILES_PATH="/mnt/c/Program\ Files/Git"
+	PROGFILES_PATH="/mnt/c/Program Files/Git"
 
 elif [[ "$OSTYPE" =~ ^msys ]]; then
 	# in a Git for Windows environment
@@ -26,10 +26,13 @@ fi
 GCM_REL_EXE="mingw64/bin/git-credential-manager.exe"
 if [ -f "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}" ]; then
 	git config --global credential.helper "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}"
-elif [ -f "${PROGFILES_PATH}$/{GCM_REL_EXE}" ]; then
+	echo "git config --global credential.helper ${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}"
+elif [ -f "${PROGFILES_PATH}/${GCM_REL_EXE}" ]; then
 	git config --global credential.helper "${PROGFILES_PATH}/${GCM_REL_EXE}"
+	echo "git config --global credential.helper ${PROGFILES_PATH}/${GCM_REL_EXE}"
 fi
 
+exit 0
 
 # disable login banner
 touch ~/.hushlogin
