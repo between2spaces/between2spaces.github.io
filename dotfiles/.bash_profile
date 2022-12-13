@@ -44,6 +44,10 @@ fi
 # remove ugly green background from ow 'other, writable' and tw 'sticky, writable'
 export LS_COLORS="$LS_COLORS:ow=1;34:tw=1;34:"
 
+# scrub Windows paths on WSL environment (keep VScode if found)
+VSCODEPATH=$(echo "$PATH" | tr ":" "\n" | grep "Microsoft VS Code")
+PATH=$(echo "$PATH" | tr ":" "\n" | grep -v "^/mnt/" | tr "\n" ":")
+PATH="$PATH$VSCODEPATH"
 
 # set PATH so it includes user's private bin if it exists
 if [ -d "$HOME/bin" ] ; then
