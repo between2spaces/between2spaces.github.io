@@ -36,7 +36,8 @@
     "profiles":
     {
         "defaults": {
-						"colorScheme": "Solarized Dark"
+						"colorScheme": "Solarized Dark",
+						"closeOnExit": "always"
 				},
         "list":
         [
