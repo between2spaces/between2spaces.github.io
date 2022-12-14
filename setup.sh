@@ -26,14 +26,13 @@ fi
 GCM_REL_EXE="mingw64/bin/git-credential-manager.exe"
 if [ -f "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}" ]; then
 	git config --global credential.helper "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}"
-	echo "git config --global credential.helper ${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}"
+	echo "git config --global credential.helper \"${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}\""
 elif [ -f "${PROGFILES_PATH}/${GCM_REL_EXE}" ]; then
-	ESCAPED_PATH=$(echo "$PROGFILES_PATH/$GCM_REL_EXE" | tr " " "\\ ")
+	ESCAPED_PATH=$(echo "$PROGFILES_PATH/$GCM_REL_EXE" | sed "s/ /\\\\ /")
 	git config --global credential.helper "$ESCAPED_PATH"
-	echo "git config --global credential.helper $ESCAPED_PATH"
+	echo "git config --global credential.helper \"$ESCAPED_PATH\""
 fi
 
-exit 0
 
 # disable login banner
 touch ~/.hushlogin
