@@ -31,6 +31,6 @@ ssh-scarmody-newsagent() { ssh scarmody@zaue1pcchiqap02.wkap.int; }
 apt-update-remove-clean() { sudo -- sh -c 'apt update; apt upgrade -y; apt dist-upgrade -y; apt autoremove -y; apt autoclean -y'; }
 
 if [[ "$OSTYPE" =~ ^msys ]]; then
-	alias python3="py -3"
+	alias python3="python"
 fi
 
