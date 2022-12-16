@@ -5,17 +5,19 @@ response = requests.get("https://sydney.locanto.com.au/Personals/P/?sort=date")
 tree = html.fromstring(response.text)
 entries = tree.xpath('//div[contains(@class, "bp_ad ") and not(contains(@class, "--native_ad"))]')
 for entry in entries:
+    category = "OK"
     if len(entry.xpath('.//a[@href="https://sydney.locanto.com.au/Men-Looking-for-Women/20701/"]')) > 0:
-        continue
+        category = "Men looking for women"
     if len(entry.xpath('.//a[@href="https://sydney.locanto.com.au/Men-Looking-for-Men/20704/"]')) > 0:
-        continue
+        category = "Men looking for men"
     if len(entry.xpath('.//a[@href="https://sydney.locanto.com.au/Transgender-Adventures/20711/"]')) > 0:
-        continue
+        category = "Transgender"
     if len(entry.xpath('.//a[@href="https://sydney.locanto.com.au/tag/Crossdresser/"]')) > 0:
-        continue
-    title = entry.xpath('.//a[@class="bp_ad__title_link"]')[0]
+        category = "Crossdresser"
+    title = entry.xpath('.//h3[@class="bp_ad__title"]')[0]
     desc = entry.xpath('.//a[@class="bp_ad__desc_link"]')[0]
-    print(etree.tostring(entry))
+    #print(etree.tostring(entry))
+    print(category)
     print()
     print(title.text)
     print()
