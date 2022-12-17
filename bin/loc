@@ -5,13 +5,22 @@ from lxml import html, etree
 debug = False
 iconUrl = "/assets/221216_101944/images/bg/icons/sprites/desktop/personals/sprite.svg"
 maxDistance = 15
+
+badBreadcrumbs = ['Men Looking for', 'Men Seeking', 'M4w', 'Erotic Photographers', 'Phone & Cam',
+    'Transgender', 'Transsexuals', 'T4m', 'M4m', 'Jobs', 'Crossdresser', 'Shopping']
+ 
+
 #response = requests.get("https://sydney.locanto.com.au/Personals/P/?sort=date")
 
-for pagination in [0, 1]:
+for pagination in [0, 1, 2]:
 
     url = "https://www.locanto.com.au/geo/498622/Personals/P/Ryde-Sydney/?dist={}&sort=date".format(maxDistance)
-    if pagination == 1:
+    if pagination > 0:
         url = "{}&page={}".format(url, pagination)
+
+    if debug:
+        print(url)
+
     page = html.fromstring(requests.get(url).text)
 
     for ad in page.xpath('//div[contains(@class, "bp_ad ") and not(contains(@class, "--native_ad"))]'):
@@ -28,30 +37,24 @@ for pagination in [0, 1]:
             good = '✘'
         ad_url = ad.xpath('.//a[@class="bp_ad__link"]/@href')[0]
         if debug:
-            print(good, ad_url)
+            print(' ', good, ad_url)
         if good == '✓':
             page = html.fromstring(requests.get(ad_url).text)
             breadcrumb = page.xpath('//div[@class="breadcrumb_item"][last()]/a/text()')[0].strip()
-            if 'Men Looking for' in breadcrumb or 'Men Seeking' in breadcrumb or 'M4w' in breadcrumb:
-                good = '✘'
-            if 'Erotic Photographers' in breadcrumb or 'Phone & Cam' in breadcrumb:
-                good = '✘'
-            if 'Transgender' in breadcrumb or 'Transsexuals' in breadcrumb or 'T4m' in breadcrumb:
-                good = '✘'
-            if 'M4m' in breadcrumb:
-                good = '✘'
-            if breadcrumb == 'Jobs Sydney':
-                good = '✘'
+            for badBreadcrumb in badBreadcrumbs:
+                if badBreadcrumb in breadcrumb:
+                    good = '✘'
+                    break
             if debug:
-                print(' ', good, breadcrumb)
+                print('  ', good, breadcrumb)
             if good == '✘':
                 continue
-            posted = ''.join(page.xpath('//div[@class="posting_info"]//text()')).replace('\n', ' ').strip()
+            posted = ''.join(page.xpath('//div[@class="posting_info"]//text()')).replace('\n', ' ').strip().replace('Posted ', '')
             location = page.xpath('//span[@itemprop="addressLocality"]/text()')[0].strip()
             phonedata = page.xpath('//a[@data-phone]')
             phonedata = '📞 ' if len(phonedata) > 0 else ''
-            print('{}{},'.format(phonedata, location), '{} in {}'.format(posted, breadcrumb))
-            print(' ', ad_url)
+            print('  {}{},'.format(phonedata, location), '{} [{}]'.format(breadcrumb, posted))
+            print('    ', ad_url)
         #desc = ad.xpath('.//a[@class="bp_ad__desc_link"]')[0]
         #print(etree.tostring(ad))
         #print(category)
