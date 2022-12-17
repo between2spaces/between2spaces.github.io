@@ -28,6 +28,7 @@ set list
 set signcolumn=number
 set background=dark
 set splitbelow
+set paste
 
 
 "hi Normal ctermbg=NONE

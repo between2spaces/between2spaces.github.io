@@ -34,3 +34,5 @@ if [[ "$OSTYPE" =~ ^msys ]]; then
 	alias python3="python"
 fi
 
+lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
+
