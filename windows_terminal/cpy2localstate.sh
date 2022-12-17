@@ -14,5 +14,6 @@ fi
 
 WINDOWS_TERMINAL="$LOCALAPPDATA/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/"
 
-cp settings.json "$WINDOWS_TERMINAL/LocalState/"
+echo "cp settings.json \"$WINDOWS_TERMINAL/LocalState/\""
+#cp settings.json "$WINDOWS_TERMINAL/LocalState/"
 
