@@ -1,23 +1,62 @@
 #!/usr/bin/python3
 import requests
 from lxml import html, etree
-response = requests.get("https://sydney.locanto.com.au/Personals/P/?sort=date")
-tree = html.fromstring(response.text)
-entries = tree.xpath('//div[contains(@class, "bp_ad ") and not(contains(@class, "--native_ad"))]')
-for entry in entries:
-    good = '✓'
-    m4mIcon = entry.xpath('.//use[@*[local-name()="xlink:href"]="/assets/221216_101944/images/bg/icons/sprites/desktop/personals/sprite.svg#204"]')
-    w4mOrm4wIcon = entry.xpath('.//use[@*[local-name()="xlink:href"]="/assets/221216_101944/images/bg/icons/sprites/desktop/personals/sprite.svg#201_202"]')
-    if len(m4mIcon) > 0:
-        good = '✘'
-    ad_url = entry.xpath('.//a[@class="bp_ad__link"]/@href')
-    print(good, ad_url)
-    #title = entry.xpath('.//h3[@class="bp_ad__title"]')[0]
-    #desc = entry.xpath('.//a[@class="bp_ad__desc_link"]')[0]
-    #print(etree.tostring(entry))
-    #print(category)
-    #print()
-    #print(title.text)
-    #print()
-    #print(desc.text)
-    #print()
+
+debug = False
+iconUrl = "/assets/221216_101944/images/bg/icons/sprites/desktop/personals/sprite.svg"
+maxDistance = 15
+#response = requests.get("https://sydney.locanto.com.au/Personals/P/?sort=date")
+
+for pagination in [0, 1]:
+
+    url = "https://www.locanto.com.au/geo/498622/Personals/P/Ryde-Sydney/?dist={}&sort=date".format(maxDistance)
+    if pagination == 1:
+        url = "{}&page={}".format(url, pagination)
+    page = html.fromstring(requests.get(url).text)
+
+    for ad in page.xpath('//div[contains(@class, "bp_ad ") and not(contains(@class, "--native_ad"))]'):
+        good = '✓'
+        vip = ad.xpath('.//div[contains(@class, "resultImage--P")]')
+        if len(vip) > 0:
+            good = '✘'
+        m4m = ad.xpath('.//use[@*[local-name()="xlink:href"]="{}#204"]'.format(iconUrl))
+        w4mOrm4w = ad.xpath('.//use[@*[local-name()="xlink:href"]="{}#201_202"]'.format(iconUrl))
+        w4w = ad.xpath('.//use[@*[local-name()="xlink:href"]="{}#203"]'.format(iconUrl))
+        fetishOrTrans = ad.xpath('.//use[@*[local-name()="xlink:href"]="{}#207"]'.format(iconUrl))
+        otherServicesOrPhotographyOrJobsOrPhoneCam = ad.xpath('.//use[@*[local-name()="xlink:href"]="{}#209"]'.format(iconUrl))
+        if len(m4m) > 0 or len(w4w) > 0:
+            good = '✘'
+        ad_url = ad.xpath('.//a[@class="bp_ad__link"]/@href')[0]
+        if debug:
+            print(good, ad_url)
+        if good == '✓':
+            page = html.fromstring(requests.get(ad_url).text)
+            breadcrumb = page.xpath('//div[@class="breadcrumb_item"][last()]/a/text()')[0].strip()
+            if 'Men Looking for' in breadcrumb or 'Men Seeking' in breadcrumb or 'M4w' in breadcrumb:
+                good = '✘'
+            if 'Erotic Photographers' in breadcrumb or 'Phone & Cam' in breadcrumb:
+                good = '✘'
+            if 'Transgender' in breadcrumb or 'Transsexuals' in breadcrumb or 'T4m' in breadcrumb:
+                good = '✘'
+            if 'M4m' in breadcrumb:
+                good = '✘'
+            if breadcrumb == 'Jobs Sydney':
+                good = '✘'
+            if debug:
+                print(' ', good, breadcrumb)
+            if good == '✘':
+                continue
+            posted = ''.join(page.xpath('//div[@class="posting_info"]//text()')).replace('\n', ' ').strip()
+            location = page.xpath('//span[@itemprop="addressLocality"]/text()')[0].strip()
+            phonedata = page.xpath('//a[@data-phone]')
+            phonedata = '📞 ' if len(phonedata) > 0 else ''
+            print('{}{},'.format(phonedata, location), '{} in {}'.format(posted, breadcrumb))
+            print(' ', ad_url)
+        #desc = ad.xpath('.//a[@class="bp_ad__desc_link"]')[0]
+        #print(etree.tostring(ad))
+        #print(category)
+        #print()
+        #print(title.text)
+        #print()
+        #print(desc.text)
+        #print()
