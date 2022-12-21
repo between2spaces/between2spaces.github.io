@@ -1,5 +1,7 @@
 import Client from './client.js';
+import { createNoise3D } from './simplexnoise.js';
 
+const noise3D = createNoise3D();
 const mapSize = 128;
 
 class WurmClient extends Client {
@@ -44,6 +46,21 @@ class WurmClient extends Client {
 const entitySpace = {
 
 	cells: Array.from( { length: mapSize * mapSize }, () => [] ),
+	dirty: [],
+
+	isDirty: ( entity ) => {
+
+		if ( entitySpace.dirty.indexOf( entity ) === - 1 ) entitySpace.dirty.push( entity );
+
+	},
+
+	clearDirty: () => {
+
+		const dirty = entitySpace.dirty;
+		entitySpace.dirty = [];
+		return dirty;
+
+	},
 
 	entitiesAt: ( x, y ) => {
 
@@ -57,10 +74,20 @@ const entitySpace = {
 
 		const entitySpaceIndex = entity.y * mapSize + entity.x;
 
+		if ( entitySpaceIndex < 0 || entitySpaceIndex >= entitySpace.cells.length ) {
+
+			console.log( 'error: entitySpaceIndex out of bounds' );
+			return;
+
+		}
+
+		let dirty = false;
+
 		if ( 'entitySpaceIndex' in entity && entitySpaceIndex !== entity.entitySpaceIndex ) {
 
 			const index = entitySpace.cells[ entity.entitySpaceIndex ].indexOf( entity );
 			if ( index > - 1 ) entitySpace.cells[ entity.entitySpaceIndex ].splice( index, 1 );
+			dirty = true;
 
 		}
 
@@ -68,8 +95,11 @@ const entitySpace = {
 
 			entity.entitySpaceIndex = entitySpaceIndex;
 			entitySpace.cells[ entitySpaceIndex ].push( entity );
+			dirty = true;
 
 		}
+
+		if ( dirty ) entitySpace.isDirty( entity );
 
 	}
 
@@ -107,33 +137,26 @@ const view = {
 
 	x: 0,
 	y: 0,
+	entitySpace: entitySpace,
 
 	update: ( timestamp ) => {
 
-		for ( let y = 0; y < mapSize; y ++ ) {
+		if ( ! view.entitySpace.dirty.length ) return window.requestAnimationFrame( view.update );
 
-			for ( let x = 0; x < mapSize; x ++ ) {
+		const dirty = view.entitySpace.clearDirty();
 
-				const entities = entitySpace.cells[ y * mapSize + x ];
+		for ( let entity of dirty ) {
 
-				for ( let i = 0; i < entities.length; i ++ ) {
+			if ( ! ( 'domElement' in entity ) ) {
 
-					const entity = entities[ i ];
-
-					if ( ! ( 'domElement' in entity ) ) {
-
-						entity.domElement = document.createElement( 'div' );
-						entity.domElement.className = 'entity';
-						document.body.append( entity.domElement );
-
-					}
-
-					entity.domElement.style.left = ( x * entity.domElement.offsetWidth ) + 'px';
-					entity.domElement.style.top = ( y * entity.domElement.offsetHeight ) + 'px';
-
-				}
+				entity.domElement = document.createElement( 'div' );
+				entity.domElement.className = 'entity';
+				document.body.append( entity.domElement );
 
 			}
+
+			entity.domElement.style.left = ( entity.x * entity.domElement.offsetWidth ) + 'px';
+			entity.domElement.style.top = ( entity.y * entity.domElement.offsetHeight ) + 'px';
 
 		}
 
@@ -145,3 +168,4 @@ const view = {
 
 window.requestAnimationFrame( view.update );
 
+console.log( noise3D( - 100, 1, 256 ) );
