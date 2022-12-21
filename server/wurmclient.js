@@ -1,8 +1,11 @@
 import Client from './client.js';
 import { createNoise3D } from './simplexnoise.js';
 
+
 const noise3D = createNoise3D();
+
 const mapSize = 128;
+
 
 class WurmClient extends Client {
 
@@ -41,7 +44,6 @@ class WurmClient extends Client {
 	}
 
 }
-
 
 const entitySpace = {
 
@@ -169,3 +171,4 @@ const view = {
 window.requestAnimationFrame( view.update );
 
 console.log( noise3D( - 100, 1, 256 ) );
+
