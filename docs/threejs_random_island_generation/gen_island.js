@@ -2,6 +2,8 @@ import * as THREE from 'https://cdn.skypack.dev/three@0.135.0/build/three.module
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.135.0/examples/jsm/controls/OrbitControls.js';
 import * as Landscape from './landscape.js';
 
+const worldSize = 100;
+
 const landscapeGeometry = Landscape.generateIslandGeometry( worldSize );
 
 var dirtMaterial = new THREE.MeshStandardMaterial( {
@@ -15,7 +17,7 @@ scene.add( dirtMesh );
 
 var wireframe = new THREE.LineSegments( new THREE.WireframeGeometry( landscapeGeometry ) );
 wireframe.material.opacity = 0.25;
-wireframe.material.transparent = true;
+wireframe.material.tramorgue/threejs_random_island_generationnsparent = true;
 scene.add( wireframe );
 
 var waterGeometry = new THREE.PlaneGeometry( worldSize, worldSize );

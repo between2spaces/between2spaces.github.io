@@ -52,7 +52,6 @@ rm -rf ~/.bashrc && ln -s $PWD/dotfiles/.bashrc ~/.bashrc
 rm -rf ~/.inputrc && ln -s $PWD/dotfiles/.inputrc ~/.inputrc
 rm -rf ~/.vim/vimrc && ln -s $PWD/dotfiles/.vim/vimrc ~/.vim/vimrc
 rm -rf ~/.config/ranger && ln -s $PWD/dotfiles/.config/ranger ~/.config/ranger
-rm -rf ~/bin && ln -s $PWD/bin ~/bin
 
 
 
