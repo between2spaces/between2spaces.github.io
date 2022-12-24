@@ -1,6 +1,12 @@
 # between2spaces
 
-[github](https://github.com/between2spaces) | [pages](https://between2spaces.github.io)
+github | [pages](https://between2spaces.github.io)
 
 
-[web](/web)
+## Setup dotfiles and update packages
+
+```
+cd setup
+./setup.sh
+```
+
