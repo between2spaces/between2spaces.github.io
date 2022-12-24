@@ -23,8 +23,8 @@
   "homepage": "https://github.com/inthe3vening/",
   "devDependencies": {
     "node-watch": "^0.7.3",
-    "rollup": "^2.78.1",
-    "google-closure-compiler": "^20220803.0.0",
-    "pixi.js": "^6.5.2"
+    "rollup": "^3.8.1",
+    "google-closure-compiler": "^20221102.0.1",
+    "pixi.js": "^7.0.5"
   }
 }
