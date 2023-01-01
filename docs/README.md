@@ -4,4 +4,5 @@
 
 ## Recent
 
-* [web](/web)
+* [Colony simulation](/colony_sim)
+
