@@ -1,165 +1,155 @@
+import { createNoise4D } from "./simplexnoise.js";
+import { openSimplexNoise } from "./openSimplexNoise.js";
+
+const noise = createNoise4D();
+//const noise = openSimplexNoise( Math.random() ).noise4D;
+const freq = 0.01;
+const encoder = new TextEncoder();
+
 //const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-const characters = "░▒▓█";
+const characters = " ░▒▓█";
 
-const worldRows = 128;
-const worldCols = 128;
-const worldDepth = 128;
+let config;
 
-const world = new Array( worldDepth * worldRows * worldCols );
+let worldMap;
+let worldCols;
+let worldRows;
+let worldDepth;
+let worldArea;
 
-for ( let depth = 0; depth < worldDepth; depth ++ ) {
-
-	for ( let row = 0; row < worldRows; row ++ ) {
-
-		for ( let col = 0; col < worldCols; col ++ ) {
-
-			const cell = world[ depth * worldRows * worldCols + row * worldCols + col ] = {
-				depth, row, col,
-		        type: characters.charAt( Math.floor( Math.random() * characters.length ) )
-			};
-
-		}
-
-	}
-
-}
+let view;
+let viewOffsetRow;
+let viewOffsetCol;
+let viewOffsetDepth;
+let cursorCol;
+let cursorRow;
 
 
-let viewRows = worldRows;
-let viewCols = worldCols;
-let viewOriginX = 0;
-let viewOriginY = 0;
-let viewOffsetDepth = worldDepth / 2;
-
-let viewCellWidth = 32;
-let viewCellHeight = 32;
-let viewScale = 1;
-
-const canvas = document.createElement( "canvas" );
-canvas.style.width = "100%";
-canvas.style.height = "100%";
-canvas.width = Math.round( window.innerWidth * viewScale * 0.5 ) * 2;
-canvas.height = Math.round( window.innerHeight * viewScale * 0.5 ) * 2;
-console.log( canvas.width, canvas.height );
+onmessage = event => self[ `on${event.data[ 0 ]}` ]( event.data[ 1 ] );
 
 
+self.onInit = _config => {
 
-let ctx = canvas.getContext( "2d" );
-ctx.font = `${viewCellHeight}px monospace`;
+	config = _config;
 
-
-document.body.append( canvas );
-
-const view = new Array( viewRows * viewCols );
-
-let viewDirty = [];
-
-for ( let row = 0; row < viewRows; row ++ ) {
-
-	for ( let col = 0; col < viewCols; col ++ ) {
-
-		const cell = view[ viewRows * viewCols + row * viewCols + col ] = {
-			x: col * viewCellWidth,
-			y: row * viewCellHeight,
-			world: world[ viewOffsetDepth * worldRows * worldCols + row * worldCols + col ]
-		};
-		viewDirty.push( cell );
-
-	}
-
-}
-
-//document.body.style.fontVariantNumeric = "tabular-nums lining-nums";
-//document.body.style.fontSize = `${viewCellHeight * 1.5}px`;
+	worldCols = config.worldSize[ 0 ];
+	worldRows = config.worldSize[ 1 ];
+	worldDepth = config.worldSize[ 2 ];
+	worldArea = worldCols * worldRows;
 
 
-function resizeView() {
+	worldMap = new Array( worldCols * worldRows * worldDepth );
 
-	canvas.width = Math.round( window.innerWidth * viewScale * 0.5 ) * 2;
-	canvas.height = Math.round( window.innerHeight * viewScale * 0.5 ) * 2;
+	for ( let depth = 0; depth < worldDepth; depth ++ ) {
 
-	for ( let row = 0; row < viewRows; row ++ ) {
+		for ( let row = 0; row < worldRows; row ++ ) {
 
-		for ( let col = 0; col < viewCols; col ++ ) {
+			for ( let col = 0; col < worldCols; col ++ ) {
 
-			const cell = view[ viewRows * viewCols + row * viewCols + col ];
-			viewDirty.push( cell );
+				worldMap[ depth * worldArea + row * worldCols + col ] = {
+					depth, row, col,
+					height: ( noise( col * freq, row * freq, depth * freq, t ) + 1 ) / 2
+				};
+
+			}
 
 		}
 
 	}
 
-	//ctx = canvas.getContext( "2d" );
-	//ctx.font = `${viewCellHeight}px monospace`;
+	viewOffsetRow = 0;
+	viewOffsetCol = 0;
+	viewOffsetDepth = worldDepth / 2;
 
-}
+	cursorCol = Math.round( config.viewCols / 2 );
+	cursorRow = Math.round( config.viewRows / 2 );
 
-resizeView();
+	onResizeView( _config );
+	onMoveCursor( [ 0, 0 ] );
 
-window.addEventListener( "resize", resizeView );
+};
 
 
-function zoomView( x, y, delta ) {
+self.onResizeView = _config => {
 
-	viewScale *= delta;
+	if ( ! config ) {
 
-	let scaledWidth = Math.max( window.innerWidth, Math.round( ( window.innerWidth / viewScale ) * 0.5 ) * 2 );
-	let scaledHeight = Math.max( window.innerHeight, Math.round( ( window.innerHeight / viewScale ) * 0.5 ) * 2 );
+		onInit( _config );
 
-	canvas.width = scaledWidth;
-	canvas.height = scaledHeight;
+	} else {
 
-	viewOriginX = Math.min( 0, Math.round( ( x - ( x - viewOriginX ) * delta ) * 0.5 ) * 2 );
-	viewOriginY = Math.min( 0, Math.round( ( y - ( y - viewOriginY ) * delta ) * 0.5 ) * 2 );
-
-	console.log( viewScale, viewOriginX );
-
-	ctx.setTransform( viewScale, 0, 0, viewScale, viewOriginX, viewOriginY );
-
-	for ( let row = 0; row < viewRows; row ++ ) {
-
-		for ( let col = 0; col < viewCols; col ++ ) {
-
-			const cell = view[ viewRows * viewCols + row * viewCols + col ];
-			viewDirty.push( cell );
-
-		}
+		config.viewCols = _config.viewCols;
+		config.viewRows = _config.viewRows;
 
 	}
 
-}
+	view = new Array( config.viewRows * config.viewCols );
+
+	onMoveCursor( [ 0, 0 ] );
+
+};
 
 
-window.addEventListener( "wheel", event => {
+self.onMoveCursor = delta => {
 
-	zoomView( event.clientX, event.clientY, event.wheelDeltaY > 0 ? 1.1 : 1 / 1.1 );
+	cursorCol += delta[ 0 ];
+	cursorRow += delta[ 1 ];
 
-} );
+	let layerText = "".padStart( cursorRow, "\n" ) + "⬤".padStart( cursorCol * 2 + 1 );
+
+	const arrayBuffer = encoder.encode( layerText ).buffer;
+	postMessage( [ 3, arrayBuffer ], [ arrayBuffer ] );
+
+};
 
 
+self.onPanView = delta => {
+
+	viewOffsetCol += delta[ 0 ];
+	viewOffsetRow += delta[ 1 ];
+
+};
 
 
 function animate() {
 
 	requestAnimationFrame( animate );
 
-	if ( viewDirty.length ) {
+	if ( ! view ) return;
 
-		const dirty = viewDirty;
-		viewDirty = [];
+	const t = Date.now() * 0.0001;
 
-		for ( let i = 0; i < dirty.length; i ++ ) {
+	for ( let depth = viewOffsetDepth - 1; depth < viewOffsetDepth + 1; depth ++ ) {
 
-			const cell = dirty[ i ];
+		let layerText = "";
 
-			ctx.fillText( cell.world.type, cell.x, cell.y );
+		for ( let row = 0; row < config.viewRows; row ++ ) {
+
+			for ( let col = 0; col < config.viewCols; col ++ ) {
+
+				const world = worldMap[ depth * worldRows * worldCols + row * worldCols + col ];
+				world.type = characters.charAt( Math.floor( ( ( noise( col * freq, row * freq, depth * freq, t ) + 1 ) / 2 ) * characters.length ) );
+				layerText += world.type + world.type;
+
+			}
+
+			layerText += "\n";
 
 		}
 
+		const arrayBuffer = encoder.encode( layerText ).buffer;
+		postMessage( [ depth - viewOffsetDepth + 1, arrayBuffer ], [ arrayBuffer ] );
+
 	}
 
+	let layerText = "╭" + "╮".padStart( config.viewCols * 2 - 1, "━" );
+	const arrayBuffer = encoder.encode( layerText ).buffer;
+	postMessage( [ 4, arrayBuffer ], [ arrayBuffer ] );
+
+	//view = undefined;
 
 }
 
 animate();
+
 
