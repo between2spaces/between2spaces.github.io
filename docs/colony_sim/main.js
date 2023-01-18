@@ -8,6 +8,7 @@ const config = {
 document.body.style.fontFamily = "monospace";
 document.body.style.fontVariantNumeric = "tabular-nums lining-nums";
 document.body.style.fontSize = `${config.fontSize}px`;
+document.body.style.color = "black";
 
 const oneRowDiv = document.createElement( "div" );
 oneRowDiv.style.position = "absolute";
@@ -35,8 +36,12 @@ for ( let i = 0; i < layers.length; i ++ ) {
 
 }
 
-layers[ 0 ].style.opacity = 0.5;
-layers[ 2 ].style.opacity = 0.2;
+layers[ 0 ].style.color = "grey";
+layers[ 0 ].style.opacity = 1;
+layers[ 1 ].style.color = "white";
+layers[ 1 ].style.opacity = 1;
+layers[ 2 ].style.color = "white";
+layers[ 2 ].style.opacity = 0.5;
 
 layers.CURSOR = layers[ 3 ];
 layers.CURSOR.style.opacity = 0.5;
@@ -107,6 +112,8 @@ window.addEventListener( "keydown", event => {
 
 	const key = event.key;
 
+	console.log( `keydown = ${key}` );
+
 	if ( mode === "cursor" ) {
 
 		let delta = [ 0, 0 ];
@@ -115,6 +122,7 @@ window.addEventListener( "keydown", event => {
 		else if ( key === "j" ) delta[ 1 ] = 1;
 		else if ( key === "l" ) delta[ 0 ] = 1;
 		else if ( key === "h" ) delta[ 0 ] = - 1;
+
 		if ( delta[ 0 ] !== 0 || delta[ 1 ] !== 0 ) {
 
 			worker.postMessage( [ "MoveCursor", delta ] );
@@ -124,6 +132,29 @@ window.addEventListener( "keydown", event => {
 
 		}
 
+		if ( key === "Escape" ) {
+
+			mode = "command";
+			clearInterval( cursorFlashInterval );
+			layers.CURSOR.style.visibility = "hidden";
+
+		}
+
+		return;
+
+	}
+
+	if ( key === "i" ) {
+
+		mode = "cursor";
+		layers.CURSOR.style.visibility = "visible";
+		cursorFlashInterval = setInterval( cursorFlash, 300 );
+		return;
+
+	} else if ( key === " " ) {
+
+		console.log( "key -> TogglePause" );
+		worker.postMessage( [ "TogglePause" ] );
 		return;
 
 	}

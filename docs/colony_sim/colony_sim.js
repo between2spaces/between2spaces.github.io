@@ -7,7 +7,7 @@ const freq = 0.01;
 const encoder = new TextEncoder();
 
 //const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-const characters = " ░▒▓█";
+const characters = " ░▓█";
 
 let config;
 
@@ -24,6 +24,8 @@ let viewOffsetDepth;
 let cursorCol;
 let cursorRow;
 
+let pause = false;
+
 
 onmessage = event => self[ `on${event.data[ 0 ]}` ]( event.data[ 1 ] );
 
@@ -37,6 +39,7 @@ self.onInit = _config => {
 	worldDepth = config.worldSize[ 2 ];
 	worldArea = worldCols * worldRows;
 
+	const t = Date.now() * 0.0001;
 
 	worldMap = new Array( worldCols * worldRows * worldDepth );
 
@@ -111,15 +114,24 @@ self.onPanView = delta => {
 };
 
 
+self.onTogglePause = () => {
+
+	pause = ! pause;
+
+	console.log( `Pause = ${pause}` );
+
+};
+
+
 function animate() {
 
 	requestAnimationFrame( animate );
 
-	if ( ! view ) return;
+	if ( pause ) return;
 
 	const t = Date.now() * 0.0001;
 
-	for ( let depth = viewOffsetDepth - 1; depth < viewOffsetDepth + 1; depth ++ ) {
+	for ( let depth = viewOffsetDepth - 1; depth <= viewOffsetDepth + 0; depth ++ ) {
 
 		let layerText = "";
 
@@ -128,8 +140,14 @@ function animate() {
 			for ( let col = 0; col < config.viewCols; col ++ ) {
 
 				const world = worldMap[ depth * worldRows * worldCols + row * worldCols + col ];
-				world.type = characters.charAt( Math.floor( ( ( noise( col * freq, row * freq, depth * freq, t ) + 1 ) / 2 ) * characters.length ) );
-				layerText += world.type + world.type;
+				world.height = ( noise( col * freq, row * freq, depth * freq, t ) + 1 ) / 2;
+				let height = world.height * worldDepth;
+				let char = " ";
+				if ( height >= depth + 1 ) char = "█";
+				else if ( height >= depth + 0.66 ) char = "▓";
+				else if ( height >= depth + 0.33 ) char = "░";
+				//world.type = characters.charAt( Math.floor( ( ( noise( col * freq, row * freq, depth * freq, t ) + 1 ) / 2 ) * characters.length ) );
+				layerText += char + char;
 
 			}
 
@@ -145,8 +163,6 @@ function animate() {
 	let layerText = "╭" + "╮".padStart( config.viewCols * 2 - 1, "━" );
 	const arrayBuffer = encoder.encode( layerText ).buffer;
 	postMessage( [ 4, arrayBuffer ], [ arrayBuffer ] );
-
-	//view = undefined;
 
 }
 
