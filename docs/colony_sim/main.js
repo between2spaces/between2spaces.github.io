@@ -8,7 +8,9 @@ const config = {
 document.body.style.fontFamily = "monospace";
 document.body.style.fontVariantNumeric = "tabular-nums lining-nums";
 document.body.style.fontSize = `${config.fontSize}px`;
+document.body.style.letterSpacing = '-2px';
 document.body.style.color = "black";
+
 
 const oneRowDiv = document.createElement( "div" );
 oneRowDiv.style.position = "absolute";
@@ -19,7 +21,7 @@ oneRowDiv.style.visibility = "hidden";
 oneRowDiv.textContent = "W";
 document.body.append( oneRowDiv );
 
-const layers = new Array( 5 );
+const layers = new Array( 3 );
 
 
 for ( let i = 0; i < layers.length; i ++ ) {
@@ -36,14 +38,10 @@ for ( let i = 0; i < layers.length; i ++ ) {
 
 }
 
-layers[ 0 ].style.color = "grey";
+layers[ 0 ].style.color = "black";
 layers[ 0 ].style.opacity = 1;
-layers[ 1 ].style.color = "white";
-layers[ 1 ].style.opacity = 1;
-layers[ 2 ].style.color = "white";
-layers[ 2 ].style.opacity = 0.5;
 
-layers.CURSOR = layers[ 3 ];
+layers.CURSOR = layers[ 1 ];
 layers.CURSOR.style.opacity = 0.5;
 layers.CURSOR.style.color = "red";
 
@@ -56,7 +54,7 @@ function cursorFlash() {
 let cursorFlashInterval = setInterval( cursorFlash, 300 );
 
 
-layers.UI = layers[ 4 ];
+layers.UI = layers[ 2 ];
 layers.UI.style.color = "sky blue";
 
 
@@ -114,6 +112,8 @@ window.addEventListener( "keydown", event => {
 
 	console.log( `keydown = ${key}` );
 
+	if ( key === " " ) return togglePause();
+
 	if ( mode === "cursor" ) {
 
 		let delta = [ 0, 0 ];
@@ -142,22 +142,26 @@ window.addEventListener( "keydown", event => {
 
 		return;
 
-	}
+	} else {
 
-	if ( key === "i" ) {
+		if ( key === "i" ) {
 
-		mode = "cursor";
-		layers.CURSOR.style.visibility = "visible";
-		cursorFlashInterval = setInterval( cursorFlash, 300 );
-		return;
+			mode = "cursor";
+			layers.CURSOR.style.visibility = "visible";
+			cursorFlashInterval = setInterval( cursorFlash, 300 );
+			return;
 
-	} else if ( key === " " ) {
-
-		console.log( "key -> TogglePause" );
-		worker.postMessage( [ "TogglePause" ] );
-		return;
+		}
 
 	}
 
 } );
+
+
+function togglePause() {
+
+	console.log( "key -> TogglePause" );
+	worker.postMessage( [ "TogglePause" ] );
+
+}
 

@@ -16,6 +16,7 @@ let worldCols;
 let worldRows;
 let worldDepth;
 let worldArea;
+let worldTime = 0;
 
 let view;
 let viewOffsetRow;
@@ -39,8 +40,6 @@ self.onInit = _config => {
 	worldDepth = config.worldSize[ 2 ];
 	worldArea = worldCols * worldRows;
 
-	const t = Date.now() * 0.0001;
-
 	worldMap = new Array( worldCols * worldRows * worldDepth );
 
 	for ( let depth = 0; depth < worldDepth; depth ++ ) {
@@ -51,7 +50,7 @@ self.onInit = _config => {
 
 				worldMap[ depth * worldArea + row * worldCols + col ] = {
 					depth, row, col,
-					height: ( noise( col * freq, row * freq, depth * freq, t ) + 1 ) / 2
+					height: ( noise( col * freq, row * freq, depth * freq, worldTime ) + 1 ) / 2
 				};
 
 			}
@@ -127,11 +126,11 @@ function animate() {
 
 	requestAnimationFrame( animate );
 
-	if ( pause ) return;
+	if ( ! view || pause ) return;
 
-	const t = Date.now() * 0.0001;
+	worldTime += 0.001;
 
-	for ( let depth = viewOffsetDepth - 1; depth <= viewOffsetDepth + 0; depth ++ ) {
+	for ( let depth = viewOffsetDepth - 0; depth <= viewOffsetDepth + 0; depth ++ ) {
 
 		let layerText = "";
 
@@ -140,12 +139,14 @@ function animate() {
 			for ( let col = 0; col < config.viewCols; col ++ ) {
 
 				const world = worldMap[ depth * worldRows * worldCols + row * worldCols + col ];
-				world.height = ( noise( col * freq, row * freq, depth * freq, t ) + 1 ) / 2;
+				world.height = ( noise( col * freq, row * freq, depth * freq, worldTime ) + 1 ) / 2;
+
 				let height = world.height * worldDepth;
-				let char = " ";
+				let char = "░";
+
 				if ( height >= depth + 1 ) char = "█";
-				else if ( height >= depth + 0.66 ) char = "▓";
-				else if ( height >= depth + 0.33 ) char = "░";
+				else if ( height >= depth + .1 ) char = "▓";
+				//else if ( height >= depth - 1.66 ) char = "░";
 				//world.type = characters.charAt( Math.floor( ( ( noise( col * freq, row * freq, depth * freq, t ) + 1 ) / 2 ) * characters.length ) );
 				layerText += char + char;
 
