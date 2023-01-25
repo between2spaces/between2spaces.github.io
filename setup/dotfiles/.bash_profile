@@ -67,24 +67,13 @@ fi
 
 
 # if ssh and service commands are available; start sshd as root if not already running
-if command -v ssh &> /dev/null && command -v service &> /dev/null; then
-	if grep -qi microsoft /proc/version && ! service ssh status &>/dev/null && command -v /mnt/c/Windows/System32/wsl.exe &> /dev/null; then
+#if command -v ssh &> /dev/null && command -v service &> /dev/null; then
+#	if grep -qi microsoft /proc/version && ! service ssh status &>/dev/null && command -v /mnt/c/Windows/System32/wsl.exe &> /dev/null; then
 		# when in WSL environment elivate to root without password using wsl.exe command
-		echo "starting sshd..."
-		/mnt/c/Windows/System32/wsl.exe -u root -e sh -c "service ssh start"
-	fi
-fi
-
-
-# if docker and service commands are available; start Docker as root if not already running
-if command -v docker &> /dev/null && command -v service &> /dev/null; then
-	if grep -qi microsoft /proc/version && ! service docker status &>/dev/null && command -v /mnt/c/Windows/System32/wsl.exe &> /dev/null; then
-		# when in WSL environment elivate to root without password using wsl.exe command
-		echo "starting docker..."
-		/mnt/c/Windows/System32/wsl.exe -u root -e sh -c "service docker start"
-	fi
-fi
-
+		#echo "starting sshd..."
+		#/mnt/c/Windows/System32/wsl.exe -u root -e sh -c "service ssh start"
+#	fi
+#fi
 
 
 

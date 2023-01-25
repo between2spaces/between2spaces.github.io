@@ -157,13 +157,9 @@ function animate() {
 		}
 
 		const arrayBuffer = encoder.encode( layerText ).buffer;
-		postMessage( [ depth - viewOffsetDepth + 1, arrayBuffer ], [ arrayBuffer ] );
+		postMessage( [ depth - viewOffsetDepth, arrayBuffer ], [ arrayBuffer ] );
 
 	}
-
-	let layerText = "╭" + "╮".padStart( config.viewCols * 2 - 1, "━" );
-	const arrayBuffer = encoder.encode( layerText ).buffer;
-	postMessage( [ 4, arrayBuffer ], [ arrayBuffer ] );
 
 }
 

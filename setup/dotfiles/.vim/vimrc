@@ -23,13 +23,14 @@ set laststatus=2
 set cursorline
 set showbreak=↪\
 set scrolloff=8
-"set listchars=space:·,tab:→\ ,eol:↲,nbsp:␣,trail:•,extends:⟩,precedes:⟨
+set listchars=space:·,tab:→\ ,eol:↲,nbsp:␣,trail:•,extends:⟩,precedes:⟨
 "set list
 set signcolumn=no
 set background=dark
 set splitbelow
 set paste
 
+set termguicolors
 
 "hi Normal ctermbg=NONE
 "hi StatusLine ctermbg=1
@@ -125,6 +126,7 @@ endif
 
 
 call plug#begin('~/.vim/plugged')
+	Plug 'BourgeoisBear/clrzr'
 	Plug 'tpope/vim-unimpaired'
 	Plug 'scrooloose/syntastic'
 	Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
@@ -139,7 +141,6 @@ autocmd VimEnter *
   \  if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
   \|   PlugInstall --sync | q
   \| endif
-
 
 
 let g:syntastic_javascript_checkers=['eslint']
@@ -161,6 +162,9 @@ let g:syntastic_check_on_wq = 0
 
 
 syntax enable
+
+
+let g:Hexokinase_highlighters = ['backgroundfull']
 
 
 
