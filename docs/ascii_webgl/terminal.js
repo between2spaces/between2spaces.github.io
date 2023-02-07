@@ -1,15 +1,4 @@
-import { createNoise3D } from "./simplexnoise.js";
-import { openSimplexNoise } from "./openSimplexNoise.js";
-import * as mat4 from "./mat4.js";
-
-const noise = createNoise3D();
-//const noise = openSimplexNoise( Math.random() ).noise3D;
-const freq = 0.1;
-
-//const worker = new Worker( "./colony_sim.js", { type: "module" } );
-
-
-class Terminal {
+export class Terminal {
 
 	constructor( layers = [ { cols: 80, rows: 30 } ], container = document.body ) {
 
@@ -21,20 +10,19 @@ class Terminal {
 
 		this.gl = this.canvas.getContext( "webgl" );
 		this.fitContainer();
+
 		let self = this;
 		window.addEventListener( "resize", () => self.fitContainer() );
 
 		this.gl.clearColor( 0.0, 0.0, 0.0, 1.0 ); // Clear to black, fully opaque
 		this.gl.clearDepth( 1.0 ); // Clear everything
 		this.gl.disable( this.gl.DEPTH_TEST );
-		//this.gl.enable( this.gl.DEPTH_TEST ); // Enable depth testing
-		//this.gl.depthFunc( this.gl.LEQUAL ); // Near things obscure far things
 
 		this.gl.enable( this.gl.BLEND );
 		this.gl.blendFunc( this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA );
 
 
-		// Create a orthogonal projection matrix ( left = - 0.5 * cols; right = 0.5 * cols; top = 0.5 * rows; bottom = -0.5 * rows; near = 0; far = 100 )
+		// An orthogonal projection matrix ( left = - 0.5 * cols; right = 0.5 * cols; top = 0.5 * rows; bottom = -0.5 * rows; near = 0; far = 100 )
 		let left = - 50;
 		let right = 50;
 		let top = 50;
@@ -103,7 +91,7 @@ class Terminal {
 		this.shader.uniforms.modelViewMatrix = this.gl.getUniformLocation( this.shader.program, "uModelViewMatrix" );
 		this.shader.uniforms.texture = this.gl.getUniformLocation( this.shader.program, "uTexture" );
 
-		this.loadCharacterSet( "tilemap.png", 16, "\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀" );
+		this.setCharacterSet( "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕", 512, 512 );
 
 	}
 
@@ -111,45 +99,75 @@ class Terminal {
 
 		this.canvas.width = window.innerWidth;
 		this.canvas.height = window.innerHeight;
+
 		this.gl.viewport( 0, 0, this.canvas.width, this.canvas.height );
 
 	}
 
+	setCharacterSet( characters, texWidth = 512, texHeight = 512, fontFamily = "monospace" ) {
 
-	loadCharacterSet( tilemapUrl, charsPerLine, characters ) {
+		const canvas = document.createElement( "canvas" );
+		canvas.style.border = "1px solid black";
 
-		this.texture = this.gl.createTexture();
-		this.gl.bindTexture( this.gl.TEXTURE_2D, this.texture );
+		canvas.width = texWidth;
+		canvas.height = texHeight;
 
-		// Start texture data as a 1x1 opaque black dot until Image has loaded to replace
-		this.gl.texImage2D( this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array( [ 0, 0, 0, 0 ] ) );
+		const ctx = canvas.getContext( "2d" );
 
-		const self = this;
-		this.textureImage = new Image();
-		this.textureImage.onload = () => {
+		ctx.fillStyle = "white";
+		//ctx.strokeStyle = "rgb(150, 150, 150)";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
 
-			self.gl.bindTexture( self.gl.TEXTURE_2D, self.texture );
-			self.gl.texImage2D( self.gl.TEXTURE_2D, 0, self.gl.RGBA, self.gl.RGBA, self.gl.UNSIGNED_BYTE, self.textureImage );
-			self.gl.generateMipmap( self.gl.TEXTURE_2D );
+		let fontSize = 99;
+		let metrics;
+		let rows;
+		let cols;
 
-		};
+		do {
 
-		this.textureImage.src = tilemapUrl;
+			fontSize --;
+			ctx.font = `${fontSize}px ${fontFamily}`;
+			metrics = ctx.measureText( "▓" );
+			metrics.height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent + 10;
+			rows = Math.floor( texHeight / metrics.height );
+			cols = Math.floor( texWidth / ( metrics.width + 2 ) );
+
+		} while ( rows * cols < characters.length );
 
 		this.charUVs = {};
 
-		for ( let char of characters ) {
+		let i = 0;
 
-			const index = characters.indexOf( char );
-			const col = index % charsPerLine;
-			const row = Math.floor( index / charsPerLine );
-			const left = col / charsPerLine + 0.001;
-			const right = ( col + 1 ) / charsPerLine - 0.001;
-			const top = row / charsPerLine + 0.001;
-			const bottom = ( row + 1 ) / charsPerLine - 0.001;
-			this.charUVs[ char ] = [ left, bottom, left, top, right, bottom, right, top ];
+		for ( let cy = Math.ceil( 0.5 * metrics.height ); cy < texHeight; cy += metrics.height + 1 ) {
+
+			for ( let cx = Math.ceil( 0.5 * metrics.width ); cx < texWidth - 0.5 * metrics.width; cx += metrics.width + 2 ) {
+
+				if ( i >= characters.length ) break;
+
+				let char = characters[ i ++ ];
+
+				let left = ( cx - 0.5 * metrics.width + 1 ) / texWidth;
+				let top = ( cy - metrics.fontBoundingBoxAscent - 1 ) / texHeight;
+				let right = ( cx + 0.5 * metrics.width - 1 ) / texWidth;
+				let bottom = ( cy + metrics.fontBoundingBoxDescent + 1 ) / texHeight;
+
+				this.charUVs[ char ] = [ left, bottom, left, top, right, bottom, right, top ];
+
+				//ctx.strokeRect( left * texWidth, top * texHeight, right * texWidth - left * texWidth, bottom * texHeight - top * texHeight );
+
+				ctx.fillText( char, cx, cy );
+
+			}
 
 		}
+
+		document.body.append( canvas );
+
+		this.texture = this.gl.createTexture();
+		this.gl.bindTexture( this.gl.TEXTURE_2D, this.texture );
+		this.gl.texImage2D( this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, canvas );
+		this.gl.generateMipmap( this.gl.TEXTURE_2D );
 
 		this.buildBuffers();
 
@@ -160,9 +178,7 @@ class Terminal {
 
 		const charUVs = this.charUVs[ " " ]; //\0" ];
 
-		const leftX = - 40; //- this.cols / 2.0 + 0.5;
-
-		let layerZ = - 100;
+		let layerZ = - this.layers.length + 1;
 
 		for ( let layer of this.layers ) {
 
@@ -192,17 +208,17 @@ class Terminal {
 
 						vertices.push( left, bottom, left, bottom, left, bottom );
 						textureCoord.push( 0, 0, 0, 0, 0, 0 );
-						colours.push( 0.0, 0.0, 1.0, 1.0 );
-						colours.push( 0.0, 0.0, 1.0, 1.0 );
-						colours.push( 0.0, 0.0, 1.0, 1.0 );
+						colours.push( 0.0, 0.0, 0.0, 0.0 );
+						colours.push( 0.0, 0.0, 0.0, 0.0 );
+						colours.push( 0.0, 0.0, 0.0, 0.0 );
 
 					}
 
 					vertices.push( left, bottom, left, top, right, bottom, right, top );
-					colours.push( 0.0, 0.0, 1.0, 1.0 );
-					colours.push( 0.0, 0.0, 1.0, 1.0 );
-					colours.push( 0.0, 0.0, 1.0, 1.0 );
-					colours.push( 0.0, 0.0, 1.0, 1.0 );
+					colours.push( 0.0, 0.0, 0.0, 0.0 );
+					colours.push( 0.0, 0.0, 0.0, 0.0 );
+					colours.push( 0.0, 0.0, 0.0, 0.0 );
+					colours.push( 0.0, 0.0, 0.0, 0.0 );
 
 					textureCoord.push( ...charUVs );
 
@@ -210,7 +226,7 @@ class Terminal {
 
 						vertices.push( right, top );
 						textureCoord.push( 0, 0 );
-						colours.push( 0.0, 0.0, 1.0, 1.0 );
+						colours.push( 0.0, 0.0, 0.0, 0.0 );
 
 					}
 
@@ -220,13 +236,12 @@ class Terminal {
 			}
 
 			layer.indicesPerRow = ( layer.cols + 1 ) * 4;
+			layer.indicesTotal = layer.indicesPerRow * layer.rows;
 
 			layer.vertices = { typedArray: new Float32Array( vertices ), size: 2, buffer: this.gl.createBuffer() };
 			layer.colours = { typedArray: new Float32Array( colours ), size: 4, buffer: this.gl.createBuffer() };
 			layer.textureCoord = { typedArray: new Float32Array( textureCoord ), size: 2, buffer: this.gl.createBuffer() };
 			layer.modelViewMatrix = [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, layerZ ++, 1 ];
-
-			console.log( layer.modelViewMatrix );
 
 			// Load the vertices buffer to GPU and tell WebGL how to pull positions into the vertexPosition attribute
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.vertices.buffer );
@@ -320,74 +335,29 @@ class Terminal {
 
 	update() {
 
-		for ( let layer of this.layers ) {
-
-			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.textureCoord.buffer );
-			this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.textureCoord.typedArray );
-			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.colours.buffer );
-			this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.colours.typedArray );
-
-		}
-
-	}
-
-	render() {
-
 		this.gl.clear( this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT );
 
 		for ( let layer of this.layers ) {
 
+			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.vertices.buffer );
+			this.gl.vertexAttribPointer( this.shader.attributes.vertexPosition, layer.vertices.size, this.gl.FLOAT, false, 0, 0 );
+
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.textureCoord.buffer );
+			this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.textureCoord.typedArray );
 			this.gl.vertexAttribPointer( this.shader.attributes.textureCoord, layer.textureCoord.size, this.gl.FLOAT, false, 0, 0 );
 
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.colours.buffer );
+			this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.colours.typedArray );
 			this.gl.vertexAttribPointer( this.shader.attributes.colour, layer.colours.size, this.gl.FLOAT, false, 0, 0 );
 
 			this.gl.uniformMatrix4fv( this.shader.uniforms.modelViewMatrix, false, layer.modelViewMatrix );
 
-			this.gl.drawArrays( this.gl.TRIANGLE_STRIP, 0, layer.cols * layer.rows * 4 + layer.rows * 4 - 3 );
+			this.gl.drawArrays( this.gl.TRIANGLE_STRIP, 0, layer.indicesTotal );
 
 		}
 
 	}
 
 }
-
-
-
-const terminal = new Terminal( [ { cols: 20, rows: 20 }, { cols: 8, rows: 8 } ] ); //new Terminal( 256, 256, 256 );
-
-
-let worldTime = 0;
-
-function animate() {
-
- 	requestAnimationFrame( animate );
-
-	worldTime += 0.01;
-
-	for ( let row = 0; row < terminal.layers[ 0 ].rows; row ++ ) {
-
-		for ( let col = 0; col < terminal.layers[ 0 ].cols; col ++ ) {
-
-			let height = ( noise( col * freq, row * freq, worldTime ) + 1 ) / 2;
-
-			let char = "░"; //height > 0.75 ? "█" : height > 0.5 ? "▓" : height > 0.25 ? "░" : " ";
-
-			terminal.setChar( col, row, 0, char, [ height * 0.5, height, height, 1.0 ] );
-
-		}
-
-	}
-
-	//terminal.writeText( 2, 2, 1, "Test", [ 1.0, 1.0, 1.0, 1.0 ] );
-
-	terminal.update();
-	terminal.render();
-
-
-}
-
-animate();
 
 

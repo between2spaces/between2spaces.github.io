@@ -37,11 +37,13 @@
 			"font": 
 			{
 				"face": "Consolas",
-				"size": 14,
+				"size": 15,
 				"weight": "normal"
 			},
 			"padding": "0",
-			"scrollbarState": "hidden"
+			"scrollbarState": "hidden",
+			"useAcrylic": true, 
+			"acrylicOpacity": 0.5
 		},
 		"list": 
 		[
