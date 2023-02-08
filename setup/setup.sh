@@ -6,32 +6,15 @@ git config user.name "between2spaces"
 git remote set-url origin https://between2spaces@github.com/between2spaces/between2spaces.github.io.git
 
 
-if [[ "$OSTYPE" =~ ^linux ]]; then
-	# in a WSL environment
-	
-	USERPROFILE=$(wslpath "$(wslvar USERPROFILE)")
-	LOCALAPPDATA=$(wslpath "$(wslvar LOCALAPPDATA)")
-	PROGFILES_PATH="/mnt/c/Program Files/Git"
-
-elif [[ "$OSTYPE" =~ ^msys ]]; then
-	# in a Git for Windows environment
-	
-	USERPROFILE="${HOME}"
-	LOCALAPPDATA="${HOME}/AppData/Local"
-	PROGFILES_PATH="/c/Program\ Files/Git"
-fi
-
-
 # configure credential.helper
-GCM_REL_EXE="mingw64/bin/git-credential-manager.exe"
-if [ -f "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}" ]; then
-	git config --global credential.helper "${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}"
-	echo "git config --global credential.helper \"${USERPROFILE}/AppData/Local/Programs/Git/${GCM_REL_EXE}\""
-elif [ -f "${PROGFILES_PATH}/${GCM_REL_EXE}" ]; then
-	ESCAPED_PATH=$(echo "$PROGFILES_PATH/$GCM_REL_EXE" | sed "s/ /\\\\ /")
-	git config --global credential.helper "$ESCAPED_PATH"
-	echo "git config --global credential.helper \"$ESCAPED_PATH\""
-fi
+GCM_PATHS=("$USERPROFILE/AppData/Local/Programs/Git/mingw64/bin/git-credential-manager.exe" "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe" "/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe")
+
+for gcm_path in ${GCM_PATHS[*]}; do
+	if [ -f "$gcm_path" ]; then
+		git config --global credential.helper "$gcm_path"
+		echo "git config --global credential.helper \"$gcm_path\""
+	fi
+done
 
 
 # disable login banner
@@ -50,6 +33,7 @@ rm -rf ~/.bash_aliases && ln -s $PWD/dotfiles/.bash_aliases ~/.bash_aliases
 rm -rf ~/.bash_profile && ln -s $PWD/dotfiles/.bash_profile ~/.bash_profile
 rm -rf ~/.bashrc && ln -s $PWD/dotfiles/.bashrc ~/.bashrc
 rm -rf ~/.inputrc && ln -s $PWD/dotfiles/.inputrc ~/.inputrc
+rm -rf ~/.wgetrc && ln -s $PWD/dotfiles/.wgetrc ~/.wgetrc
 rm -rf ~/.vim/vimrc && ln -s $PWD/dotfiles/.vim/vimrc ~/.vim/vimrc
 rm -rf ~/.config/ranger && ln -s $PWD/dotfiles/.config/ranger ~/.config/ranger
 
@@ -79,6 +63,11 @@ if grep -qi microsoft /proc/version; then
 			sudo apt purge --auto-remove -y nano
 			sudo apt purge --auto-remove -y vim-common
 
+			# Add Dockers official GPG key and setup repository
+			sudo mkdir -p /etc/apt/keyrings
+			curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+			echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
 			# Full apt update, upgrade, remove, clean cycle
 			sudo apt update
 			sudo apt upgrade -y
@@ -102,10 +91,17 @@ if grep -qi microsoft /proc/version; then
 			# Add login user to bottom of file:
 			# AllowUsers intranet
 
+
+			sudo apt install -y ca-certificates
 			sudo apt install -y wsl
 			sudo apt install -y fzf
 			sudo apt install -y -o Dpkg::Options::="--force-overwrite" bat ripgrep
 			sudo apt install -y python3-pip
+			sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+			sudo pip3 install docker-compose
+
+
 
 			# Check for tooling updates and install if available
 			compareInstalled() {

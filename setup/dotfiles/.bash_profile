@@ -1,10 +1,3 @@
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-export LANGUAGE=en_US.UTF-8
-
-export DISPLAY=:0
-export LIBGL_ALWAYS_INDIRECT=1
-
 export EDITOR=vi
 export SUDO_EDITOR=vi
 export VISUAL=vi
@@ -90,6 +83,14 @@ fi
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+
+# Start Docker service as root if not already running
+if command -v docker &> /dev/null; then
+	if grep -qi microsoft /proc/version && ! service docker status &> /dev/null && command -v /mnt/c/Windows/System32/wsl.exe &> /dev/null; then
+		/mnt/c/Windows/System32/wsl.exe -u root -e sh -c "service docker start"
+	fi
+fi
 
 
 PS1="\n\`if [[ \$? = "0" ]]; then echo "\\[\\033[32m\\]"; else echo "\\[\\033[31m\\]"; fi\`\\w \[\033[34m\]\$\[\033[0m\] "
