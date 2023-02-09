@@ -22,6 +22,7 @@ set found_gcm = 0
 for ((i = 0; i < ${#GCM_PATHS[@]}; i++)); do
     gcm_path="${GCM_PATHS[$i]}"
     if [ -f "$gcm_path" ]; then
+        gcm_path="${gcm_path/ /\\ }"
         git config --global credential.helper "$gcm_path"
         echo "git config --global credential.helper \"$gcm_path\""
         set found_gcm = 1
@@ -31,6 +32,9 @@ done
 if ! $found_gcm; then
     echo "Warning: git config --global credential.helper not set; unable to find Git Credential Manager"
 fi
+
+
+exit 0
 
 
 # Symlink dotfiles
