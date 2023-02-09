@@ -14,14 +14,23 @@ git config user.name "between2spaces"
 
 # Configure credential.helper
 
-GCM_PATHS=("$USERPROFILE/AppData/Local/Programs/Git/mingw64/bin/git-credential-manager.exe" "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe" "/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe")
-
-for gcm_path in ${GCM_PATHS[*]}; do
+GCM_PATHS=(
+    "$USERPROFILE/AppData/Local/Programs/Git/mingw64/bin/git-credential-manager.exe"
+    "$(wslpath 'C:\Program Files\Git\mingw64\bin\git-credential-manager.exe')"
+)
+set found_gcm = 0
+for ((i = 0; i < ${#GCM_PATHS[@]}; i++)); do
+    gcm_path="${GCM_PATHS[$i]}"
     if [ -f "$gcm_path" ]; then
         git config --global credential.helper "$gcm_path"
         echo "git config --global credential.helper \"$gcm_path\""
+        set found_gcm = 1
     fi
 done
+
+if ! $found_gcm; then
+    echo "Warning: git config --global credential.helper not set; unable to find Git Credential Manager"
+fi
 
 
 # Symlink dotfiles
@@ -30,6 +39,7 @@ rm -rf ~/.bash_profile && ln -s $PWD/dotfiles/.bash_profile ~/.bash_profile
 rm -rf ~/.bashrc && ln -s $PWD/dotfiles/.bashrc ~/.bashrc
 rm -rf ~/.inputrc && ln -s $PWD/dotfiles/.inputrc ~/.inputrc
 rm -rf ~/.wgetrc && ln -s $PWD/dotfiles/.wgetrc ~/.wgetrc
+rm -rf ~/.tmux.conf && ln -s $PWD/dotfiles/.tmux.conf ~/.tmux.conf
 mkdir -p ~/.vim
 rm -rf ~/.vim/vimrc && ln -s $PWD/dotfiles/.vim/vimrc ~/.vim/vimrc
 
