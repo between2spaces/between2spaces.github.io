@@ -119,14 +119,14 @@ export class Terminal {
 		ctx.textAlign = "center";
 		ctx.textBaseline = "middle";
 
-		let fontSize = 199;
+		let fontSize = 99;
 		let metrics;
 		let rows;
 		let cols;
 
 		do {
 
-			fontSize --;
+			fontSize -= 0.01;
 			ctx.font = `${fontSize}px ${fontFamily}`;
 			metrics = ctx.measureText( "▓" );
 			metrics.height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent + 10;
@@ -134,6 +134,8 @@ export class Terminal {
 			cols = Math.floor( texWidth / metrics.width );
 
 		} while ( rows * cols < characters.length );
+
+		fontSize += 0.01;
 
 		this.charUVs = {};
 
@@ -161,6 +163,8 @@ export class Terminal {
 			}
 
 		}
+
+		document.body.append( canvas );
 
 		this.texture = this.gl.createTexture();
 		this.gl.bindTexture( this.gl.TEXTURE_2D, this.texture );

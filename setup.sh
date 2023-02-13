@@ -34,8 +34,6 @@ if ! $found_gcm; then
 fi
 
 
-exit 0
-
 
 # Symlink dotfiles
 
@@ -80,6 +78,12 @@ if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docke
 fi
 
 
+# Add PPA Vim repository to install latest Vim
+
+sudo add-apt-repository -y ppa:jonathonf/vim
+
+
+
 # Full apt update, upgrade, remove, clean cycle
 
 sudo apt update
@@ -109,6 +113,11 @@ sudo pip3 install docker-compose
 if ! service docker status &> /dev/null; then
     sudo service docker start
 fi
+
+
+# Install latest Vim
+
+sudo apt install -y vim
 
 
 # Source update interactive login shell bash profile

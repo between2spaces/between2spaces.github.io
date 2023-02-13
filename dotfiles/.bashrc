@@ -24,6 +24,9 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
+# remove ugly green background from ow 'other, writable' and tw 'sticky, writable'
+export LS_COLORS="$LS_COLORS:ow=1;34:tw=1;34:"
+
 
 # enable programmable completion features
 if ! shopt -oq posix; then
