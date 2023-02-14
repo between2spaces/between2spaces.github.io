@@ -1,12 +1,6 @@
 # ~/.bash_profile: executed for interactive login shells
 # use to run commands that should run only once, such as customising the $PATH
 
-# Start tmux by attaching to existing session or starting a new session
-alias tmux="tmux -2 -u"
-if which tmux 2>&1 >/dev/null; then
-    test -z "$TMUX" && (tmux attach || tmux new-session)
-fi
-
 # Start Docker service as root if not already running
 if command -v docker &> /dev/null && ! service docker status &> /dev/null; then
     if grep -qi microsoft /proc/version; then

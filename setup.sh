@@ -9,7 +9,6 @@ set -e
 
 git config user.email "between2spaces@gmail.com"
 git config user.name "between2spaces"
-#git remote set-url origin https://between2spaces@github.com/between2spaces/between2spaces.github.io.git
 
 
 # Configure credential.helper
@@ -78,11 +77,6 @@ if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docke
 fi
 
 
-# Add PPA Vim repository to install latest Vim
-
-sudo add-apt-repository -y ppa:jonathonf/vim
-
-
 
 # Full apt update, upgrade, remove, clean cycle
 
@@ -114,10 +108,6 @@ if ! service docker status &> /dev/null; then
     sudo service docker start
 fi
 
-
-# Install latest Vim
-
-sudo apt install -y vim
 
 
 # Source update interactive login shell bash profile

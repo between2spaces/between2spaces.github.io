@@ -2,32 +2,11 @@ import { createNoise2D } from "./simplexnoise.js";
 import { seedrandom } from "./seedrandom.js";
 import { Terminal } from "./terminal.js";
 
-//  Pseudo Random Number Generator
-function PRNG( seed = 0 ) {
-
-	let prng = () => {
-
-		let z = ( seed += 0x9e3779b9 );
-		z ^= z >>> 16;
-		z = Math.imul( z, 0x21f0aaad );
-		z ^= z >>> 15;
-		z = Math.imul( z, 0x735a2d97 );
-		z ^= z >>> 15;
-		return z;
-
-	};
-
-	return prng;
-
-}
-
-
-const freq = 0.1;
 
 //const worker = new Worker( "./colony_sim.js", { type: "module" } );
 
 
-let cols = 512;
+let cols = 64;
 let rows = cols;
 const terminal = new Terminal( [
 	{ cols, rows },
@@ -47,7 +26,7 @@ class HeightMap {
 		this.mapSize = mapSize;
 		this.edgeWidth = edgeWidth === null ? this.mapSize * 0.3 : edgeWidth;
 
-		this.noise = createNoise2D( seedrandom( Math.random() ) ); //PRNG( seed ) );
+		this.noise = createNoise2D( Math.random ); //seedrandom( Math.random() ) );
 
 		this.heightArray = new Array( this.mapSize * this.mapSize );
 
@@ -83,7 +62,9 @@ class HeightMap {
 
 		}
 
-		// normalise heights from (-1, 1) to [0, 1]
+		// shift range from [-1, 1] to [0, 1]; and
+		// normalise such that lowest is 0 and highest is 1; and
+		// clamp height near edges (i.e. gaurantees island )
 		let normalised = 1.0 / ( maxHeight - minHeight );
 		let edgeSq = Math.sqrt( this.edgeWidth * this.edgeWidth * 2 );
 
@@ -112,48 +93,92 @@ class HeightMap {
 
 	}
 
+	erode( erosionAmount ) {
 
-	erode( iterations = 10 ) {
+		for ( let y = 0; y < this.mapSize; y ++ ) {
 
-		//const singleDirt = 1.0 / this.mapSize;
-		const minSlope = 0.01; //1.0 / this.mapSize;
-		const sedimentMax = 50;
+			for ( let x = 0; x < this.mapSize; x ++ ) {
 
-		for ( let iteration = 0; iteration < iterations; iteration ++ ) {
+				let index = y * this.mapSize + x;
+				let currentHeight = this.heightArray[ index ];
+				let totalAmountToMove = 0;
+				let numberOfLowerNeighbors = 0;
 
-			for ( let y = 1; y < this.mapSize - 1; y ++ ) {
+				if ( x > 0 ) {
 
-				for ( let x = 1; x < this.mapSize - 1; x ++ ) {
+					let westHeight = this.heightArray[ index - 1 ];
+					if ( westHeight < currentHeight ) {
 
-					let index = y * this.mapSize + x;
-					let current = this.heightArray[ index ];
-					let neighbours = [
-						( y - 1 ) * this.mapSize + x,
-						( y + 1 ) * this.mapSize + x,
-						y * this.mapSize + x + 1,
-						y * this.mapSize + x - 1
-					];
-
-					let lowest = 0;
-					let maxDiff = 0;
-
-					for ( let n = 0; n < neighbours.length; n ++ ) {
-
-						let diff = current - this.heightArray[ neighbours[ n ] ];
-						if ( diff > maxDiff ) {
-
-							maxDiff = diff;
-							lowest = n;
-
-						}
+						totalAmountToMove += currentHeight - westHeight;
+						numberOfLowerNeighbors ++;
 
 					}
 
-					if ( maxDiff > minSlope ) {
+				}
 
-						let sediment = minSlope;//( sedimentMax * singleDirt ) * maxDiff;
-						this.heightArray[ index ] -= sediment;
-						this.heightArray[ neighbours[ lowest ] ] += sediment;
+				if ( y > 0 ) {
+
+					let northHeight = this.heightArray[ ( y - 1 ) * this.mapSize + x ];
+
+					if ( northHeight < currentHeight ) {
+
+						totalAmountToMove += currentHeight - northHeight;
+						numberOfLowerNeighbors ++;
+
+					}
+
+				}
+
+				if ( i < rows - 1 ) {
+
+					if ( heightmap[ i + 1 ][ j ] < currentHeight ) {
+
+						totalAmountToMove += currentHeight - heightmap[ i + 1 ][ j ];
+						numberOfLowerNeighbors ++;
+
+					}
+
+				}
+
+				if ( j < cols - 1 ) {
+
+					if ( heightmap[ i ][ j + 1 ] < currentHeight ) {
+
+						totalAmountToMove += currentHeight - heightmap[ i ][ j + 1 ];
+						numberOfLowerNeighbors ++;
+
+					}
+
+				}
+
+				if ( numberOfLowerNeighbors > 0 ) {
+
+					let averageAmountToMove = totalAmountToMove / numberOfLowerNeighbors;
+					averageAmountToMove = Math.min( averageAmountToMove, erosionAmount );
+
+					heightmap[ i ][ j ] -= averageAmountToMove;
+
+					if ( i > 0 ) {
+
+						heightmap[ i - 1 ][ j ] += averageAmountToMove / numberOfLowerNeighbors;
+
+					}
+
+					if ( j > 0 ) {
+
+						heightmap[ i ][ j - 1 ] += averageAmountToMove / numberOfLowerNeighbors;
+
+					}
+
+					if ( i < rows - 1 ) {
+
+						heightmap[ i + 1 ][ j ] += averageAmountToMove / numberOfLowerNeighbors;
+
+					}
+
+					if ( j < cols - 1 ) {
+
+						heightmap[ i ][ j + 1 ] += averageAmountToMove / numberOfLowerNeighbors;
 
 					}
 
@@ -162,6 +187,8 @@ class HeightMap {
 			}
 
 		}
+
+		return heightmap;
 
 	}
 
@@ -204,13 +231,13 @@ function drawHeightMap( terminal, heightmap ) {
 			let g = height;
 			let b = height;
 
-			if ( slope < 3.0 / heightmap.mapSize ) {
+			/*if ( slope < 3.0 / heightmap.mapSize ) {
 
 				r = 0.1;
 				g = 0.5;
 				b = 0.1;
 
-			}
+			}*/
 
 			// below water line
 			if ( height < 0.2 ) {
@@ -233,37 +260,17 @@ function drawHeightMap( terminal, heightmap ) {
 const heightmap = new HeightMap( Math.random() * 9999999999, cols );
 
 heightmap.generateHeights();
+//	heightmap.erode();
+drawHeightMap( terminal, heightmap );
 
 
-let worldTime = 0;
+
 
 function animate() {
 
  	requestAnimationFrame( animate );
 
-	worldTime += 0.01;
-
-	//	heightmap.erode();
-
-	drawHeightMap( terminal, heightmap );
-
 	terminal.update();
-
-
-	/*for ( let row = 0; row < terminal.layers[ 0 ].rows; row ++ ) {
-
-		for ( let col = 0; col < terminal.layers[ 0 ].cols; col ++ ) {
-
-			let height = ( noise( col * freq, row * freq, worldTime ) + 1 ) / 2;
-
-			let char = "░"; //height > 0.75 ? "█" : height > 0.5 ? "▓" : height > 0.25 ? "░" : " ";
-
-			terminal.setChar( col, row, 0, char, [ height * 0.5, height, height, 1.0 ] );
-
-		}
-
-	}*/
-
 
 }
 

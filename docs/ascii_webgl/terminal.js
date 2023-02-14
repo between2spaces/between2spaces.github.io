@@ -23,10 +23,12 @@ export class Terminal {
 
 
 		// An orthogonal projection matrix ( left = - 0.5 * cols; right = 0.5 * cols; top = 0.5 * rows; bottom = -0.5 * rows; near = 0; far = 100 )
-		let left = - 50;
-		let right = 50;
-		let top = 50;
-		let bottom = - 50;
+		let cols = 64;
+		let rows = 64;
+		let left = - cols * 0.5;
+		let right = cols * 0.5;
+		let top = rows * 0.5;
+		let bottom = - rows * 0.5;
 		let near = 0;
 		let far = 100;
 		let lr = 1 / ( left - right );
@@ -147,10 +149,10 @@ export class Terminal {
 
 				let char = characters[ i ++ ];
 
-				let left = ( cx - 0.5 * metrics.width + 2 ) / texWidth;
-				let top = ( cy - metrics.fontBoundingBoxAscent ) / texHeight;
-				let right = ( cx + 0.5 * metrics.width - 2 ) / texWidth;
-				let bottom = ( cy + metrics.fontBoundingBoxDescent ) / texHeight;
+				let left = ( cx - 0.5 * metrics.width + 3 ) / texWidth;
+				let top = ( cy - metrics.fontBoundingBoxAscent + 6 ) / texHeight;
+				let right = ( cx + 0.5 * metrics.width - 3 ) / texWidth;
+				let bottom = ( cy + metrics.fontBoundingBoxDescent - 3 ) / texHeight;
 
 				this.charUVs[ char ] = [ left, bottom, left, top, right, bottom, right, top ];
 
@@ -184,23 +186,20 @@ export class Terminal {
 			let colours = [];
 			let vertices = [];
 
-			let rowHeight = 100.0 / layer.rows;
-			let colWidth = 100.0 / layer.cols;
-
-			let top = rowHeight + ( layer.rows * 0.5 ) * rowHeight;
+			let top = 0.5 + layer.rows * 0.5;
 
 			for ( let row = 0; row < layer.rows; row ++ ) {
 
-				top -= rowHeight;
+				top --;
 
-				let bottom = top - rowHeight;
-				let left = - colWidth - ( layer.cols * 0.5 ) * colWidth;
+				let bottom = top - 1;
+				let left = - 0.5 - layer.cols * 0.5;
 
 				for ( let col = 0; col < layer.cols; col ++ ) {
 
-					left += colWidth;
+					left ++;
 
-					let right = left + colWidth;
+					let right = left + 1;
 
 					if ( row > 0 && col === 0 ) {
 
@@ -275,6 +274,15 @@ export class Terminal {
 
 		// Tell the shader we bound the texture to texture unit 0
 		this.gl.uniform1i( this.shader.uniforms.texture, 0 );
+
+	}
+
+	translate( x, y, z ) {
+
+		this.projectionMatrix[ 12 ] = this.projectionMatrix[ 0 ] * x + this.projectionMatrix[ 4 ] * y + this.projectionMatrix[ 8 ] * z + this.projectionMatrix[ 12 ];
+		this.projectionMatrix[ 13 ] = this.projectionMatrix[ 1 ] * x + this.projectionMatrix[ 5 ] * y + this.projectionMatrix[ 9 ] * z + this.projectionMatrix[ 13 ];
+		this.projectionMatrix[ 14 ] = this.projectionMatrix[ 2 ] * x + this.projectionMatrix[ 6 ] * y + this.projectionMatrix[ 10 ] * z + this.projectionMatrix[ 14 ];
+		this.projectionMatrix[ 15 ] = this.projectionMatrix[ 3 ] * x + this.projectionMatrix[ 7 ] * y + this.projectionMatrix[ 11 ] * z + this.projectionMatrix[ 15 ];
 
 	}
 
