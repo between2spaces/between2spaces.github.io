@@ -8,7 +8,7 @@ export class Terminal {
 		this.canvas = document.createElement( "canvas" );
 		this.container.append( this.canvas );
 
-		this.gl = this.canvas.getContext( "webgl" );
+		this.gl = this.canvas.getContext( "webgl", { antialias: false } );
 		this.fitContainer();
 
 		let self = this;
@@ -23,8 +23,8 @@ export class Terminal {
 
 
 		// An orthogonal projection matrix ( left = - 0.5 * cols; right = 0.5 * cols; top = 0.5 * rows; bottom = -0.5 * rows; near = 0; far = 100 )
-		let cols = 64;
-		let rows = 64;
+		let cols = layers[ 0 ].cols;
+		let rows = layers[ 0 ].rows;
 		let left = - cols * 0.5;
 		let right = cols * 0.5;
 		let top = rows * 0.5;
@@ -131,7 +131,7 @@ export class Terminal {
 			fontSize --;
 			ctx.font = `${fontSize}px ${fontFamily}`;
 			metrics = ctx.measureText( "▓" );
-			metrics.height = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent + 10;
+			metrics.height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent + 10;
 			rows = Math.floor( texHeight / metrics.height );
 			cols = Math.floor( texWidth / metrics.width );
 
@@ -140,6 +140,8 @@ export class Terminal {
 		this.charUVs = {};
 
 		let i = 0;
+
+		console.log( metrics );
 
 		for ( let cy = Math.ceil( 0.5 * metrics.height ); cy < texHeight; cy += metrics.height ) {
 
@@ -150,7 +152,7 @@ export class Terminal {
 				let char = characters[ i ++ ];
 
 				let left = ( cx - 0.5 * metrics.width + 3 ) / texWidth;
-				let top = ( cy - metrics.fontBoundingBoxAscent + 6 ) / texHeight;
+				let top = ( cy - metrics.fontBoundingBoxAscent + 3 ) / texHeight;
 				let right = ( cx + 0.5 * metrics.width - 3 ) / texWidth;
 				let bottom = ( cy + metrics.fontBoundingBoxDescent - 3 ) / texHeight;
 
@@ -164,10 +166,21 @@ export class Terminal {
 
 		}
 
+		document.body.append( canvas );
+
+		console.log( this.charUVs );
+
 		this.texture = this.gl.createTexture();
 		this.gl.bindTexture( this.gl.TEXTURE_2D, this.texture );
-		this.gl.texImage2D( this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, canvas );
-		this.gl.generateMipmap( this.gl.TEXTURE_2D );
+		this.gl.texParameteri( this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR );
+		this.gl.texParameteri( this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR );
+		this.gl.texParameteri( this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE );
+		this.gl.texParameteri( this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE );
+		//this.gl.texImage2D( this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, canvas );
+		let imageData = ctx.getImageData( 0, 0, texWidth, texHeight );
+		console.log( texWidth, texHeight );
+		this.gl.texImage2D( this.gl.TEXTURE_2D, 0, this.gl.RGBA, texWidth, texHeight, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, imageData.data );
+		//this.gl.generateMipmap( this.gl.TEXTURE_2D );
 
 		this.buildBuffers();
 
@@ -177,6 +190,7 @@ export class Terminal {
 	buildBuffers() {
 
 		const charUVs = this.charUVs[ " " ]; //\0" ];
+		console.log( charUVs );
 
 		let layerZ = - this.layers.length + 1;
 
@@ -186,14 +200,14 @@ export class Terminal {
 			let colours = [];
 			let vertices = [];
 
-			let top = 0.5 + layer.rows * 0.5;
+			let top = 1 + layer.rows * 0.5;
 
 			for ( let row = 0; row < layer.rows; row ++ ) {
 
 				top --;
 
 				let bottom = top - 1;
-				let left = - 0.5 - layer.cols * 0.5;
+				let left = - 1 - layer.cols * 0.5;
 
 				for ( let col = 0; col < layer.cols; col ++ ) {
 
@@ -233,7 +247,7 @@ export class Terminal {
 			}
 
 			layer.indicesPerRow = ( layer.cols + 1 ) * 4;
-			layer.indicesTotal = layer.indicesPerRow * layer.rows;
+			layer.indicesTotal = layer.indicesPerRow * layer.rows - 3;
 
 			layer.vertices = { typedArray: new Float32Array( vertices ), size: 2, buffer: this.gl.createBuffer() };
 			layer.colours = { typedArray: new Float32Array( colours ), size: 4, buffer: this.gl.createBuffer() };
