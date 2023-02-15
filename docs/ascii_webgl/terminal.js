@@ -21,21 +21,20 @@ export class Terminal {
 		this.gl.enable( this.gl.BLEND );
 		this.gl.blendFunc( this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA );
 
-
-		// An orthogonal projection matrix ( left = - 0.5 * cols; right = 0.5 * cols; top = 0.5 * rows; bottom = -0.5 * rows; near = 0; far = 100 )
 		let cols = layers[ 0 ].cols;
 		let rows = layers[ 0 ].rows;
-		let left = - cols * 0.5;
-		let right = cols * 0.5;
-		let top = rows * 0.5;
-		let bottom = - rows * 0.5;
-		let near = 0;
-		let far = 100;
-		let lr = 1 / ( left - right );
-		let bt = 1 / ( bottom - top );
-		let nf = 1 / ( near - far );
 
-		this.projectionMatrix = [ - 2 * lr, 0, 0, 0, 0, - 2 * bt, 0, 0, 0, 0, 2 * nf, 0, ( left + right ) * lr, ( top + bottom ) * bt, ( far + near ) * nf, 1 ];
+		this.projection = {
+			left: - cols * 0.5,
+			right: cols * 0.5,
+			top: rows * 0.5,
+			bottom: - rows * 0.5,
+			near: 0,
+			far: 100
+		};
+
+		this.zoom( 1 );
+
 
 		const vertexShader = this.gl.createShader( this.gl.VERTEX_SHADER );
 
@@ -106,6 +105,23 @@ export class Terminal {
 
 	}
 
+	zoom( delta ) {
+
+		this.projection.left *= delta;
+		this.projection.right *= delta;
+		this.projection.top *= delta;
+		this.projection.bottom *= delta;
+
+		let lr = 1 / ( this.projection.left - this.projection.right );
+		let bt = 1 / ( this.projection.bottom - this.projection.top );
+		let nf = 1 / ( this.projection.near - this.projection.far );
+
+		this.projectionMatrix = [ - 2 * lr, 0, 0, 0, 0, - 2 * bt, 0, 0, 0, 0, 2 * nf, 0, ( this.projection.left + this.projection.right ) * lr, ( this.projection.top + this.projection.bottom ) * bt, ( this.projection.far + this.projection.near ) * nf, 1 ];
+
+		this.projectionDirty = true;
+
+	}
+
 	setCharacterSet( characters, texWidth = 512, texHeight = 512, fontFamily = "monospace" ) {
 
 		const canvas = document.createElement( "canvas" );
@@ -117,7 +133,6 @@ export class Terminal {
 		const ctx = canvas.getContext( "2d" );
 
 		ctx.fillStyle = "white";
-		//ctx.strokeStyle = "rgb(150, 150, 150)";
 		ctx.textAlign = "center";
 		ctx.textBaseline = "middle";
 
@@ -141,8 +156,6 @@ export class Terminal {
 
 		let i = 0;
 
-		console.log( metrics );
-
 		for ( let cy = Math.ceil( 0.5 * metrics.height ); cy < texHeight; cy += metrics.height ) {
 
 			for ( let cx = Math.ceil( 0.5 * metrics.width ); cx < texWidth - 0.5 * metrics.width; cx += metrics.width ) {
@@ -151,6 +164,8 @@ export class Terminal {
 
 				let char = characters[ i ++ ];
 
+				ctx.fillText( char, cx, cy );
+
 				let left = ( cx - 0.5 * metrics.width + 3 ) / texWidth;
 				let top = ( cy - metrics.actualBoundingBoxAscent + 3 ) / texHeight;
 				let right = ( cx + 0.5 * metrics.width - 3 ) / texWidth;
@@ -158,17 +173,10 @@ export class Terminal {
 
 				this.charUVs[ char ] = [ left, bottom, left, top, right, bottom, right, top ];
 
-				//ctx.strokeRect( left * texWidth, top * texHeight, right * texWidth - left * texWidth, bottom * texHeight - top * texHeight );
-
-				ctx.fillText( char, cx, cy );
 
 			}
 
 		}
-
-		document.body.append( canvas );
-
-		console.log( this.charUVs );
 
 		this.texture = this.gl.createTexture();
 		this.gl.bindTexture( this.gl.TEXTURE_2D, this.texture );
@@ -176,11 +184,7 @@ export class Terminal {
 		this.gl.texParameteri( this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR );
 		this.gl.texParameteri( this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE );
 		this.gl.texParameteri( this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE );
-		//this.gl.texImage2D( this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, canvas );
-		let imageData = ctx.getImageData( 0, 0, texWidth, texHeight );
-		console.log( texWidth, texHeight );
-		this.gl.texImage2D( this.gl.TEXTURE_2D, 0, this.gl.RGBA, texWidth, texHeight, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, imageData.data );
-		//this.gl.generateMipmap( this.gl.TEXTURE_2D );
+		this.gl.texImage2D( this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, canvas );
 
 		this.buildBuffers();
 
@@ -190,7 +194,6 @@ export class Terminal {
 	buildBuffers() {
 
 		const charUVs = this.charUVs[ " " ]; //\0" ];
-		console.log( charUVs );
 
 		let layerZ = - this.layers.length + 1;
 
@@ -250,8 +253,20 @@ export class Terminal {
 			layer.indicesTotal = layer.indicesPerRow * layer.rows - 3;
 
 			layer.vertices = { typedArray: new Float32Array( vertices ), size: 2, buffer: this.gl.createBuffer() };
-			layer.colours = { typedArray: new Float32Array( colours ), size: 4, buffer: this.gl.createBuffer() };
-			layer.textureCoord = { typedArray: new Float32Array( textureCoord ), size: 2, buffer: this.gl.createBuffer() };
+			layer.colours = {
+				typedArray: new Float32Array( colours ),
+				size: 4,
+				buffer: this.gl.createBuffer(),
+				dirty: true
+			};
+
+			layer.textureCoord = {
+				typedArray: new Float32Array( textureCoord ),
+				size: 2,
+				buffer: this.gl.createBuffer(),
+				dirty: true
+			};
+
 			layer.modelViewMatrix = [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, layerZ ++, 1 ];
 
 			// Load the vertices buffer to GPU and tell WebGL how to pull positions into the vertexPosition attribute
@@ -272,13 +287,11 @@ export class Terminal {
 			this.gl.vertexAttribPointer( this.shader.attributes.textureCoord, layer.textureCoord.size, this.gl.FLOAT, false, 0, 0 );
 			this.gl.enableVertexAttribArray( this.shader.attributes.textureCoord );
 
+
 		}
 
 		// Tell WebGL to use our program when drawing
 		this.gl.useProgram( this.shader.program );
-
-		// Set the shaders project matrix uniform
-		this.gl.uniformMatrix4fv( this.shader.uniforms.projectionMatrix, false, this.projectionMatrix );
 
 		// Tell WebGL we want to affect texture unit 0
 		this.gl.activeTexture( this.gl.TEXTURE0 );
@@ -291,12 +304,14 @@ export class Terminal {
 
 	}
 
+
 	translate( x, y, z ) {
 
 		this.projectionMatrix[ 12 ] = this.projectionMatrix[ 0 ] * x + this.projectionMatrix[ 4 ] * y + this.projectionMatrix[ 8 ] * z + this.projectionMatrix[ 12 ];
 		this.projectionMatrix[ 13 ] = this.projectionMatrix[ 1 ] * x + this.projectionMatrix[ 5 ] * y + this.projectionMatrix[ 9 ] * z + this.projectionMatrix[ 13 ];
 		this.projectionMatrix[ 14 ] = this.projectionMatrix[ 2 ] * x + this.projectionMatrix[ 6 ] * y + this.projectionMatrix[ 10 ] * z + this.projectionMatrix[ 14 ];
 		this.projectionMatrix[ 15 ] = this.projectionMatrix[ 3 ] * x + this.projectionMatrix[ 7 ] * y + this.projectionMatrix[ 11 ] * z + this.projectionMatrix[ 15 ];
+		this.projectionDirty = true;
 
 	}
 
@@ -321,6 +336,8 @@ export class Terminal {
 		layer.textureCoord.typedArray[ texIndex + 6 ] = charUVs[ 6 ];
 		layer.textureCoord.typedArray[ texIndex + 7 ] = charUVs[ 7 ];
 
+		layer.textureCoord.dirty = true;
+
 		if ( colour ) {
 
 			let colIndex = indices * 4;
@@ -342,6 +359,8 @@ export class Terminal {
 			layer.colours.typedArray[ colIndex + 14 ] = colour[ 2 ];
 			layer.colours.typedArray[ colIndex + 15 ] = colour[ 3 ];
 
+			layer.colours.dirty = true;
+
 		}
 
 	}
@@ -357,17 +376,38 @@ export class Terminal {
 
 		this.gl.clear( this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT );
 
+		if ( this.projectionDirty ) {
+
+			this.gl.uniformMatrix4fv( this.shader.uniforms.projectionMatrix, false, this.projectionMatrix );
+			this.projectionDirty = false;
+
+		}
+
 		for ( let layer of this.layers ) {
 
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.vertices.buffer );
 			this.gl.vertexAttribPointer( this.shader.attributes.vertexPosition, layer.vertices.size, this.gl.FLOAT, false, 0, 0 );
 
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.textureCoord.buffer );
-			this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.textureCoord.typedArray );
+
+			if ( layer.textureCoord.dirty ) {
+
+				this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.textureCoord.typedArray );
+				layer.textureCoord.dirty = false;
+
+			}
+
 			this.gl.vertexAttribPointer( this.shader.attributes.textureCoord, layer.textureCoord.size, this.gl.FLOAT, false, 0, 0 );
 
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.colours.buffer );
-			this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.colours.typedArray );
+
+			if ( layer.colours.dirty ) {
+
+				this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.colours.typedArray );
+				layer.textureCoord.dirty = false;
+
+			}
+
 			this.gl.vertexAttribPointer( this.shader.attributes.colour, layer.colours.size, this.gl.FLOAT, false, 0, 0 );
 
 			this.gl.uniformMatrix4fv( this.shader.uniforms.modelViewMatrix, false, layer.modelViewMatrix );

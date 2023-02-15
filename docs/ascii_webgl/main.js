@@ -6,7 +6,7 @@ import { Terminal } from "./terminal.js";
 //const worker = new Worker( "./colony_sim.js", { type: "module" } );
 
 
-let cols = 64;
+let cols = 256;
 let rows = cols;
 const terminal = new Terminal( [
 	{ cols, rows },
@@ -26,7 +26,7 @@ class HeightMap {
 		this.mapSize = mapSize;
 		this.edgeWidth = edgeWidth === null ? this.mapSize * 0.3 : edgeWidth;
 
-		this.noise = createNoise2D( Math.random ); //seedrandom( Math.random() ) );
+		this.noise = createNoise2D( seedrandom( Math.random() ) );
 
 		this.heightArray = new Array( this.mapSize * this.mapSize );
 
@@ -255,6 +255,13 @@ function drawHeightMap( terminal, heightmap ) {
 	}
 
 }
+
+
+window.addEventListener( "wheel", event => {
+
+	terminal.zoom( event.deltaY > 0 ? 1.01 : 0.99 );
+
+} );
 
 
 const heightmap = new HeightMap( Math.random() * 9999999999, cols );
