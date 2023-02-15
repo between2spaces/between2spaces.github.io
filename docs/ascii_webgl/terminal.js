@@ -152,9 +152,9 @@ export class Terminal {
 				let char = characters[ i ++ ];
 
 				let left = ( cx - 0.5 * metrics.width + 3 ) / texWidth;
-				let top = ( cy - metrics.fontBoundingBoxAscent + 3 ) / texHeight;
+				let top = ( cy - metrics.actualBoundingBoxAscent + 3 ) / texHeight;
 				let right = ( cx + 0.5 * metrics.width - 3 ) / texWidth;
-				let bottom = ( cy + metrics.fontBoundingBoxDescent - 3 ) / texHeight;
+				let bottom = ( cy + metrics.actualBoundingBoxDescent - 3 ) / texHeight;
 
 				this.charUVs[ char ] = [ left, bottom, left, top, right, bottom, right, top ];
 
