@@ -17,7 +17,7 @@ set ttimeoutlen=5
 set timeoutlen=100
 set noesckeys
 set ruler
-"set number
+set relativenumber
 set noshowmode
 set laststatus=2
 set cursorline
@@ -35,12 +35,12 @@ set termguicolors
 "hi Normal ctermbg=NONE
 "hi StatusLine ctermbg=1
 "hi ColorColumn ctermbg=Black
-hi LineNr ctermfg=darkgrey
+hi LineNr ctermfg=grey guifg=darkgrey
 hi CursorLine cterm=bold
 hi CursorLineNr cterm=bold ctermfg=grey
-hi NonText ctermfg=darkgrey
-hi SpecialKey ctermfg=darkgrey
-hi VertSplit cterm=NONE ctermfg=black
+"hi NonText ctermfg=darkgrey
+"hi SpecialKey ctermfg=darkgrey
+"hi VertSplit cterm=NONE ctermfg=black
 
 
 let g:netrw_dirhistmax = 0

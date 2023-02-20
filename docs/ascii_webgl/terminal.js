@@ -94,6 +94,10 @@ export class Terminal {
 
 		this.setCharacterSet( "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕", 1024, 1024 );
 
+
+		this.modelViewMatrix = [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 ];
+		this.modelViewDirty = true;
+
 	}
 
 	fitContainer() {
@@ -220,7 +224,7 @@ export class Terminal {
 
 					if ( row > 0 && col === 0 ) {
 
-						vertices.push( left, bottom, left, bottom, left, bottom );
+						vertices.push( left, bottom, layerZ, left, bottom, layerZ, left, bottom, layerZ );
 						textureCoord.push( 0, 0, 0, 0, 0, 0 );
 						colours.push( 0.0, 0.0, 0.0, 0.0 );
 						colours.push( 0.0, 0.0, 0.0, 0.0 );
@@ -228,7 +232,7 @@ export class Terminal {
 
 					}
 
-					vertices.push( left, bottom, left, top, right, bottom, right, top );
+					vertices.push( left, bottom, layerZ, left, top, layerZ, right, bottom, layerZ, right, top, layerZ );
 					colours.push( 0.0, 0.0, 0.0, 0.0 );
 					colours.push( 0.0, 0.0, 0.0, 0.0 );
 					colours.push( 0.0, 0.0, 0.0, 0.0 );
@@ -238,7 +242,7 @@ export class Terminal {
 
 					if ( col === layer.cols - 1 ) {
 
-						vertices.push( right, top );
+						vertices.push( right, top, layerZ );
 						textureCoord.push( 0, 0 );
 						colours.push( 0.0, 0.0, 0.0, 0.0 );
 
@@ -252,7 +256,12 @@ export class Terminal {
 			layer.indicesPerRow = ( layer.cols + 1 ) * 4;
 			layer.indicesTotal = layer.indicesPerRow * layer.rows - 3;
 
-			layer.vertices = { typedArray: new Float32Array( vertices ), size: 2, buffer: this.gl.createBuffer() };
+			layer.vertices = {
+				typedArray: new Float32Array( vertices ),
+				size: 3,
+				buffer: this.gl.createBuffer(),
+				dirty: true
+			};
 			layer.colours = {
 				typedArray: new Float32Array( colours ),
 				size: 4,
@@ -267,7 +276,9 @@ export class Terminal {
 				dirty: true
 			};
 
-			layer.modelViewMatrix = [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, layerZ ++, 1 ];
+			//layer.modelViewMatrix = [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, layerZ ++, 1 ];
+			layer.z = layerZ;
+			layerZ ++;
 
 			// Load the vertices buffer to GPU and tell WebGL how to pull positions into the vertexPosition attribute
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.vertices.buffer );
@@ -293,6 +304,7 @@ export class Terminal {
 		// Tell WebGL to use our program when drawing
 		this.gl.useProgram( this.shader.program );
 
+
 		// Tell WebGL we want to affect texture unit 0
 		this.gl.activeTexture( this.gl.TEXTURE0 );
 
@@ -315,8 +327,23 @@ export class Terminal {
 
 	}
 
+	setHeight( col, row, layer, height ) {
 
-	setChar( col, row, layer = 0, char, colour = undefined ) {
+		if ( layer > this.layers.length - 1 ) return;
+
+		layer = this.layers[ layer ];
+
+		let indices = row * layer.indicesPerRow + col * 4;
+		let verticesIndex = indices * 3;
+
+		layer.vertices.typedArray[ verticesIndex ] = layer.z + height;
+
+		layer.vertices.dirty = false;
+
+	}
+
+
+	setChar( col, row, layer, char, colour = undefined ) {
 
 		const charUVs = this.charUVs[ char ];
 
@@ -376,9 +403,20 @@ export class Terminal {
 
 		this.gl.clear( this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT );
 
+		if ( this.modelViewDirty ) {
+
+			this.gl.uniformMatrix4fv( this.shader.uniforms.modelViewMatrix, false, this.modelViewMatrix );
+
+			this.modelViewDirty = false;
+
+		}
+
 		if ( this.projectionDirty ) {
 
 			this.gl.uniformMatrix4fv( this.shader.uniforms.projectionMatrix, false, this.projectionMatrix );
+
+			this.gl.uniformMatrix4fv( this.shader.uniforms.modelViewMatrix, false, this.modelViewMatrix );
+
 			this.projectionDirty = false;
 
 		}
@@ -386,6 +424,14 @@ export class Terminal {
 		for ( let layer of this.layers ) {
 
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.vertices.buffer );
+
+			if ( layer.vertices.dirty ) {
+
+				this.gl.bufferSubData( this.gl.ARRAY_BUFFER, 0, layer.vertices.typedArray );
+				layer.vertices.dirty = false;
+
+			}
+
 			this.gl.vertexAttribPointer( this.shader.attributes.vertexPosition, layer.vertices.size, this.gl.FLOAT, false, 0, 0 );
 
 			this.gl.bindBuffer( this.gl.ARRAY_BUFFER, layer.textureCoord.buffer );
@@ -409,8 +455,6 @@ export class Terminal {
 			}
 
 			this.gl.vertexAttribPointer( this.shader.attributes.colour, layer.colours.size, this.gl.FLOAT, false, 0, 0 );
-
-			this.gl.uniformMatrix4fv( this.shader.uniforms.modelViewMatrix, false, layer.modelViewMatrix );
 
 			this.gl.drawArrays( this.gl.TRIANGLE_STRIP, 0, layer.indicesTotal );
 

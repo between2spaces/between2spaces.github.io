@@ -3,10 +3,7 @@ import { seedrandom } from "./seedrandom.js";
 import { Terminal } from "./terminal.js";
 
 
-//const worker = new Worker( "./colony_sim.js", { type: "module" } );
-
-
-let cols = 256;
+let cols = 512;
 let rows = cols;
 const terminal = new Terminal( [
 	{ cols, rows },
@@ -20,25 +17,22 @@ terminal.writeText( 0, 4, 2, "[12]{", [ 0.99, 0.99, 0.99, 1.0 ] );
 
 class HeightMap {
 
-	constructor( seed, mapSize, edgeWidth = null ) {
+	constructor( mapSize, edgeWidth = null ) {
 
-		this.seed = seed;
 		this.mapSize = mapSize;
 		this.edgeWidth = edgeWidth === null ? this.mapSize * 0.3 : edgeWidth;
-
-		this.noise = createNoise2D( seedrandom( Math.random() ) );
-
 		this.heightArray = new Array( this.mapSize * this.mapSize );
 
 	}
 
-	generateHeights() {
+	generateHeights( seed = Math.random() * 999999999 ) {
 
+		const noise = createNoise2D( seedrandom( seed ) );
 		const octaves = [
-			{ frequency: 1.0 / this.mapSize, amplitude: 1 },
-			{ frequency: 2.0 / this.mapSize, amplitude: 0.5 },
-			{ frequency: 4.0 / this.mapSize, amplitude: 0.25 },
-			{ frequency: 8.0 / this.mapSize, amplitude: 0.125 },
+			{ frequency: 2.0 / this.mapSize, amplitude: 1 },
+			{ frequency: 4.0 / this.mapSize, amplitude: 0.5 },
+			{ frequency: 8.0 / this.mapSize, amplitude: 0.25 },
+			{ frequency: 16.0 / this.mapSize, amplitude: 0.125 },
 		];
 
 		let minHeight = 1;
@@ -51,7 +45,7 @@ class HeightMap {
 				let index = y * this.mapSize + x;
 				let height = 0;
 
-				for ( let octave of octaves ) height += this.noise( x * octave.frequency, y * octave.frequency ) * octave.amplitude;
+				for ( let octave of octaves ) height += noise( x * octave.frequency, y * octave.frequency ) * octave.amplitude;
 
 				if ( height < minHeight ) minHeight = height;
 				if ( height > maxHeight ) maxHeight = height;
@@ -129,22 +123,26 @@ class HeightMap {
 
 				}
 
-				if ( i < rows - 1 ) {
+				if ( y < this.mapSize - 1 ) {
 
-					if ( heightmap[ i + 1 ][ j ] < currentHeight ) {
+					let southHeight = this.heightArray[ ( y + 1 ) * this.mapSize + x ];
 
-						totalAmountToMove += currentHeight - heightmap[ i + 1 ][ j ];
+					if ( southHeight < currentHeight ) {
+
+						totalAmountToMove += currentHeight - southHeight;
 						numberOfLowerNeighbors ++;
 
 					}
 
 				}
 
-				if ( j < cols - 1 ) {
+				if ( x < this.mapSize - 1 ) {
 
-					if ( heightmap[ i ][ j + 1 ] < currentHeight ) {
+					let eastHeight = this.heightArray[ index + 1 ];
 
-						totalAmountToMove += currentHeight - heightmap[ i ][ j + 1 ];
+					if ( eastHeight < currentHeight ) {
+
+						totalAmountToMove += currentHeight - eastHeight;
 						numberOfLowerNeighbors ++;
 
 					}
@@ -156,29 +154,30 @@ class HeightMap {
 					let averageAmountToMove = totalAmountToMove / numberOfLowerNeighbors;
 					averageAmountToMove = Math.min( averageAmountToMove, erosionAmount );
 
-					heightmap[ i ][ j ] -= averageAmountToMove;
+					this.heightArray[ index ] -= averageAmountToMove;
 
-					if ( i > 0 ) {
 
-						heightmap[ i - 1 ][ j ] += averageAmountToMove / numberOfLowerNeighbors;
+					if ( x > 0 ) {
 
-					}
-
-					if ( j > 0 ) {
-
-						heightmap[ i ][ j - 1 ] += averageAmountToMove / numberOfLowerNeighbors;
+						this.heightArray[ index - 1 ] += averageAmountToMove / numberOfLowerNeighbors;
 
 					}
 
-					if ( i < rows - 1 ) {
+					if ( y > 0 ) {
 
-						heightmap[ i + 1 ][ j ] += averageAmountToMove / numberOfLowerNeighbors;
+						this.heightArray[ ( y - 1 ) * this.mapSize + x ] += averageAmountToMove / numberOfLowerNeighbors;
 
 					}
 
-					if ( j < cols - 1 ) {
+					if ( y < this.mapSize - 1 ) {
 
-						heightmap[ i ][ j + 1 ] += averageAmountToMove / numberOfLowerNeighbors;
+						this.heightArray[ ( y + 1 ) * this.mapSize + x ] += averageAmountToMove / numberOfLowerNeighbors;
+
+					}
+
+					if ( x < this.mapSize - 1 ) {
+
+						this.heightArray[ index + 1 ] += averageAmountToMove / numberOfLowerNeighbors;
 
 					}
 
@@ -187,8 +186,6 @@ class HeightMap {
 			}
 
 		}
-
-		return heightmap;
 
 	}
 
@@ -211,46 +208,163 @@ class HeightMap {
 }
 
 
-function drawHeightMap( terminal, heightmap ) {
+const TILE = {
+	ROCK: 0,
+	DIRT: 1,
+	GRASS: 2,
+	WATER: 3,
+};
 
-	const halfSize = 0.5 * heightmap.mapSize;
 
-	for ( let y = 0; y < heightmap.mapSize; y ++ ) {
+class TileMap {
 
-		for ( let x = 0; x < heightmap.mapSize; x ++ ) {
+	constructor( heightmap, seed = Math.random() * 999999999, waterHeight = 0.2 ) {
 
-			let height = heightmap.getHeight( x, y );
-			let slope = 0;
+		this.heightmap = heightmap;
+		this.waterHeight = waterHeight;
+		this.singleDirtHeight = 0.01;
+		this.maxDirtSlope = 0.1;
+		this.mapSize = heightmap.mapSize;
+		this.typeMap = new Array( heightmap.heightArray.length );
+		this.dirtMap = new Array( heightmap.heightArray.length );
 
-			if ( y > 0 ) slope = Math.max( slope, Math.abs( heightmap.getHeight( x, y - 1 ) - height ) );
-			if ( y < heightmap.mapSize - 1 ) slope = Math.max( slope, Math.abs( heightmap.getHeight( x, y + 1 ) - height ) );
-			if ( x > 0 ) slope = Math.max( slope, Math.abs( heightmap.getHeight( x - 1, y ) - height ) );
-			if ( x < heightmap.mapSize - 1 ) slope = Math.max( slope, Math.abs( heightmap.getHeight( x + 1, y ) - height ) );
+		for ( let i = 0; i < heightmap.heightArray.length; i ++ ) {
 
-			let r = height;
-			let g = height;
-			let b = height;
+			this.typeMap[ i ] = TILE.ROCK;
+			this.dirtMap[ i ] = 0;
 
-			/*if ( slope < 3.0 / heightmap.mapSize ) {
+		}
 
-				r = 0.1;
-				g = 0.5;
-				b = 0.1;
+		this.prng = seedrandom( seed );
+		this.listenersTileUpdate = [];
 
-			}*/
+	}
 
-			// below water line
-			if ( height < 0.2 ) {
+	addTileUpdateListener( callback ) {
 
-				r *= 0.5;
-				g *= 0.5;
-				b = 0.5;
+		if ( callback in this.listenersTileUpdate ) return;
+
+		this.listenersTileUpdate.push( callback );
+
+		for ( let y = 0; y < this.mapSize; y ++ ) {
+
+			for ( let x = 0; x < this.mapSize; x ++ ) {
+
+				callback( x, y, this.getTileHeight( x, y ), this.getType( x, y ) );
 
 			}
 
-			terminal.setChar( x, y, 0, "█", [ r, g, b, 1.0 ] );
+		}
+
+
+	}
+
+	generate( dirtDrops = 5, singleDirtHeight = 0.01, maxDirtSlope = 0.001, maxDirt = 30 ) {
+
+		this.singleDirtHeight = singleDirtHeight;
+		this.maxDirtSlope = maxDirtSlope;
+
+		for ( let d = 0; d < dirtDrops; d ++ ) {
+
+			for ( let y = 0; y < this.mapSize; y ++ ) {
+
+				for ( let x = 0; x < this.mapSize; x ++ ) {
+
+					let index = y * this.mapSize + x;
+					let dirt = this.getDirt( x, y );
+					if ( dirt >= maxDirt ) continue;
+					this.dropDirt( x, y );
+
+				}
+
+			}
 
 		}
+
+		for ( let y = 0; y < this.mapSize; y ++ ) {
+
+			for ( let x = 0; x < this.mapSize; x ++ ) {
+
+				for ( let callback of this.listenersTileUpdate ) callback( x, y, this.getTileHeight( x, y ), this.getType( x, y ) );
+
+			}
+
+		}
+
+
+	}
+
+	getType( x, y ) {
+
+		const tile = this.typeMap[ y * this.mapSize + x ];
+		return tile ? tile : TILE.ROCK;
+
+	}
+
+	setType( x, y, type ) {
+
+		this.typeMap[ y * this.mapSize + x ] = type;
+
+	}
+
+	getDirt( x, y ) {
+
+		return this.dirtMap[ y * this.mapSize + x ];
+
+	}
+
+	setDirt( x, y, amount ) {
+
+		this.setType( x, y, this.getTileHeight( x, y ) >= this.waterHeight ? TILE.GRASS : TILE.DIRT );
+		this.dirtMap[ y * this.mapSize + x ] = amount;
+
+	}
+
+	addDirt( x, y, amount ) {
+
+		this.setDirt( x, y, this.getDirt( x, y ) + amount );
+
+	}
+
+	getDirtHeight( x, y ) {
+
+		return this.getDirt( x, y ) * this.singleDirtHeight;
+
+	}
+
+	getTileHeight( x, y ) {
+
+		return this.heightmap.getHeight( x, y ) + this.getDirtHeight( x, y );
+
+	}
+
+	dropDirt( x, y ) {
+
+		let tooSteep = [];
+		let currentHeight = this.getTileHeight( x, y );
+
+		for ( let j = y + 1; j >= y - 1; j -- ) {
+
+			for ( let i = x + 1; i >= x - 1; i -- ) {
+
+				if ( i < 0 || j < 0 || i >= this.mapSize || j >= this.mapSize ) continue;
+
+				let thisHeight = this.getTileHeight( i, j );
+				if ( thisHeight <= currentHeight - this.maxDirtSlope ) tooSteep.push( { x: i, y: j } );
+
+			}
+
+		}
+
+		if ( tooSteep.length > 0 ) {
+
+			let rand = tooSteep[ Math.floor( this.prng() * tooSteep.length ) ];
+			x = rand.x;
+			y = rand.y;
+
+		}
+
+		this.addDirt( x, y, 1 );
 
 	}
 
@@ -263,12 +377,45 @@ window.addEventListener( "wheel", event => {
 
 } );
 
-
-const heightmap = new HeightMap( Math.random() * 9999999999, cols );
+const heightmap = new HeightMap( cols );
 
 heightmap.generateHeights();
-//	heightmap.erode();
-drawHeightMap( terminal, heightmap );
+
+const tilemap = new TileMap( heightmap );
+
+tilemap.addTileUpdateListener( ( x, y, height, type ) => {
+
+	let r = height;
+	let g = height;
+	let b = height;
+
+	if ( type === TILE.WATER ) {
+
+		r = 35 / 255;
+		g = 137 / 255;
+		b = 218 / 255;
+
+	} else if ( type === TILE.DIRT ) {
+
+		r = 107 / 255;
+		g = 84 / 255;
+		b = 40 / 255;
+
+	} else if ( type === TILE.GRASS ) {
+
+		r = 80 / 255;
+		g = 125 / 255;
+		b = 42 / 255;
+
+	}
+
+	terminal.setChar( x, y, 0, "█", [ r * height * 2, g * height * 2, b * height * 2, 1.0 ] );
+
+	terminal.setHeight( x, y, 0, height );
+
+} );
+
+tilemap.generate();
 
 
 
