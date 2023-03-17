@@ -1,0 +1,1 @@
+import './worldobject_collide'

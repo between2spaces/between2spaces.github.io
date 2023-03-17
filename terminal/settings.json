@@ -43,7 +43,9 @@
 			"padding": "0",
 			"scrollbarState": "hidden",
 			"useAcrylic": true, 
-			"acrylicOpacity": 0.9
+			"acrylicOpacity": 0.9,
+			"cursorShape": "vintage",
+			"cursorColor": "#39ff14"
 		},
 		"list": 
 		[

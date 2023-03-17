@@ -74,5 +74,6 @@ lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
 
 
 # set a fancy prompt
-PS1="\n\`if [[ \$? = "0" ]]; then echo "\\[\\033[32m\\]"; else echo "\\[\\033[31m\\]"; fi\`\\w \[\033[34m\]\$\[\033[0m\] "
+PS1="\n\e[0;32m\@ \e[m\\w \e[m\e[1;32m>\e[m"
+
 

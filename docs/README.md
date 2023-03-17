@@ -4,6 +4,5 @@
 
 ## Recent
 
-* [Colony simulation](/colony_sim)
-* [ASCII WebGL](/ascii_webgl)
+* [Unnamed project](/unnamed)
 

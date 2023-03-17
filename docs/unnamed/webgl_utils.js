@@ -1,0 +1,65 @@
+/**
+ * Creates a program from 2 shaders.
+ *
+ * @param {!WebGLRenderingContext} gl The WebGL context.
+ * @param {!WebGLShader} vertexShader A vertex shader.
+ * @param {!WebGLShader} fragmentShader A fragment shader.
+ * @return {!WebGLProgram} A program.
+ */
+export function createProgram( gl, vertexShader, fragmentShader ) {
+
+	// create a program.
+	var program = gl.createProgram();
+
+	// attach the shaders.
+	gl.attachShader( program, compileShader( gl, gl.VERTEX_SHADER, vertexShader ) );
+	gl.attachShader( program, compileShader( gl, gl.FRAGMENT_SHADER, fragmentShader ) );
+
+	// link the program.
+	gl.linkProgram( program );
+
+	// Check if it linked.
+	var success = gl.getProgramParameter( program, gl.LINK_STATUS );
+	if ( ! success ) {
+
+	 // something went wrong with the link; get the error
+	 throw ( "program failed to link:" + gl.getProgramInfoLog( program ) );
+
+	}
+
+	return program;
+
+}
+
+
+/**
+ * Creates and compiles a shader.
+ *
+ * @param {!WebGLRenderingContext} gl The WebGL Context.
+ * @param {number} shaderType The type of shader, VERTEX_SHADER or FRAGMENT_SHADER.
+ * @param {string} shaderSource The GLSL source code for the shader.
+ * @return {!WebGLShader} The shader.
+ */
+function compileShader( gl, shaderType, shaderSource ) {
+
+	// Create the shader object
+	var shader = gl.createShader( shaderType );
+
+	// Set the shader source code.
+	gl.shaderSource( shader, shaderSource );
+
+	// Compile the shader
+	gl.compileShader( shader );
+
+	// Check if it compiled
+	var success = gl.getShaderParameter( shader, gl.COMPILE_STATUS );
+	if ( ! success ) {
+
+	  // Something went wrong during compilation; get the error
+	  throw ( "could not compile shader:" + gl.getShaderInfoLog( shader ) );
+
+	}
+
+	return shader;
+
+}
