@@ -16,31 +16,23 @@ canvas.height = window.innerHeight;
 
 const gl = canvas.getContext( "webgl2", { alpha: false } );
 
-gl.enable( gl.BLEND );
-gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
-
-gl.clearColor( 1, 1, 1, 1 );
-gl.clear( gl.COLOR_BUFFER_BIT );
-gl.colorMask( true, true, true, false );
-
+gl.enable( gl.DEPTH_TEST );
+gl.depthFunc( gl.LESS );
 
 
 const characterset = image_utils.charTileMap( gl, "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕" );
 
-//document.body.append( characterset.canvas );
 
 const terrainTexture = image_utils.loadTexture( gl, "dembase1.jpg" );
 
 
 class TiledTerrain extends Object {
 
-	constructor( size, baseLayer = true, seed = Math.random() * 999999999 ) {
+	constructor( size ) {
 
 		super();
 
 		this.size = size;
-		this.baseLayer = baseLayer;
-		this.seed = seed;
 		this.heightScale = Math.sqrt( size ) * 2;
 
 		this.shader = {
@@ -65,12 +57,12 @@ class TiledTerrain extends Object {
 					float u = ( a_position.x + halfsize ) / u_size;
 					float v = ( a_position.y + halfsize ) / u_size;
 					v_bump = texture( u_heightmap, vec2( u, v ) );
-					float Az = texture( u_heightmap, vec2( u + w, v ) ).b - v_bump.a;
-					float Bz = texture( u_heightmap, vec2( u, v + w ) ).b - v_bump.a;
-					v_normal = normalize( vec3( -Az, -Bz, 1 ) );
+					float Az = texture( u_heightmap, vec2( u + w, v ) ).b - v_bump.b;
+					float Bz = texture( u_heightmap, vec2( u, v + w ) ).b - v_bump.b;
+					v_normal = normalize( vec3( -Az, 1, -Bz ) );
 					vec4 pos = vec4( a_position.x, v_bump.b * u_heightscale, a_position.y, 1.0 );
 					fragPos = vec3( model * pos );
-					gl_Position = projection * view * model * pos;
+					gl_Position = projection * view * pos;
 					v_uv = a_uvs;
 				}
 				`,
@@ -85,11 +77,19 @@ class TiledTerrain extends Object {
 				uniform sampler2D characterset;
 
 				void main() {
-					vec3 lightDir = normalize(lightPos - fragPos);
+					vec3 lightDir = normalize( lightPos - fragPos );
 					float diffuse = max( dot( v_normal, lightDir ), 0.0 );
-					vec4 colour = texture(characterset, v_uv);
-					outColor = vec4( diffuse * v_bump.rgb, 1.0 ) * colour;
-					if ( outColor.a < 0.1 ) outColor.a = 0.0;
+					vec4 char = texture(characterset, v_uv);
+					vec3 v_up = normalize( vec3( 0, 1, 0 ) );
+					float flatness = dot( v_normal, v_up );
+					//flatness = flatness * flatness * flatness * flatness * flatness * flatness * flatness;
+					if ( flatness > 0.993 ) {
+						flatness = flatness;
+					} else {
+						flatness = 0.2;
+					}
+					//outColor = vec4( diffuse * v_bump.rgb, 1.0 ) * char;
+					outColor = vec4( flatness, flatness, flatness, 1.0 ) * char;
 				}`
 			),
 			attribute: {},
@@ -110,69 +110,48 @@ class TiledTerrain extends Object {
 		this.shader.uniform.size = gl.getUniformLocation( this.shader.program, "u_size" );
 		this.shader.uniform.heightscale = gl.getUniformLocation( this.shader.program, "u_heightscale" );
 
-		this.heightmap = image_utils.createCanvasTexture( gl, size );
-		this.heightmap.ctx.fillStyle = "green";
-		this.heightmap.ctx.fillRect( 0, 0, size, size );
-		const heightImageData = this.heightmap.ctx.getImageData( 0, 0, size, size );
-		const pixels = heightImageData.data;
+		this.heightmap = {
+			canvasTexture: image_utils.createCanvasTexture( gl, this.size )
+		};
+		this.heightmap.imageData = this.heightmap.canvasTexture.ctx.getImageData( 0, 0, this.size, this.size );
+		this.heightmap.pixels = this.heightmap.imageData.data;
 
 		this.verticesBuffer = gl.createBuffer();
 		this.uvsBuffer = gl.createBuffer();
 
 		const vertices = [];
 		const uvs = [];
-		const charUV = characterset.uvs[ baseLayer ? "█" : "░" ];
+		const charUV = characterset.uvs[ "█" ];
+		const halfSize = this.size * 0.5;
 
-		const noise = createNoise2D( seedrandom( seed ) );
-		const octaves = [
-			{ frequency: 2.0 / size, amplitude: 0.6 },
-			{ frequency: 4.0 / size, amplitude: 0.3 },
-			{ frequency: 8.0 / size, amplitude: 0.1 }
-		];
-
-		const halfSize = size * 0.5;
-		let y = - halfSize;
+		let z = - halfSize;
 
 		this.indices = 0;
 
-		for ( let yi = 0; yi < size; yi ++ ) {
+		for ( let zi = 0; zi < this.size; zi ++ ) {
 
 			let x = - halfSize;
 
-			for ( let xi = 0; xi < size; xi ++ ) {
+			for ( let xi = 0; xi < this.size; xi ++ ) {
 
-				let height = 0;
-
-				for ( let octave of octaves ) height += noise( x * octave.frequency, y * octave.frequency ) * octave.amplitude;
-
-				vertices.push( x, y, x, y + 1, x + 1, y, x + 1, y + 1 );
-
-				let i = ( yi * size + xi ) * 4;
-
-				pixels[ i + 2 ] = ( height + 1 ) * 127;
-
+				vertices.push( x, z, x, z + 1, x + 1, z, x + 1, z + 1 );
 				uvs.push( ...charUV );
-
 				this.indices += 4;
-
 				x ++;
 
 			}
 
-			y ++;
+			z ++;
 
-			if ( yi < size - 1 ) {
+			if ( zi < this.size - 1 ) {
 
-				vertices.push( halfSize, y, - halfSize, y );
+				vertices.push( halfSize, z, - halfSize, z );
 				uvs.push( 0, 0, 0, 0 );
 				this.indices += 2;
 
 			}
 
 		}
-
-		this.heightmap.ctx.putImageData( heightImageData, 0, 0 );
-		image_utils.updateTexture( gl, this.heightmap.canvas, this.heightmap.texture );
 
 		this.vao = gl.createVertexArray();
 
@@ -192,22 +171,98 @@ class TiledTerrain extends Object {
 
 	}
 
+	generate( seed = Math.random() * 999999999, edgeWidth = null ) {
+
+		this.seed = seed;
+		this.noise = createNoise2D( seedrandom( this.seed ) );
+		this.edgeWidth = edgeWidth === null ? this.size * 0.3 : edgeWidth;
+
+		const octaves = [
+			{ frequency: 2.0 / this.size, amplitude: 0.6 },
+			{ frequency: 4.0 / this.size, amplitude: 0.3 },
+			{ frequency: 8.0 / this.size, amplitude: 0.1 }
+		];
+
+		let edgeSq = Math.sqrt( this.edgeWidth * this.edgeWidth * 2 );
+
+		for ( let zi = 0; zi < this.size; zi ++ ) {
+
+			for ( let xi = 0; xi < this.size; xi ++ ) {
+
+				let height = 0;
+
+				for ( let octave of octaves ) height += this.noise( xi * octave.frequency, zi * octave.frequency ) * octave.amplitude;
+
+				let dx = 0;
+				let dz = 0;
+
+				if ( xi < this.edgeWidth ) dx = this.edgeWidth - xi;
+				if ( zi < this.edgeWidth ) dz = this.edgeWidth - zi;
+				if ( zi > this.size - this.edgeWidth ) dz = zi - ( this.size - this.edgeWidth );
+				if ( xi > this.size - this.edgeWidth ) dx = xi - ( this.size - this.edgeWidth );
+
+				let clamp = ( dx > 0 || dz > 0 ) ? ( edgeSq - Math.sqrt( dx * dx + dz * dz ) ) / edgeSq : 1;
+
+				let index = ( zi * this.size + xi ) * 4;
+
+				this.heightmap.pixels[ index + 2 ] = ( height + 1 ) * 127 * clamp * clamp;
+				this.heightmap.pixels[ index + 3 ] = 255;
+
+			}
+
+		}
+
+		// shift range from [-1, 1] to [0, 1]; and
+		// normalise such that lowest is 0 and highest is 1; and
+		// clamp height near edges (i.e. gaurantees island )
+		// let normalised = 1.0 / ( maxHeight - minHeight );
+		// let edgeSq = Math.sqrt( this.edgeWidth * this.edgeWidth * 2 );
+
+		// for ( let y = 0; y < this.mapSize; y ++ ) {
+
+		// 	for ( let x = 0; x < this.mapSize; x ++ ) {
+
+		// 		let index = y * this.mapSize + x;
+
+		// 		let dx = 0;
+		// 		let dy = 0;
+
+		// 		if ( x < this.edgeWidth ) dx = this.edgeWidth - x;
+		// 		if ( y < this.edgeWidth ) dy = this.edgeWidth - y;
+		// 		if ( y > this.mapSize - this.edgeWidth ) dy = y - ( this.mapSize - this.edgeWidth );
+		// 		if ( x > this.mapSize - this.edgeWidth ) dx = x - ( this.mapSize - this.edgeWidth );
+
+		// 		let clamp = ( dx > 0 || dy > 0 ) ? ( edgeSq - Math.sqrt( dx * dx + dy * dy ) ) / edgeSq : 1;
+
+		// 		let height = ( this.heightArray[ index ] - minHeight ) * normalised * clamp * clamp;
+		// 		this.heightArray[ index ] = height;
+
+		// 	}
+
+		// }
+
+		this.heightmap.canvasTexture.ctx.putImageData( this.heightmap.imageData, 0, 0 );
+		image_utils.updateTexture( gl, this.heightmap.canvasTexture.canvas, this.heightmap.canvasTexture.texture );
+		//document.body.append( this.heightmap.canvasTexture.canvas );
+
+	}
+
 }
 
-const terrain = new TiledTerrain( 16 );
-const terrain2 = new TiledTerrain( terrain.size, false, terrain.seed );
-terrain2.setPosition( 0, 0.2, 0 );
-terrain.add( terrain2 );
+const terrain = new TiledTerrain( 128 );
+terrain.generate();
+//const terrain2 = new TiledTerrain( terrain.size, false, terrain.seed );
+//terrain2.setPosition( 0, 0.2, 0 );
+//terrain.add( terrain2 );
 
 
 
 
 
-const camera = new OrthogonalCamera();
-//const camera = new PerspectiveCamera( 70 );
-const orbitControl = new OrbitControl( camera, 30 );
-orbitControl.rotateX( - 0.5 );
-
+//const camera = new OrthogonalCamera();
+const camera = new PerspectiveCamera( 70 );
+const orbitControl = new OrbitControl( camera, terrain.size );
+orbitControl.rotateX( - Math.PI * 0.1 );
 
 
 
@@ -262,11 +317,11 @@ window.addEventListener( "mousemove", event => {
 
 
 const light = {
-	position: vec3.set( - 1000, 1000, 1000 )
+	position: vec3.set( - 1000, 1000, - 1000 )
 };
 
 
-const scene = [ terrain, terrain2 ];
+const scene = [ terrain ];
 
 
 
@@ -288,7 +343,7 @@ function animate() {
 		gl.activeTexture( gl.TEXTURE0 );
 		gl.bindTexture( gl.TEXTURE_2D, characterset.texture );
 		gl.activeTexture( gl.TEXTURE1 );
-		gl.bindTexture( gl.TEXTURE_2D, object.heightmap.texture );
+		gl.bindTexture( gl.TEXTURE_2D, object.heightmap.canvasTexture.texture );
 
 		gl.bindVertexArray( object.vao );
 

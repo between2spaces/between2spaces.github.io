@@ -3,8 +3,8 @@
 	"$schema": "https://aka.ms/terminal-profiles-schema",
 	"actions": 
 	[
-		{ "command": "unbound", "keys": "ctrl+shift+n" },
-		{ "command": "find", "keys": "ctrl+shift+f" },
+		{ "command": "togglePaneZoom", "keys": "alt+shift+z" },
+		{ "command": { "action": "moveFocus", "direction": "nextInOrder" }, "keys": "alt+shift+n" },
 		{ "command": { "action": "swapPane", "direction": "down" }, "keys": "ctrl+alt+j" },
 		{ "command": { "action": "swapPane", "direction": "up" }, "keys": "ctrl+alt+k" },
 		{ "command": { "action": "resizePane", "direction": "down" }, "keys": "ctrl+shift+j" },

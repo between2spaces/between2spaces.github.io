@@ -91,14 +91,14 @@ export class OrbitControl extends Object {
 		this.camera = camera;
 
 		this.add( this.camera );
-		this.camera.setPosition( 0, distance, 0 );
-		this.camera.lookAt( this, vec3._zAxis );
+		this.camera.setPosition( 0, 0, distance );
+		this.camera.lookAt( this, vec3._yAxis );
 
 	}
 
 	setDistance( distance ) {
 
-		this.camera.setPosition( 0, distance, 0 );
+		this.camera.setPosition( 0, 0, distance );
 
 	}
 

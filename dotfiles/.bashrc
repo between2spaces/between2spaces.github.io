@@ -74,6 +74,6 @@ lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
 
 
 # set a fancy prompt
-PS1="\n\e[0;32m\@ \e[m\\w \e[m\e[1;32m>\e[m"
+PS1="\n\e[0;32m\@ \e[m\\w \e[m\e[1;32m$ \e[m"
 
 
