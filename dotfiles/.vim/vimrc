@@ -44,6 +44,8 @@ hi CursorLineNr cterm=bold ctermfg=grey
 
 
 let g:netrw_dirhistmax = 0
+let g:netrw_liststyle = 3
+let g:netrw_banner = 0
 
 set wildcharm=<Tab> wildmenu wildmode=full
 set wildignore+=*.bmp,*.gif,*.ico,*.jpg,*.png,*.ico
@@ -134,6 +136,7 @@ call plug#begin('~/.vim/plugged')
 	Plug 'itchyny/lightline.vim'
 	Plug 'pangloss/vim-javascript'
 	Plug 'djoshea/vim-autoread'
+	Plug 'christoomey/vim-tmux-navigator'
 call plug#end()
 
 
@@ -142,6 +145,10 @@ autocmd VimEnter *
   \|   PlugInstall --sync | q
   \| endif
 
+let g:lightline = {
+  \ 'separator': { 'left': '', 'right': '' },
+  \ 'subseparator': { 'left': '', 'right': '' }
+  \ }
 
 let g:syntastic_javascript_checkers=['eslint']
 let g:syntastic_javascript_eslint_generic = 1
@@ -161,6 +168,7 @@ let g:syntastic_check_on_open = 1
 let g:syntastic_check_on_wq = 0
 
 
+
 syntax enable
 
 
@@ -173,3 +181,7 @@ nnoremap <leader>ff <cmd>Files<cr>
 nnoremap <leader>fg <cmd>Rg<cr>
 nnoremap <leader>fb <cmd>Buffers<cr>
 
+
+" 
+inoremap <c-b> <Esc>:Lex<cr>:vertical resize 30<cr>
+nnoremap <c-b> <Esc>:Lex<cr>:vertical resize 30<cr>
