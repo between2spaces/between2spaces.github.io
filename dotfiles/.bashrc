@@ -1,21 +1,34 @@
 # ~/.bashrc: executed for non-login shells
 # use to run the commands that should run every time you launch a new shell
 
+
 # don't put duplicate lines or lines starting with space in the history.
+
 HISTCONTROL=ignoreboth
 
+
+
 # append to the history file, don't overwrite it
+
 shopt -s histappend
 
+
+
 # set history length
+
 HISTSIZE=1000
 HISTFILESIZE=2000
+
+
 
 # check the window size after each command and, if necessary,
 # update the values of LINES and COLUMNS.
 shopt -s checkwinsize
 
+
+
 # enable color support of ls and also add handy aliases
+
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
@@ -24,11 +37,16 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
+
+
 # remove ugly green background from ow 'other, writable' and tw 'sticky, writable'
+
 export LS_COLORS="$LS_COLORS:ow=1;34:tw=1;34:"
 
 
+
 # enable programmable completion features
+
 if ! shopt -oq posix; then
   if [ -f /usr/share/bash-completion/bash_completion ]; then
     . /usr/share/bash-completion/bash_completion
@@ -37,12 +55,18 @@ if ! shopt -oq posix; then
   fi
 fi
 
+
+
 # Set default editors to vim
+
 export VISUAL=vim
 export EDITOR="$VISUAL"
 export SUDO_EDITOR="$VISUAL"
 
+
+
 # source Node Version Manager if not available
+
 export NVM_DIR="$HOME/.nvm"
 if [ -d $NVM_DIR ]; then
     . "$NVM_DIR/nvm.sh"
@@ -51,7 +75,10 @@ fi
 export USERPROFILE=$(wslpath "$(cmd.exe /c "<nul set /p=%UserProfile%" 2>/dev/null)")
 
 
+
+
 # common command functions
+
 ssh-ecls-cls-dev() { ssh ecls@zaue1declsap02.wkap.int; }
 ssh-ecls-cls-tst() { ssh ecls@zaue1ueclsap03.wkap.int; }
 ssh-ecls-cls-prd() { ssh ecls@zaue1peclsap04.wkap.int; }
@@ -73,7 +100,17 @@ ssh-scarmody-newsagent() { ssh scarmody@zaue1pcchiqap02.wkap.int; }
 lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
 
 
-# set a fancy prompt
+
+
+# Set powerline-shell prompt
+
 PS1="\n\e[0;32m\@ \e[m\\w \e[m\e[1;32m$ \e[m"
 
+function _update_ps1() {
+    PS1=$(powerline-shell $?)
+}
+
+if [[ $TERM != linux && ! $PROMPT_COMMAND =~ _update_ps1 ]]; then
+    PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
+fi
 

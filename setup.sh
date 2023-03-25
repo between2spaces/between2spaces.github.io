@@ -4,6 +4,10 @@
 
 set -e
 
+# Set USERPROFILE environment variable
+cmd.exe /c setx WSLENV USERPROFILE/up 2>/dev/null
+export USERPROFILE=$(wslpath $(echo "$(cmd.exe /Q /C "echo %userprofile%" 2>/dev/null)" | sed "s/\r$//"))
+
 
 # Global git config
 
@@ -108,6 +112,12 @@ sudo pip3 install docker-compose
 if ! service docker status &> /dev/null; then
     sudo service docker start
 fi
+
+
+
+# Install powerline-shell
+
+pip install powerline-shell
 
 
 

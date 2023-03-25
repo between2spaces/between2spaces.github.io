@@ -1,6 +1,10 @@
 # ~/.bash_profile: executed for interactive login shells
 # use to run commands that should run only once, such as customising the $PATH
 
+
+PATH=$PATH:~/.local/bin
+
+
 # Start Docker service as root if not already running
 if command -v docker &> /dev/null && ! service docker status &> /dev/null; then
     if grep -qi microsoft /proc/version; then

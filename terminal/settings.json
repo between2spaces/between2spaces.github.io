@@ -4,6 +4,7 @@
 	"actions": 
 	[
 		{ "command": "togglePaneZoom", "keys": "alt+shift+z" },
+		{ "command": "closePane", "keys": "alt+shift+w" },
 		{ "command": { "action": "moveFocus", "direction": "nextInOrder" }, "keys": "alt+shift+n" },
 		{ "command": { "action": "swapPane", "direction": "down" }, "keys": "ctrl+alt+j" },
 		{ "command": { "action": "swapPane", "direction": "up" }, "keys": "ctrl+alt+k" },
@@ -36,7 +37,7 @@
 			"colorScheme": "Gruvbox Dark",
 			"font": 
 			{
-				"face": "Hack",
+				"face": "FiraCode Nerd Font Mono",
 				"size": 16,
 				"weight": "normal"
 			},
