@@ -5,15 +5,33 @@ import TiledTerrain from "./tiledterrain.js";
 
 
 
-const canvas = document.querySelector( "canvas" );
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+class Renderer {
+
+	constructor() {
+
+		this.canvas = document.querySelector( "canvas" );
+		this.canvas.width = window.innerWidth;
+		this.canvas.height = window.innerHeight;
+
+		this.gl = canvas.getContext( "webgl2", { alpha: false } );
+
+		this.gl.enable( this.gl.DEPTH_TEST );
+		this.gl.depthFunc( this.gl.LESS );
+
+		this.shaders = [];
+
+	}
 
 
-const gl = canvas.getContext( "webgl2", { alpha: false } );
+	render( scene, camera ) {
 
-gl.enable( gl.DEPTH_TEST );
-gl.depthFunc( gl.LESS );
+		this.gl.clear( this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT );
+
+		scene.render( camera );
+
+	}
+
+}
 
 
 // const characterset = image_utils.charTileMap( gl, "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕" );
@@ -96,7 +114,17 @@ const light = {
 };
 
 
-const scene = [ terrain ];
+
+
+
+
+
+
+
+
+
+const renderer = new Renderer();
+const scene = new Scene();
 
 
 
@@ -104,16 +132,11 @@ function animate() {
 
 	requestAnimationFrame( animate );
 
+	renderer.render( scene, camera );
+
 	terrain.rotateY( 0.001 );
-
-	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
-
-	for ( let object of scene ) {
-
-		object.draw( camera, light );
-
-	}
 
 }
 
 animate();
+

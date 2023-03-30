@@ -1,17 +1,18 @@
 
 export function createCanvasTexture( gl, size = 1024 ) {
 
-	const obj = {
-		canvas: document.createElement( "canvas" ),
-		texture: gl.createTexture()
-	};
+	const canvas = document.createElement( "canvas" );
+	const texture = gl.createTexture();
 
-	obj.canvas.width = obj.canvas.height = size;
-	obj.ctx = obj.canvas.getContext( "2d" );
+	canvas.width = canvas.height = size;
 
-	obj.ctx.clearRect( 0, 0, obj.canvas.width, obj.canvas.height );
+	const ctx = canvas.getContext( "2d" );
 
-	return obj;
+	ctx.clearRect( 0, 0, canvas.width, canvas.height );
+
+	const imageData = ctx.getImageData( 0, 0, canvas.width, canvas.height );
+
+	return { canvas, texture, ctx, imageData };
 
 }
 
