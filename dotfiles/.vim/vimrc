@@ -75,10 +75,6 @@ nmap <leader>N <cmd>lprev<CR>
 nmap <leader>n <cmd>lnext<CR>
 
 
-" Move between windows
-nmap <leader>h <C-w>h
-nmap <leader>l <C-w>l
-
 
 " Write buffer to file
 nmap <leader>w <cmd>w<cr>
@@ -183,5 +179,5 @@ nnoremap <leader>fb <cmd>Buffers<cr>
 
 
 " 
-inoremap <c-b> <Esc>:Lex<cr>:vertical resize 30<cr>
-nnoremap <c-b> <Esc>:Lex<cr>:vertical resize 30<cr>
+inoremap <c-b> <Esc>:Lex<cr>:vertical resize 25<cr>
+nnoremap <c-b> <Esc>:Lex<cr>:vertical resize 25<cr>

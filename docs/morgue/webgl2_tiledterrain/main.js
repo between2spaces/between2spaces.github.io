@@ -1,37 +1,7 @@
-import * as image_utils from "./image_utils.js";
 import { OrthogonalCamera, PerspectiveCamera, OrbitControl } from "./camera.js";
 import * as vec3 from "./vec3.js";
+import Scene from "./scene.js";
 import TiledTerrain from "./tiledterrain.js";
-
-
-
-class Renderer {
-
-	constructor() {
-
-		this.canvas = document.querySelector( "canvas" );
-		this.canvas.width = window.innerWidth;
-		this.canvas.height = window.innerHeight;
-
-		this.gl = canvas.getContext( "webgl2", { alpha: false } );
-
-		this.gl.enable( this.gl.DEPTH_TEST );
-		this.gl.depthFunc( this.gl.LESS );
-
-		this.shaders = [];
-
-	}
-
-
-	render( scene, camera ) {
-
-		this.gl.clear( this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT );
-
-		scene.render( camera );
-
-	}
-
-}
 
 
 // const characterset = image_utils.charTileMap( gl, "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕" );
@@ -118,13 +88,22 @@ const light = {
 
 
 
+const canvas = document.querySelector( "canvas" );
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+
+
+const gl = canvas.getContext( "webgl2", { alpha: false } );
+
+gl.enable( gl.DEPTH_TEST );
+gl.depthFunc( gl.LESS );
 
 
 
 
-
-const renderer = new Renderer();
 const scene = new Scene();
+
 
 
 
@@ -132,7 +111,9 @@ function animate() {
 
 	requestAnimationFrame( animate );
 
-	renderer.render( scene, camera );
+	gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+
+	scene.render( gl, camera );
 
 	terrain.rotateY( 0.001 );
 

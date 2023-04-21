@@ -75,21 +75,17 @@ material.setUniformLocations( [
 
 export default class TiledTerrain extends Mesh {
 
-	constructor( gl, size = 32, characterset = image_utils.charTileMap( gl, " ░▒▓█" ) ) {
+	constructor( size = 32, characterset = image_utils.charTileMap( gl, " ░▒▓█" ) ) {
 
 		super();
 
-		this.gl = gl;
 		this.size = size;
 		this.characterset = characterset;
 		this.heightScale = Math.sqrt( size ) * 3;
 
-		if ( ! material ) {
-
 		this.heightmap = image_utils.createCanvasTexture( this.gl, this.size );
 
-		this.verticesBuffer = this.gl.createBuffer();
-		this.uvsBuffer = this.gl.createBuffer();
+		this.needsBuild = true;
 
 		const vertices = [];
 		const uvs = [];
@@ -124,22 +120,6 @@ export default class TiledTerrain extends Mesh {
 			}
 
 		}
-
-		this.vao = this.gl.createVertexArray();
-
-		this.gl.bindVertexArray( this.vao );
-
-		this.gl.bindBuffer( this.gl.ARRAY_BUFFER, this.verticesBuffer );
-		this.gl.bufferData( this.gl.ARRAY_BUFFER, new Uint16Array( vertices ), this.gl.STATIC_DRAW );
-		this.gl.vertexAttribPointer( this.shader.attribute.position, 2, this.gl.SHORT, false, 0, 0 );
-		this.gl.enableVertexAttribArray( this.shader.attribute.position );
-
-		this.gl.bindBuffer( this.gl.ARRAY_BUFFER, this.uvsBuffer );
-		this.gl.bufferData( this.gl.ARRAY_BUFFER, new Float32Array( uvs ), this.gl.STATIC_DRAW );
-		this.gl.vertexAttribPointer( this.shader.attribute.uvs, 2, this.gl.FLOAT, false, 0, 0 );
-		this.gl.enableVertexAttribArray( this.shader.attribute.uvs );
-
-		this.gl.bindVertexArray( null );
 
 	}
 
@@ -194,7 +174,11 @@ export default class TiledTerrain extends Mesh {
 
 	}
 
-	render() {
+
+
+	render( gl ) {
+
+		if ( this.needsBuild ) buildBuffers( gl, mesh );
 
 		this.gl.uniformMatrix4fv( this.uniform.model, false, this.worldMatrix );
 		this.gl.uniform1i( this.uniform.heightmap, 1 );
@@ -234,6 +218,32 @@ export default class TiledTerrain extends Mesh {
 		this.gl.drawArrays( this.gl.TRIANGLE_STRIP, 0, this.indices );
 
 	}
+
+}
+
+
+function buildBuffers( gl, mesh ) {
+
+	mesh.verticesBuffer = gl.createBuffer();
+	mesh.uvsBuffer = gl.createBuffer();
+
+	mesh.vao = gl.createVertexArray();
+
+	gl.bindVertexArray( mesh.vao );
+
+	gl.bindBuffer( gl.ARRAY_BUFFER, mesh.verticesBuffer );
+	gl.bufferData( gl.ARRAY_BUFFER, new Uint16Array( vertices ), gl.STATIC_DRAW );
+	gl.vertexAttribPointer( this.shader.attribute.position, 2, gl.SHORT, false, 0, 0 );
+	gl.enableVertexAttribArray( this.shader.attribute.position );
+
+	gl.bindBuffer( gl.ARRAY_BUFFER, this.uvsBuffer );
+	gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( uvs ), gl.STATIC_DRAW );
+	gl.vertexAttribPointer( this.shader.attribute.uvs, 2, gl.FLOAT, false, 0, 0 );
+	gl.enableVertexAttribArray( this.shader.attribute.uvs );
+
+	gl.bindVertexArray( null );
+
+	mesh.needsBuild = false;
 
 }
 

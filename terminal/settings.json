@@ -1,33 +1,34 @@
 {
 	"$help": "https://aka.ms/terminal-documentation",
 	"$schema": "https://aka.ms/terminal-profiles-schema",
-	"actions": 
-	[
-		{ "command": "togglePaneZoom", "keys": "alt+shift+z" },
-		{ "command": "closePane", "keys": "alt+shift+w" },
-		{ "command": { "action": "moveFocus", "direction": "nextInOrder" }, "keys": "alt+shift+n" },
-		{ "command": { "action": "swapPane", "direction": "down" }, "keys": "ctrl+alt+j" },
-		{ "command": { "action": "swapPane", "direction": "up" }, "keys": "ctrl+alt+k" },
-		{ "command": { "action": "resizePane", "direction": "down" }, "keys": "ctrl+shift+j" },
-		{ "command": { "action": "moveFocus", "direction": "left" }, "keys": "alt+h" },
-		{ "command": { "action": "splitPane", "split": "down", "splitMode": "duplicate" }, "keys": "alt+shift+j" },
-		{ "command": { "action": "splitPane", "split": "up", "splitMode": "duplicate" }, "keys": "alt+shift+k" },
-		{ "command": { "action": "splitPane", "split": "left", "splitMode": "duplicate" }, "keys": "alt+shift+h" },
-		{ "command": { "action": "swapPane", "direction": "right" }, "keys": "ctrl+alt+l" },
-		{ "command": "toggleSplitOrientation", "keys": "alt+shift+space" },
-		{ "command": { "action": "splitPane", "split": "right", "splitMode": "duplicate" }, "keys": "alt+shift+l" },
-		{ "command": { "action": "moveFocus", "direction": "down" }, "keys": "alt+j" },
-		{ "command": { "action": "moveFocus", "direction": "right" }, "keys": "alt+l" },
-		{ "command": { "action": "moveFocus", "direction": "up" }, "keys": "alt+k" },
-		{ "command": { "action": "resizePane", "direction": "up" }, "keys": "ctrl+shift+k" },
-		{ "command": { "action": "resizePane", "direction": "left" }, "keys": "ctrl+shift+h" },
-		{ "command": { "action": "resizePane", "direction": "right" }, "keys": "ctrl+shift+l" },
-		{ "command": { "action": "swapPane", "direction": "left" }, "keys": "ctrl+alt+h" }
-	],
 	"copyFormatting": "none",
 	"copyOnSelect": true,
 	"defaultProfile": "{e381fe40-9d15-58b7-99ea-5908cd6561e5}",
 	"initialRows": 30,
+	"startOnUserLogin": true,
+    "actions":
+    [
+        { "command": "togglePaneZoom", "keys": "alt+shift+z" },
+        { "command": "closePane", "keys": "alt+shift+w" },
+        { "command": { "action": "moveFocus", "direction": "nextInOrder" }, "keys": "alt+shift+n" },
+        { "command": { "action": "swapPane", "direction": "down" }, "keys": "ctrl+alt+j" },
+        { "command": { "action": "swapPane", "direction": "up" }, "keys": "ctrl+alt+k" },
+        { "command": { "action": "resizePane", "direction": "down" }, "keys": "ctrl+shift+j" },
+        { "command": { "action": "moveFocus", "direction": "left" }, "keys": "alt+h" },
+        { "command": { "action": "splitPane", "split": "down", "splitMode": "duplicate" }, "keys": "alt+shift+j" },
+        { "command": { "action": "splitPane", "split": "up", "splitMode": "duplicate" }, "keys": "alt+shift+k" },
+        { "command": { "action": "splitPane", "split": "left", "splitMode": "duplicate" }, "keys": "alt+shift+h" },
+        { "command": { "action": "swapPane", "direction": "right" }, "keys": "ctrl+alt+l" },
+        { "command": "toggleSplitOrientation", "keys": "alt+shift+space" },
+        { "command": { "action": "splitPane", "split": "right", "splitMode": "duplicate" }, "keys": "alt+shift+l" },
+        { "command": { "action": "moveFocus", "direction": "down" }, "keys": "alt+j" },
+        { "command": { "action": "moveFocus", "direction": "right" }, "keys": "alt+l" },
+        { "command": { "action": "moveFocus", "direction": "up" }, "keys": "alt+k" },
+        { "command": { "action": "resizePane", "direction": "up" }, "keys": "ctrl+shift+k" },
+        { "command": { "action": "resizePane", "direction": "left" }, "keys": "ctrl+shift+h" },
+        { "command": { "action": "resizePane", "direction": "right" }, "keys": "ctrl+shift+l" },
+        { "command": { "action": "swapPane", "direction": "left" }, "keys": "ctrl+alt+h" }
+    ],
 	"profiles": 
 	{
 		"defaults": 
@@ -127,7 +128,5 @@
 			"white" : "#A89984",
 			"yellow" : "#D79921"
 		}
-	],
-	"tabWidthMode": "equal",
-	"useAcrylicInTabRow": false
+	]
 }

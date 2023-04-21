@@ -6,5 +6,5 @@ LOCALSETTINGS="${USERPROFILE}/AppData/Local/Packages/Microsoft.WindowsTerminal_8
 
 echo $LOCALSETTINGS
 
-#diff settings.json "$LOCALSETTINGS"
+diff settings.json "$LOCALSETTINGS"
 
