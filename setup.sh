@@ -17,24 +17,7 @@ git config user.name "between2spaces"
 
 # Configure credential.helper
 
-GCM_PATHS=(
-    "$USERPROFILE/AppData/Local/Programs/Git/mingw64/bin/git-credential-manager.exe"
-    "$(wslpath 'C:\Program Files\Git\mingw64\bin\git-credential-manager.exe')"
-)
-set found_gcm = 0
-for ((i = 0; i < ${#GCM_PATHS[@]}; i++)); do
-    gcm_path="${GCM_PATHS[$i]}"
-    if [ -f "$gcm_path" ]; then
-        gcm_path="${gcm_path/ /\\ }"
-        git config --global credential.helper "$gcm_path"
-        echo "git config --global credential.helper \"$gcm_path\""
-        set found_gcm = 1
-    fi
-done
-
-if ! $found_gcm; then
-    echo "Warning: git config --global credential.helper not set; unable to find Git Credential Manager"
-fi
+git config --global credential.helper "store"
 
 
 
@@ -47,6 +30,7 @@ rm -rf ~/.wgetrc && ln -s $PWD/dotfiles/.wgetrc ~/.wgetrc
 mkdir -p ~/.config
 rm -rf ~/.config/nvim && ln -s $PWD/dotfiles/.config/nvim ~/.config/nvim
 rm -rf ~/.config/tmux && ln -s $PWD/dotfiles/.config/tmux ~/.config/tmux
+rm -rf ~/.config/powerline-shell && ln -s $PWD/dotfiles/.config/powerline-shell ~/.config/powerline-shell
 
 
 

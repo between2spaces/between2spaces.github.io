@@ -1,0 +1,11 @@
+{
+  "segments": [
+    "virtual_env",
+    "ssh",
+    "cwd",
+    "newline",
+    "hg",
+    "jobs",
+    "root"
+  ]
+}
