@@ -101,10 +101,19 @@ lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
 
 
 
+docker-start() { $(which wsl.exe) -u root -e sh -c "service docker start"; }
+
+
+alias vim="nvim"
+
+
+
 
 # Set powerline-shell prompt
 
-PS1="\n\e[0;32m\@ \e[m\\w \e[m\e[1;32m$ \e[m"
+#PS1="\n\e[0;32m\@ \e[m\\w \e[m\e[1;32m$ \e[m"
+
+#PS1="\n\\w \e[m\n\e[1;32m \e[m"
 
 function _update_ps1() {
     PS1=$(powerline-shell $?)

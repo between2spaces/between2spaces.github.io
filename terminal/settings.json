@@ -6,28 +6,39 @@
 	"defaultProfile": "{e381fe40-9d15-58b7-99ea-5908cd6561e5}",
 	"initialRows": 30,
 	"startOnUserLogin": true,
-    "actions":
-    [
-        { "command": "togglePaneZoom", "keys": "alt+shift+z" },
-        { "command": "closePane", "keys": "alt+shift+w" },
-        { "command": { "action": "moveFocus", "direction": "nextInOrder" }, "keys": "alt+shift+n" },
-        { "command": { "action": "swapPane", "direction": "down" }, "keys": "ctrl+alt+j" },
-        { "command": { "action": "swapPane", "direction": "up" }, "keys": "ctrl+alt+k" },
-        { "command": { "action": "resizePane", "direction": "down" }, "keys": "ctrl+shift+j" },
-        { "command": { "action": "moveFocus", "direction": "left" }, "keys": "alt+h" },
-        { "command": { "action": "splitPane", "split": "down", "splitMode": "duplicate" }, "keys": "alt+shift+j" },
-        { "command": { "action": "splitPane", "split": "up", "splitMode": "duplicate" }, "keys": "alt+shift+k" },
-        { "command": { "action": "splitPane", "split": "left", "splitMode": "duplicate" }, "keys": "alt+shift+h" },
-        { "command": { "action": "swapPane", "direction": "right" }, "keys": "ctrl+alt+l" },
-        { "command": "toggleSplitOrientation", "keys": "alt+shift+space" },
-        { "command": { "action": "splitPane", "split": "right", "splitMode": "duplicate" }, "keys": "alt+shift+l" },
-        { "command": { "action": "moveFocus", "direction": "down" }, "keys": "alt+j" },
-        { "command": { "action": "moveFocus", "direction": "right" }, "keys": "alt+l" },
-        { "command": { "action": "moveFocus", "direction": "up" }, "keys": "alt+k" },
-        { "command": { "action": "resizePane", "direction": "up" }, "keys": "ctrl+shift+k" },
-        { "command": { "action": "resizePane", "direction": "left" }, "keys": "ctrl+shift+h" },
-        { "command": { "action": "resizePane", "direction": "right" }, "keys": "ctrl+shift+l" },
-        { "command": { "action": "swapPane", "direction": "left" }, "keys": "ctrl+alt+h" }
+	"alwaysShowTabs": false,
+    "theme": "Catppuccin Frappé",
+    "themes": [
+		{
+			"name": "Catppuccin Frappé",
+			"tab": {
+				"background": "#414559FF",
+				"showCloseButton": "always",
+				"unfocusedBackground": null
+			},
+			"tabRow": {
+				"background": "#303446FF",
+				"unfocusedBackground": "#292C3CFF"
+			},
+			"window": {
+				"applicationTheme": "dark"
+			}
+		},
+		{
+			"name": "Catppuccin Macchiato",
+			"tab": {
+				"background": "#363A4FFF",
+				"showCloseButton": "always",
+				"unfocusedBackground": null
+			},
+			"tabRow": {
+				"background": "#24273AFF",
+				"unfocusedBackground": "#181926FF"
+			},
+			"window": {
+				"applicationTheme": "dark"
+			}
+		}
     ],
 	"profiles": 
 	{
@@ -35,7 +46,7 @@
 		{
 			"bellStyle": "taskbar",
 			"closeOnExit": "always",
-			"colorScheme": "Gruvbox Dark",
+			"colorScheme": "Catppuccin Frappé",
 			"font": 
 			{
 				"face": "FiraCode Nerd Font Mono",
@@ -44,8 +55,6 @@
 			},
 			"padding": "0",
 			"scrollbarState": "hidden",
-			"useAcrylic": true, 
-			"acrylicOpacity": 0.9,
 			"cursorShape": "vintage",
 			"cursorColor": "#39ff14"
 		},
@@ -85,48 +94,31 @@
 	"schemes": 
 	[
 		{
-			"name": "wilmersdorf",
-			"black": "#34373e",
-			"red": "#e06383",
-			"green": "#7ebebd",
-			"yellow": "#cccccc",
-			"blue": "#a6c1e0",
-			"purple": "#e1c1ee",
-			"cyan": "#5b94ab",
-			"white": "#ababab",
-			"brightBlack": "#434750",
-			"brightRed": "#fa7193",
-			"brightGreen": "#8fd7d6",
-			"brightYellow": "#d1dfff",
-			"brightBlue": "#b2cff0",
-			"brightPurple": "#efccfd",
-			"brightCyan": "#69abc5",
-			"brightWhite": "#d3d3d3",
-			"background": "#282b33",
-			"foreground": "#c6c6c6",
-			"selectionBackground": "#1f2024",
-			"cursorColor": "#7ebebd"
-		},
-		{
-			"background" : "#282828",
-			"black" : "#282828",
-			"blue" : "#458588",
-			"brightBlack" : "#928374",
-			"brightBlue" : "#83A598",
-			"brightCyan" : "#8EC07C",
-			"brightGreen" : "#B8BB26",
-			"brightPurple" : "#D3869B",
-			"brightRed" : "#FB4934",
-			"brightWhite" : "#EBDBB2",
-			"brightYellow" : "#FABD2F",
-			"cyan" : "#689D6A",
-			"foreground" : "#EBDBB2",
-			"green" : "#98971A",
-			"name" : "Gruvbox Dark",
-			"purple" : "#B16286",
-			"red" : "#CC241D",
-			"white" : "#A89984",
-			"yellow" : "#D79921"
+			"name": "Catppuccin Frappé",
+
+			"cursorColor": "#F2D5CF",
+			"selectionBackground": "#626880",
+
+			"background": "#303446",
+			"foreground": "#C6D0F5",
+
+			"black": "#51576D",
+			"red": "#E78284",
+			"green": "#A6D189",
+			"yellow": "#E5C890",
+			"blue": "#8CAAEE",
+			"purple": "#F4B8E4",
+			"cyan": "#81C8BE",
+			"white": "#B5BFE2",
+
+			"brightBlack": "#626880",
+			"brightRed": "#E78284",
+			"brightGreen": "#A6D189",
+			"brightYellow": "#E5C890",
+			"brightBlue": "#8CAAEE",
+			"brightPurple": "#F4B8E4",
+			"brightCyan": "#81C8BE",
+			"brightWhite": "#A5ADCE"
 		}
 	]
 }

@@ -5,7 +5,6 @@ canvas.height = window.innerHeight;
 
 document.body.append( canvas );
 
-
 window.addEventListener( "resize", () => {
 
 	gl.viewport( 0, 0, canvas.width = window.innerWidth, canvas.height = window.innerHeight );
@@ -21,41 +20,47 @@ gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 
 const shader = {
 	vs: compileShader( gl, gl.VERTEX_SHADER, `#version 300 es
-		
-		in vec2 position;
-		in vec2 uv;
-	
-		uniform float z;
-		uniform mat4 projection;
-		
-		out vec2 fragUV;
 
-		void main() {
-			gl_Position = projection * vec4( position.x, position.y, z, 1.0 );
-			fragUV = uv;
-		}
+        in vec2 position;
+        in vec2 uv;
+        in vec4 colour;
 
-	` ),
+        uniform float z;
+        uniform mat4 projection;
+
+        out vec2 fragUV;
+        out vec4 fragRGBA;
+
+        void main() {
+            gl_Position = projection * vec4( position.x, position.y, z, 1.0 );
+            fragUV = uv;
+            fragRGBA = colour; 
+        }
+
+    ` ),
 
 	fs: compileShader( gl, gl.FRAGMENT_SHADER, `#version 300 es
-	
-		precision highp float;
-		
-		in vec2 fragUV;	
-		uniform sampler2D tex;
-		
-		out vec4 fragColor;
 
-		void main() {
-			fragColor = texture(tex, fragUV); //vec4( 1, 1, 1, 1); //
-		}
+        precision highp float;
 
-	` ),
+        in vec2 fragUV;	
+        in vec4 fragRGBA;	
+
+        uniform sampler2D glyph;
+
+        out vec4 fragColor;
+
+        void main() {
+            fragColor = texture(glyph, fragUV) * fragRGBA;
+        }
+
+    ` ),
 
 	program: gl.createProgram(),
 	attributes: {},
 	uniforms: {}
 };
+
 
 gl.attachShader( shader.program, shader.vs );
 gl.attachShader( shader.program, shader.fs );
@@ -66,15 +71,20 @@ if ( ! gl.getProgramParameter( shader.program, gl.LINK_STATUS ) )
 
 shader.attributes.position = gl.getAttribLocation( shader.program, "position" );
 shader.attributes.uv = gl.getAttribLocation( shader.program, "uv" );
+shader.attributes.colour = gl.getAttribLocation( shader.program, "colour" );
 shader.attributes.z = gl.getAttribLocation( shader.program, "z" );
 shader.uniforms.projection = gl.getUniformLocation( shader.program, "projection" );
-shader.uniforms.tex = gl.getUniformLocation( shader.program, "tex" );
+shader.uniforms.glyph = gl.getUniformLocation( shader.program, "glyph" );
 
 gl.useProgram( shader.program );
 
+gl.uniformMatrix4fv( shader.uniforms.projection, false, projection( 0, 1, 1, 0, 0, 100 ) );
+
 const texture = gl.createTexture();
-//gl.activeTexture( gl.TEXTURE0 );
-gl.uniform1i( shader.uniforms.tex, 0 );
+
+gl.activeTexture( gl.TEXTURE0 );
+gl.uniform1i( shader.uniforms.glyph, 0 );
+
 
 const layers = [];
 
@@ -87,15 +97,24 @@ function render( currentTime ) {
 
 	for ( let layer of layers ) {
 
-		if ( layer.dirty ) {
+		if ( layer.uv.dirty ) {
 
-			gl.bindBuffer( gl.ARRAY_BUFFER, layer.uvBuffer );
-			gl.bufferData( gl.ARRAY_BUFFER, layer.uvData, gl.STATIC_DRAW );
+			gl.bindBuffer( gl.ARRAY_BUFFER, layer.uv.buffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 0, layer.uv.data );
+			layer.uv.dirty = false;
+
+		}
+
+		if ( layer.colour.dirty ) {
+
+			gl.bindBuffer( gl.ARRAY_BUFFER, layer.colour.buffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 0, layer.colour.data );
+			layer.colour.dirty = false;
 
 		}
 
 		gl.bindVertexArray( layer.vao );
-		gl.drawArrays( gl.TRIANGLE_STRIP, 0, layer.indicesPerRow * layer.rows );
+		gl.drawArrays( gl.TRIANGLE_STRIP, 0, layer.indices.perRow * layer.rows );
 
 	}
 
@@ -103,7 +122,6 @@ function render( currentTime ) {
 
 }
 
-render();
 
 function compileShader( gl, shaderType, shaderSource ) {
 
@@ -122,59 +140,89 @@ function compileShader( gl, shaderType, shaderSource ) {
 function createLayer( gl, charSetUVs, cols = 80, rows = 30 ) {
 
 	const layer = {
-		rows: rows,
 		cols: cols,
+		rows: rows,
+		char: new Array( cols * rows ),
 		z: layers.length,
-		positionBuffer: gl.createBuffer(),
-		uvBuffer: gl.createBuffer(),
+		uv: {
+			buffer: gl.createBuffer(),
+			dirty: false
+		},
+		colour: {
+			buffer: gl.createBuffer(),
+			dirty: false
+		},
 		vao: gl.createVertexArray(),
-		indicesPerCol: 4,
-		indicesPerRow: cols * 4 + 2,
-		dirty: false
+		indices: {
+			perCol: 4,
+			perRow: 4 * cols + 2,
+			total: ( cols * 4 + 2 ) * rows
+		}
 	};
 
-	let charUV = charSetUVs[ " " ];
 	const vertices = [];
 	const uvs = [];
+	const charUV = charSetUVs[ " " ];
+	const colours = [];
 
 	for ( let row = 0; row < rows; row ++ ) {
 
 		for ( let col = 0; col < cols; col ++ ) {
 
-			// four vertices for each cell
-			vertices.push( col, row ); // vertex 1
-			vertices.push( col, row + 1 ); // vertex 2
-			vertices.push( col + 1, row ); // vertex 3
-			vertices.push( col + 1, row + 1 ); // vertex 4
+			vertices.push( col / cols, row / rows );
+			vertices.push( col / cols, ( row + 1 ) / rows );
+			vertices.push( ( col + 1 ) / cols, row / rows );
+			vertices.push( ( col + 1 ) / cols, ( row + 1 ) / rows );
 
 			uvs.push( ...charUV );
 
+			colours.push( 1, 0, 0, 1 );
+			colours.push( 1, 0, 0, 1 );
+			colours.push( 1, 0, 0, 1 );
+			colours.push( 1, 0, 0, 1 );
+
+			layer.char[ row * rows + col ] = " ";
+
 		}
 
-		vertices.push( cols, row + 1 ); // vertex 1
-		vertices.push( 0, row + 1 ); // vertex 2
+		vertices.push( 1, ( row + 1 ) / rows );
+		vertices.push( 0, ( row + 1 ) / rows );
 
 		uvs.push( 0, 0, 0, 0 );
 
+		colours.push( 0, 0, 0, 0 );
+		colours.push( 0, 0, 0, 0 );
+
 	}
 
-	layer.uvData = new Float32Array( uvs );
+	layer.uv.data = new Float32Array( uvs );
 
-	gl.bindBuffer( gl.ARRAY_BUFFER, layer.positionBuffer );
+	layer.colour.data = new Float32Array( colours );
+
+	const positionBuffer = gl.createBuffer();
+
+	gl.bindBuffer( gl.ARRAY_BUFFER, positionBuffer );
 	gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( vertices ), gl.STATIC_DRAW );
 
-	gl.bindBuffer( gl.ARRAY_BUFFER, layer.uvBuffer );
-	gl.bufferData( gl.ARRAY_BUFFER, layer.uvData, gl.STATIC_DRAW );
+	gl.bindBuffer( gl.ARRAY_BUFFER, layer.uv.buffer );
+	gl.bufferData( gl.ARRAY_BUFFER, layer.uv.data, gl.STATIC_DRAW );
+
+	gl.bindBuffer( gl.ARRAY_BUFFER, layer.colour.buffer );
+	gl.bufferData( gl.ARRAY_BUFFER, layer.colour.data, gl.STATIC_DRAW );
 
 	gl.bindVertexArray( layer.vao );
 
 	gl.enableVertexAttribArray( shader.attributes.position );
-	gl.bindBuffer( gl.ARRAY_BUFFER, layer.positionBuffer );
+	gl.bindBuffer( gl.ARRAY_BUFFER, positionBuffer );
 	gl.vertexAttribPointer( shader.attributes.position, 2, gl.FLOAT, false, 0, 0 );
 
 	gl.enableVertexAttribArray( shader.attributes.uv );
-	gl.bindBuffer( gl.ARRAY_BUFFER, layer.uvBuffer );
+	gl.bindBuffer( gl.ARRAY_BUFFER, layer.uv.buffer );
 	gl.vertexAttribPointer( shader.attributes.uv, 2, gl.FLOAT, false, 0, 0 );
+
+	gl.enableVertexAttribArray( shader.attributes.colour );
+	gl.bindBuffer( gl.ARRAY_BUFFER, layer.colour.buffer );
+	gl.vertexAttribPointer( shader.attributes.colour, 4, gl.FLOAT, false, 0, 0 );
 
 	gl.uniform1f( shader.uniforms.z, layer.z );
 
@@ -211,7 +259,7 @@ function projection( left = - 50, right = 50, top = 50, bottom = - 50, near = 0,
 	matrix[ 14 ] = ( far + near ) * nf;
 	matrix[ 15 ] = 1;
 
-	gl.uniformMatrix4fv( shader.uniforms.projection, false, matrix );
+	return matrix;
 
 }
 
@@ -272,49 +320,84 @@ function characterSet( gl, chars, size = 1024 ) {
 }
 
 
-const characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕";
-const charSetUVs = characterSet( gl, characters );
-
-const cols = 256;
-const rows = 200;
-
-projection( 0, cols, rows, 0, 0, 100 );
-
-function setChar( col, row, char, layer = 0 ) {
-
-	const charUVs = charSetUVs[ char ];
+function setChar( col, row, char, layer = 0, colour = null ) {
 
 	if ( layer > layers.length - 1 ) return;
 
 	layer = layers[ layer ];
 
-	let indice = row * layer.indicesPerRow + col * layer.indicesPerCol;
-	let uvOffset = indice * 2;
+	const charUVs = charSetUVs[ char ];
+	const indice = row * layer.indices.perRow + col * layer.indices.perCol;
+	const charOffset = row * layer.cols + col;
 
-	layer.uvData[ uvOffset ] = charUVs[ 0 ];
-	layer.uvData[ uvOffset + 1 ] = charUVs[ 1 ];
-	layer.uvData[ uvOffset + 2 ] = charUVs[ 2 ];
-	layer.uvData[ uvOffset + 3 ] = charUVs[ 3 ];
-	layer.uvData[ uvOffset + 4 ] = charUVs[ 4 ];
-	layer.uvData[ uvOffset + 5 ] = charUVs[ 5 ];
-	layer.uvData[ uvOffset + 6 ] = charUVs[ 6 ];
-	layer.uvData[ uvOffset + 7 ] = charUVs[ 7 ];
+	if ( layer.char[ charOffset ] !== char ) {
 
-	layer.dirty = true;
+		layer.char[ charOffset ] = char;
+
+		let data = layer.uv.data;
+		let i = indice * 2;
+
+		data[ i ] = charUVs[ 0 ];
+		data[ i + 1 ] = charUVs[ 1 ];
+		data[ i + 2 ] = charUVs[ 2 ];
+		data[ i + 3 ] = charUVs[ 3 ];
+		data[ i + 4 ] = charUVs[ 4 ];
+		data[ i + 5 ] = charUVs[ 5 ];
+		data[ i + 6 ] = charUVs[ 6 ];
+		data[ i + 7 ] = charUVs[ 7 ];
+
+		layer.uv.dirty = true;
+
+	}
+
+	if ( colour ) {
+
+		let data = layer.colour.data;
+		let i = indice * 4;
+
+		if ( data[ i ] !== colour[ 0 ] || data[ i + 1 ] !== colour[ 1 ] || data[ i + 2 ] !== colour[ 1 ] || data[ i + 3 ] !== colour[ 1 ] ) {
+
+			data[ i ] = data[ i + 4 ] = data[ i + 8 ] = data[ i + 12 ] = colour[ 0 ];
+			data[ i + 1 ] = data[ i + 5 ] = data[ i + 9 ] = data[ i + 13 ] = colour[ 1 ];
+			data[ i + 2 ] = data[ i + 6 ] = data[ i + 10 ] = data[ i + 14 ] = colour[ 2 ];
+			data[ i + 3 ] = data[ i + 7 ] = data[ i + 11 ] = data[ i + 15 ] = colour[ 3 ];
+
+			layer.colour.dirty = true;
+
+		}
+
+	}
 
 }
 
-function writeText( col, row, string, layer = 0 ) {
+function writeText( col, row, string, layer = 0, colour = null ) {
 
-	for ( let char of string ) this.setChar( col ++, row, char, layer );
+	for ( let char of string ) setChar( col ++, row, char, layer, colour );
 
 }
 
+
+const characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕";
+const charSetUVs = characterSet( gl, characters );
+
+const view = {
+	cols: 200,
+	rows: 100
+};
+
+
+createLayer( gl, charSetUVs, view.cols, view.rows );
+createLayer( gl, charSetUVs, 20, 10 );
+createLayer( gl, charSetUVs, 20, 10 );
+
+writeText( 0, layers[ 1 ].rows - 1, "███", 1, [ 1, 1, 1, 0.5 ] );
+
+setChar( 1, 0, "▒", 0, [ 0, 1, 0, 1 ] );
 
 let fps, startTime, prevTime, frameCount = 0;
 let col = 0;
 let row = 0;
-let charsPerUpdate = rows * cols;
+let charsPerUpdate = view.rows * view.cols;
 
 function update( currentTime ) {
 
@@ -323,7 +406,7 @@ function update( currentTime ) {
 	if ( ! startTime ) {
 
 		startTime = currentTime;
-	    prevTime = startTime;
+		prevTime = startTime;
 
 	}
 
@@ -331,14 +414,14 @@ function update( currentTime ) {
 
 	if ( currentTime - prevTime >= 1000 ) {
 
-	    fps = frameCount;
-		writeText( 0, layers[ 2 ].rows - 1, `${fps}`, 2 );
-	    frameCount = 0;
-	    prevTime = currentTime;
+		fps = frameCount;
+		writeText( 0, layers[ 2 ].rows - 1, `${fps}`, 2, [ 0, 0, 0, 1 ] );
+		frameCount = 0;
+		prevTime = currentTime;
 
 		if ( fps >= 120 ) {
 
-			if ( charsPerUpdate < rows * cols ) charsPerUpdate ++;
+			if ( charsPerUpdate < view.rows * view.cols ) charsPerUpdate ++;
 
 		} else {
 
@@ -351,24 +434,22 @@ function update( currentTime ) {
 
 	for ( let i = 0; i < charsPerUpdate; i ++ ) {
 
-		setChar( col ++, row, characters[ Math.floor( Math.random() * characters.length ) ], 0 );
+		setChar( col ++, row, "▒", 0, [ Math.random(), Math.random(), Math.random(), 1 ] );
 
-		if ( col === layers[ 0 ].cols ) {
+		if ( col === view.cols ) {
 
 			col = 0;
 			row ++;
 
 		}
 
-		if ( row === layers[ 0 ].rows ) row = 0;
+		if ( row === view.rows ) row = 0;
 
 	}
 
 }
 
-createLayer( gl, charSetUVs, cols, rows );
-createLayer( gl, charSetUVs, 20, 10 );
-createLayer( gl, charSetUVs, 20, 10 );
 
-writeText( 0, layers[ 1 ].rows - 1, "███", 1 );
+
+render();
 

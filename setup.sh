@@ -44,9 +44,9 @@ rm -rf ~/.bash_profile && ln -s $PWD/dotfiles/.bash_profile ~/.bash_profile
 rm -rf ~/.bashrc && ln -s $PWD/dotfiles/.bashrc ~/.bashrc
 rm -rf ~/.inputrc && ln -s $PWD/dotfiles/.inputrc ~/.inputrc
 rm -rf ~/.wgetrc && ln -s $PWD/dotfiles/.wgetrc ~/.wgetrc
-rm -rf ~/.tmux.conf && ln -s $PWD/dotfiles/.tmux.conf ~/.tmux.conf
-mkdir -p ~/.vim
-rm -rf ~/.vim/vimrc && ln -s $PWD/dotfiles/.vim/vimrc ~/.vim/vimrc
+mkdir -p ~/.config
+rm -rf ~/.config/nvim && ln -s $PWD/dotfiles/.config/nvim ~/.config/nvim
+rm -rf ~/.config/tmux && ln -s $PWD/dotfiles/.config/tmux ~/.config/tmux
 
 
 
@@ -82,6 +82,10 @@ if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docke
 fi
 
 
+# Add Neovim unstable repo
+sudo add-apt-repository ppa:neovim-ppa/unstable
+
+
 
 # Full apt update, upgrade, remove, clean cycle
 
@@ -113,6 +117,31 @@ if ! service docker status &> /dev/null; then
     sudo service docker start
 fi
 
+
+# Install Neovim
+
+sudo apt install neovim
+
+# Install Neovim plugin/package manager Packer
+rm -rf ~/.local/share/nvim/site/pack/packer/start/packer.nvim
+git clone --depth 1 https://github.com/wbthomason/packer.nvim\
+ ~/.local/share/nvim/site/pack/packer/start/packer.nvim
+
+
+# Install Tmux
+WORKINGDIR=$PWD
+cd /tmp
+rm -rf ./tmux_3.3a-3_amd64.deb
+wget http://ftp.de.debian.org/debian/pool/main/t/tmux/tmux_3.3a-3_amd64.deb
+sudo apt install ./tmux_3.3a-3_amd64.deb
+rm -rf ./tmux_3.3a-3_amd64.deb
+cd $WORKINGDIR
+
+
+# Install tmux tpm
+
+rm -rf ~/.tmux/plugins/tpm
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 
 
 # Install powerline-shell
