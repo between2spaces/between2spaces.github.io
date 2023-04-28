@@ -104,7 +104,7 @@ lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
 docker-start() { $(which wsl.exe) -u root -e sh -c "service docker start"; }
 
 
-alias vim="nvim"
+alias python="python3"
 
 
 
