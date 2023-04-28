@@ -49,6 +49,35 @@ if [ -d $HOME/.config ]; then rm -rf $HOME/.config; fi
 for dotfile in dotfiles/.[a-z]*;
 do
 	dotfile=${dotfile##*/}
-	rm -rf ~/$dotfile && ln -s $PWD/dotfiles/$dotfile ~/$dotfile
+	rm -rf $HOME/$dotfile && ln -s $PWD/dotfiles/$dotfile $HOME/$dotfile
 done
+
+
+
+# Full apt update, upgrade, remove, clean cycle
+
+sudo apt update
+sudo apt upgrade -y
+sudo apt dist-upgrade -y
+sudo apt autoremove -y
+sudo apt autoclean -y
+
+
+# Python3 and pip
+
+sudo apt install -y python3-pip
+
+# Powerline-shell
+
+pip install powerline-shell
+
+
+# Source updated interactive login shell profile
+
+. $HOME/.profile
+
+
+# Copy Windows Terminal settings to LocalState if needed
+
+$HOME/between2spaces.github.io/terminal/update.sh
 
