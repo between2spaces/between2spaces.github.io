@@ -44,8 +44,11 @@ fi
 
 # Dotfiles
 
-for FILE in dotfiles/.[a-z]*;
+if [ -d $HOME/.config ]; then rm -rf $HOME/.config; fi
+
+for dotfile in dotfiles/.[a-z]*;
 do
-	echo ${FILE##*/}
+	dotfile=${dotfile##*/}
+	rm -rf ~/$dotfile && ln -s $PWD/dotfiles/$dotfile ~/$dotfile
 done
 
