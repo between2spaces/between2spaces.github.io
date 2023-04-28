@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+
 set -e
 if [ $# -eq 0 ];
 then
@@ -74,7 +74,7 @@ pip install powerline-shell
 
 # Source updated interactive login shell profile
 
-. $HOME/.profile
+export $HOME/.profile
 
 
 # Copy Windows Terminal settings to LocalState if needed
