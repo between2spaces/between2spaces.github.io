@@ -1,24 +1,22 @@
 #!/usr/bin/env bash
-
-# Exit script when any command fails
-
 set -e
 
-# Set USERPROFILE environment variable
-cmd.exe /c setx WSLENV USERPROFILE/up 2>/dev/null
-export USERPROFILE=$(wslpath $(echo "$(cmd.exe /Q /C "echo %userprofile%" 2>/dev/null)" | sed "s/\r$//"))
-
-
-# Global git config
+echo "Configuring Git"
+git config --global credential.helper "store"
 
 git config user.email "between2spaces@gmail.com"
 git config user.name "between2spaces"
 
 
-# Configure credential.helper
 
-git config --global credential.helper "store"
+if [ -z "$(grep -i micrxosoft /proc/version)" ]; then
+	echo "Running on WSL"
+	echo "Setting USERPROFILE environment variable"
+	cmd.exe /c setx WSLENV USERPROFILE/up 2>/dev/null
+	#export USERPROFILE=$(wslpath $(echo "$(cmd.exe /Q /C "echo %userprofile%" 2>/dev/null)" | sed "s/\r$//"))
+fi
 
+exit 0
 
 
 # Symlink dotfiles
