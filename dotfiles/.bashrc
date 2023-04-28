@@ -2,29 +2,8 @@
 # use to run the commands that should run every time you launch a new shell
 
 
-# don't put duplicate lines or lines starting with space in the history.
-
-HISTCONTROL=ignoreboth
-
-
-
-# append to the history file, don't overwrite it
-
-shopt -s histappend
-
-
-
-# set history length
-
-HISTSIZE=1000
-HISTFILESIZE=2000
-
-
-
-# check the window size after each command and, if necessary,
-# update the values of LINES and COLUMNS.
-shopt -s checkwinsize
-
+# set editing mode to vi
+set -o vi
 
 
 # enable color support of ls and also add handy aliases
@@ -57,9 +36,9 @@ fi
 
 
 
-# Set default editors to vim
+# Set default editors to neovim
 
-export VISUAL=vim
+export VISUAL=nvim
 export EDITOR="$VISUAL"
 export SUDO_EDITOR="$VISUAL"
 
@@ -72,48 +51,17 @@ if [ -d $NVM_DIR ]; then
     . "$NVM_DIR/nvm.sh"
 fi
 
-export USERPROFILE=$(wslpath "$(cmd.exe /c "<nul set /p=%UserProfile%" 2>/dev/null)")
+
+
+# source aliases
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
 
 
 
-
-# common command functions
-
-ssh-ecls-cls-dev() { ssh ecls@zaue1declsap02.wkap.int; }
-ssh-ecls-cls-tst() { ssh ecls@zaue1ueclsap03.wkap.int; }
-ssh-ecls-cls-prd() { ssh ecls@zaue1peclsap04.wkap.int; }
-
-ssh-intranet-cls-dev() { ssh intranet@zaue1declsap02.wkap.int; }
-ssh-intranet-cls-tst() { ssh intranet@zaue1ueclsap03.wkap.int; }
-ssh-intranet-cls-prd() { ssh intranet@zaue1peclsap04.wkap.int; }
-
-ssh-intranet-ngp-dev() { ssh intranet@zauaed1pubapp01.wkap.int; }
-ssh-intranet-ngp-tst() { ssh intranet@zauaetpubapp02.wkap.int; }
-ssh-intranet-ngp-prd() { ssh intranet@zaue1ppubap02.wkap.int; }
-
-ssh-scarmody-ngp-dev() { ssh scarmody@zauaed1pubapp01.wkap.int; }
-ssh-scarmody-ngp-tst() { ssh scarmody@zauaetpubapp02.wkap.int; }
-ssh-scarmody-ngp-prd() { ssh scarmody@zaue1ppubap02.wkap.int; }
-
-ssh-scarmody-newsagent() { ssh scarmody@zaue1pcchiqap02.wkap.int; }
-
-lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
-
-
-
-docker-start() { $(which wsl.exe) -u root -e sh -c "service docker start"; }
-
-
-alias python="python3"
-
-
-
-
-# Set powerline-shell prompt
-
-#PS1="\n\e[0;32m\@ \e[m\\w \e[m\e[1;32m$ \e[m"
-
-#PS1="\n\\w \e[m\n\e[1;32m \e[m"
+# powerline-shell prompt
 
 function _update_ps1() {
     PS1=$(powerline-shell $?)

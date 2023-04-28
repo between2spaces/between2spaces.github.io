@@ -44,7 +44,7 @@ fi
 
 # Dotfiles
 
-for FILE in dotfiles/.*;
+for FILE in dotfiles/.[a-z]*;
 do
 	echo $FILE
 done
