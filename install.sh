@@ -26,11 +26,21 @@ git config user.name "between2spaces"
 
 
 
+# WSL set WSLENV USERPROFILE
+
 if [ -z "$(grep -i micrxosoft /proc/version)" ]; then
 	echo "Running on WSL"
 	echo "Setting USERPROFILE environment variable"
 	cmd.exe /c setx WSLENV USERPROFILE/up 2>/dev/null
-	#export USERPROFILE=$(wslpath $(echo "$(cmd.exe /Q /C "echo %userprofile%" 2>/dev/null)" | sed "s/\r$//"))
+	export USERPROFILE=$(wslpath $(echo "$(cmd.exe /Q /C "echo %userprofile%" 2>/dev/null)" | sed "s/\r$//"))
 fi
 
+
+
+# Dotfiles
+
+for FILE in dotfiles/*;
+do
+	echo $FILE
+done
 
