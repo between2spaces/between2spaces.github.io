@@ -18,11 +18,16 @@ then
 fi
 
 
+# Git
+
 echo "Configuring Git"
+
 git config --global credential.helper "store"
 
 git config user.email "between2spaces@gmail.com"
 git config user.name "between2spaces"
+
+git config pull.rebase true 
 
 
 
@@ -39,7 +44,7 @@ fi
 
 # Dotfiles
 
-for FILE in dotfiles/*;
+for FILE in dotfiles/.*;
 do
 	echo $FILE
 done
