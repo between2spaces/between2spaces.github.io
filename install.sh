@@ -46,6 +46,6 @@ fi
 
 for FILE in dotfiles/.[a-z]*;
 do
-	echo $FILE
+	echo ${FILE##*/}
 done
 
