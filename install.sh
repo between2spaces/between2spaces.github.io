@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
-if [ -d "~/between2spaces.github.io" ]; then
+if [ -d "~/between2spaces.github.io" ]
+then
 	cd ~/between2spaces.github.io
 	git pull
 else
