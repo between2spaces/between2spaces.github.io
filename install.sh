@@ -80,5 +80,5 @@ $HOME/between2spaces.github.io/terminal/update.sh
 
 
 echo "Finished."
-echo "`source ~/.profile` to updated current process environment"
+echo '"source ~/.profile" to updated current process environment'
 
