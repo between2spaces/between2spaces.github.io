@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-if [ -d "~/between2spaces.github.io" ]
+if [[ -d "~/between2spaces.github.io" ]]
 then
 	echo "Updating existing clone..."
 	cd ~/between2spaces.github.io
