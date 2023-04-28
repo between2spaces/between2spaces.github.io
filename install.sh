@@ -72,12 +72,13 @@ sudo apt install -y python3-pip
 pip install powerline-shell
 
 
-# Source updated interactive login shell profile
-
-export $HOME/.profile
-
-
 # Copy Windows Terminal settings to LocalState if needed
 
 $HOME/between2spaces.github.io/terminal/update.sh
+
+
+
+
+echo "Finished."
+echo "`source ~/.profile` to updated current process environment"
 
