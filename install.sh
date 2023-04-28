@@ -2,16 +2,16 @@
 set -e
 if [ $# -eq 0 ];
 then
-	if [[ -d "~/between2spaces.github.io" ]];
+	if [[ -d "$HOME/between2spaces.github.io" ]];
 	then
 		echo "Updating existing clone..."
-		cd ~/between2spaces.github.io
+		cd $HOME/between2spaces.github.io
 		git pull
 	else
 		echo "Cloning github repo..."
-		cd ~
+		cd $HOME 
 		git clone https://github.com/between2spaces/between2spaces.github.io.git
-		cd ~/between2spaces.github.io
+		cd between2spaces.github.io
 	fi
 	./install.sh update
 	exit 0
