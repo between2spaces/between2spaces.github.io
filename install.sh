@@ -103,6 +103,10 @@ rm -rf $TMP_DIR
 
 # Tmux
 
+# Prerequisites
+sudo apt install autotools-dev automake
+
+
 # Tmp working directory
 TMP_DIR="$(mktemp -d)"
 cd $TMP_DIR
