@@ -83,13 +83,21 @@ $HOME/between2spaces.github.io/terminal/update.sh
 # Prerequisites
 sudo apt install ninja-build gettext cmake unzip curl
 
-# Install Neovim 0.9
-git clone https://github.com/neovim/neovim.git
-cd neovim
-git checkout release-0.9
-make CMAKE_BUILD_TYPE=Release
-sudo make install
+# Working directory
+TMP_DIR = "$(mktemp -d)"
+cd $TMP_DIR
+echo $TMP_DIR
+ls -al $TMP_DIR
 
+# Install Neovim 0.9
+#git clone https://github.com/neovim/neovim.git
+#cd neovim
+#git checkout release-0.9
+#make CMAKE_BUILD_TYPE=Release
+#sudo make install
+
+# Clean working directory
+rm -rf $TMP_DIR
 
 
 echo "Finished."
