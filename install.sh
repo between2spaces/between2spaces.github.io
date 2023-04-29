@@ -123,7 +123,8 @@ rm -rf $TMP_DIR
 # Tmux TPM
 rm -rf $HOME/.tmux/plugins/tpm
 mkdir -p $HOME/.tmux/plugins
-git clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
+cd $HOME/.tmux/plugins
+git clone https://github.com/tmux-plugins/tpm
 
 
 
