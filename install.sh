@@ -78,6 +78,19 @@ $HOME/between2spaces.github.io/terminal/update.sh
 
 
 
+# Neovim 
+
+# Prerequisites
+sudo apt install ninja-build gettext cmake unzip curl
+
+# Install Neovim 0.9
+git clone https://github.com/neovim/neovim.git
+cd neovim
+git checkout release-0.9
+make CMAKE_BUILD_TYPE=Release
+sudo make install
+
+
 
 echo "Finished."
 echo '"source ~/.profile" to updated current process environment'
