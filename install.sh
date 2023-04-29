@@ -121,8 +121,9 @@ sh autogen.sh
 rm -rf $TMP_DIR
 
 # Tmux TPM
-rm -rf ~/.tmux/plugins/tpm
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+rm -rf $HOME/.tmux/plugins/tpm
+mkdir -p $HOME/.tmux/plugins
+git clone https://github.com/tmux-plugins/tpm $HOME/.tmux/plugins/tpm
 
 
 
