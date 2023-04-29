@@ -78,36 +78,10 @@ $HOME/between2spaces.github.io/terminal/update.sh
 
 
 
-# Neovim 
-
-if [[ "$(nvim --version | head -n 1)" != "NVIM v0.9.1-dev-57+ge81b2eb94" ]];
-then
-
-	# Prerequisites
-	sudo apt install ninja-build gettext cmake unzip curl
-
-	# Tmp working directory
-	TMP_DIR="$(mktemp -d)"
-	cd $TMP_DIR
-	echo "Installing Neovim 0.9 using working directory $TMP_DIR..." 
-
-	# Install Neovim 0.9
-	git clone https://github.com/neovim/neovim.git
-	cd neovim
-	git checkout release-0.9
-	make CMAKE_BUILD_TYPE=Release
-	sudo make install
-
-	# Clean tmp working directory
-	rm -rf $TMP_DIR
-
-fi
-
-
 
 # Tmux
 
-if [[ "$(tmux -V)" != "tmux 3.2.a" ]];
+if [[ "$(tmux -V)" != "tmux 3.2a" ]];
 then
 
 	# Prerequisites
@@ -153,6 +127,41 @@ cd $CWD
 
 nvm install node
 nvm install-latest-npm
+
+
+
+
+# Neovim 
+
+if [[ "$(nvim --version | head -n 1)" != "NVIM v0.9.1-dev-57+ge81b2eb94" ]];
+then
+
+	# Prerequisites
+	sudo apt install ninja-build gettext cmake unzip curl
+
+	# Tmp working directory
+	TMP_DIR="$(mktemp -d)"
+	cd $TMP_DIR
+	echo "Installing Neovim 0.9 using working directory $TMP_DIR..." 
+
+	# Install Neovim 0.9
+	git clone https://github.com/neovim/neovim.git
+	cd neovim
+	git checkout release-0.9
+	make CMAKE_BUILD_TYPE=Release
+	sudo make install
+
+	# Clean tmp working directory
+	rm -rf $TMP_DIR
+
+fi
+
+
+# Neovim health support
+
+sudo apt install wl-clipboard    	# fix copy/paste
+pip install pynvim			# Python support
+npm -i -g neovim			# Node support
 
 
 
