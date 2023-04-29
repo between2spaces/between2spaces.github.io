@@ -84,7 +84,7 @@ $HOME/between2spaces.github.io/terminal/update.sh
 sudo apt install ninja-build gettext cmake unzip curl
 
 # Working directory
-TMP_DIR = "$(mktemp -d)"
+TMP_DIR="$(mktemp -d)"
 cd $TMP_DIR
 echo $TMP_DIR
 ls -al $TMP_DIR
