@@ -83,11 +83,10 @@ $HOME/between2spaces.github.io/terminal/update.sh
 # Prerequisites
 sudo apt install ninja-build gettext cmake unzip curl
 
-# Working directory
+# Tmp working directory
 TMP_DIR="$(mktemp -d)"
 cd $TMP_DIR
-echo $TMP_DIR
-ls -al $TMP_DIR
+echo "Installing Neovim 0.9 using working directory $TMP_DIR..." 
 
 # Install Neovim 0.9
 git clone https://github.com/neovim/neovim.git
@@ -96,8 +95,28 @@ git checkout release-0.9
 make CMAKE_BUILD_TYPE=Release
 sudo make install
 
-# Clean working directory
+# Clean tmp working directory
 rm -rf $TMP_DIR
+
+
+
+
+# Tmux
+
+# Tmp working directory
+TMP_DIR="$(mktemp -d)"
+cd $TMP_DIR
+echo "Installing Tmux using working directory $TMP_DIR..." 
+
+git clone https://github.com/tmux/tmux.git
+cd tmux
+sh autogen.sh
+./configure && make
+
+# Clean tmp working directory
+rm -rf $TMP_DIR
+
+
 
 
 echo "Finished."
