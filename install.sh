@@ -80,51 +80,79 @@ $HOME/between2spaces.github.io/terminal/update.sh
 
 # Neovim 
 
-# Prerequisites
-sudo apt install ninja-build gettext cmake unzip curl
+if [[ "$(nvim --version | head -n 1)" != "NVIM v0.9.1-dev-57+ge81b2eb94" ]];
+then
 
-# Tmp working directory
-TMP_DIR="$(mktemp -d)"
-cd $TMP_DIR
-echo "Installing Neovim 0.9 using working directory $TMP_DIR..." 
+	# Prerequisites
+	sudo apt install ninja-build gettext cmake unzip curl
 
-# Install Neovim 0.9
-git clone https://github.com/neovim/neovim.git
-cd neovim
-git checkout release-0.9
-make CMAKE_BUILD_TYPE=Release
-sudo make install
+	# Tmp working directory
+	TMP_DIR="$(mktemp -d)"
+	cd $TMP_DIR
+	echo "Installing Neovim 0.9 using working directory $TMP_DIR..." 
 
-# Clean tmp working directory
-rm -rf $TMP_DIR
+	# Install Neovim 0.9
+	git clone https://github.com/neovim/neovim.git
+	cd neovim
+	git checkout release-0.9
+	make CMAKE_BUILD_TYPE=Release
+	sudo make install
 
+	# Clean tmp working directory
+	rm -rf $TMP_DIR
+
+fi
 
 
 
 # Tmux
 
-# Prerequisites
-sudo apt install autotools-dev automake pkg-config libevent-dev yacc libncurses5-dev libncursesw5-dev
+if [[ "$(tmux -V)" != "tmux 3.2.a" ]];
+then
+
+	# Prerequisites
+	sudo apt install autotools-dev automake pkg-config libevent-dev yacc libncurses5-dev libncursesw5-dev
+
+	# Tmp working directory
+	TMP_DIR="$(mktemp -d)"
+	cd $TMP_DIR
+	echo "Installing Tmux using working directory $TMP_DIR..." 
+
+	git clone https://github.com/tmux/tmux.git
+	cd tmux
+	sh autogen.sh
+	./configure && make
+
+	# Clean tmp working directory
+	rm -rf $TMP_DIR
+
+	# Tmux TPM
+	rm -rf $HOME/.tmux/plugins/tpm
+	mkdir -p $HOME/.tmux/plugins
+	cd $HOME/.tmux/plugins
+	git clone https://github.com/tmux-plugins/tpm
+
+fi
 
 
-# Tmp working directory
-TMP_DIR="$(mktemp -d)"
-cd $TMP_DIR
-echo "Installing Tmux using working directory $TMP_DIR..." 
 
-git clone https://github.com/tmux/tmux.git
-cd tmux
-sh autogen.sh
-./configure && make
+# Node Version Manager
 
-# Clean tmp working directory
-rm -rf $TMP_DIR
+echo "Node Version Manager"
+export NVM_DIR="$HOME/.nvm"
+if [ ! -d $NVM_DIR ];
+then
+    git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+fi
 
-# Tmux TPM
-rm -rf $HOME/.tmux/plugins/tpm
-mkdir -p $HOME/.tmux/plugins
-cd $HOME/.tmux/plugins
-git clone https://github.com/tmux-plugins/tpm
+CWD=$PWD
+cd "$NVM_DIR"
+git -c advice.detachedHead=false checkout `git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1)`
+. "$NVM_DIR/nvm.sh"
+cd $CWD
+
+nvm install node
+nvm install-latest-npm
 
 
 
