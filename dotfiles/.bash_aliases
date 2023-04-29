@@ -1,4 +1,6 @@
 alias python="python3"
+alias vi="nvim"
+alias vim="nvim"
 
 lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
 

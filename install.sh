@@ -104,7 +104,7 @@ rm -rf $TMP_DIR
 # Tmux
 
 # Prerequisites
-sudo apt install autotools-dev automake
+sudo apt install autotools-dev automake pkg-config
 
 
 # Tmp working directory
