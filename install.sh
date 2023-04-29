@@ -161,8 +161,8 @@ fi
 # Neovim health support
 
 sudo apt install wl-clipboard    	# fix copy/paste
+sudo apt install ripgrep 		# for Telescope
 pip install pynvim			# Python support
-npm -i -g neovim			# Node support
 
 
 
