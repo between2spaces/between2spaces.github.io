@@ -104,7 +104,7 @@ rm -rf $TMP_DIR
 # Tmux
 
 # Prerequisites
-sudo apt install autotools-dev automake pkg-config libevent-dev yacc
+sudo apt install autotools-dev automake pkg-config libevent-dev yacc libncurses5-dev libncursesw5-dev
 
 
 # Tmp working directory
