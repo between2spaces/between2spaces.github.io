@@ -128,6 +128,7 @@ cd $CWD
 nvm install node
 nvm install-latest-npm
 
+source ~/.profile
 
 
 
