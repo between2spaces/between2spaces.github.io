@@ -7,8 +7,7 @@
 	"initialRows": 30,
 	"startOnUserLogin": true,
 	"alwaysShowTabs": false,
-  "centerOnLaunch": true,
-  "launchMode": "focus",
+	"centerOnLaunch": true,
 	"profiles": 
 	{
 		"defaults": 

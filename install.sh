@@ -54,6 +54,20 @@ done
 
 
 
+# Add Dockers official GPG key and setup repository if not already
+
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docker.list ]; then
+    echo "Adding Dockers official GPG key and setting up repo..."
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+fi
+
+
+
+
 # Full apt update, upgrade, remove, clean cycle
 
 sudo apt update
@@ -163,6 +177,13 @@ fi
 sudo apt install wl-clipboard    	# fix copy/paste
 sudo apt install ripgrep 		# for Telescope
 pip install pynvim			# Python support
+
+
+
+# Docker
+
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+sudo pip3 install docker-compose
 
 
 
