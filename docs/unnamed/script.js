@@ -1,25 +1,19 @@
 const canvas = document.createElement("canvas");
 
-
 document.body.append(canvas);
+
 
 function resize() {
 
 	const devicePixelRatio = window.devicePixelRatio || 1;
 
-	console.log(devicePixelRatio);
-
 	// set the size of the canvas based on the size it's displayed.
-	canvas.width = window.innerWidth * devicePixelRatio;
-	canvas.height = window.innerHeight * devicePixelRatio;
-
-	console.log(canvas.width);
+	canvas.width = 800;//window.innerWidth * devicePixelRatio;
+	canvas.height = 100;//window.innerHeight * devicePixelRatio;
 
 	// propagate the integer size back to CSS pixels to ensure they align up 1:1.
-	canvas.style.width = (canvas.width / devicePixelRatio) + 'px';
-	canvas.style.height = (canvas.height / devicePixelRatio) + 'px';
-
-	console.log(canvas.style.height);
+	canvas.style.width = window.innerWidth + 'px';
+	canvas.style.height = window.innerHeight + 'px';
 
 	gl.viewport(0, 0, canvas.width, canvas.height);
 
@@ -42,40 +36,40 @@ window.addEventListener("resize", resize);
 const shader = {
 	vs: compileShader(gl, gl.VERTEX_SHADER, `#version 300 es
 
-        in vec2 position;
-        in vec2 uv;
-        in vec4 colour;
+in vec2 position;
+in vec2 uv;
+in vec4 colour;
 
-        uniform float z;
-        uniform mat4 projection;
+uniform float z;
+uniform mat4 projection;
 
-        out vec2 fragUV;
-        out vec4 fragRGBA;
+out vec2 fragUV;
+out vec4 fragRGBA;
 
-        void main() {
-            gl_Position = projection * vec4( position.x, position.y, z, 1.0 );
-            fragUV = uv;
-            fragRGBA = colour; 
-        }
+void main() {
+gl_Position = projection * vec4( position.x, position.y, z, 1.0 );
+fragUV = uv;
+fragRGBA = colour; 
+}
 
-    ` ),
+` ),
 
 	fs: compileShader(gl, gl.FRAGMENT_SHADER, `#version 300 es
 
-        precision highp float;
+precision highp float;
 
-        in vec2 fragUV;	
-        in vec4 fragRGBA;	
+in vec2 fragUV;	
+in vec4 fragRGBA;	
 
-        uniform sampler2D glyph;
+uniform sampler2D glyph;
 
-        out vec4 fragColor;
+out vec4 fragColor;
 
-        void main() {
-            fragColor = texture(glyph, fragUV) * fragRGBA;
-        }
+void main() {
+fragColor = texture(glyph, fragUV) * fragRGBA;
+}
 
-    ` ),
+` ),
 
 	program: gl.createProgram(),
 	attributes: {},
@@ -88,7 +82,7 @@ gl.attachShader(shader.program, shader.fs);
 gl.linkProgram(shader.program);
 
 if (!gl.getProgramParameter(shader.program, gl.LINK_STATUS))
-	throw ("program failed to link:" + gl.getProgramInfoLog(shader.program));
+throw ("program failed to link:" + gl.getProgramInfoLog(shader.program));
 
 shader.attributes.position = gl.getAttribLocation(shader.program, "position");
 shader.attributes.uv = gl.getAttribLocation(shader.program, "uv");
@@ -182,7 +176,7 @@ function compileShader(gl, shaderType, shaderSource) {
 	gl.compileShader(shader);
 
 	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
-		throw ("could not compile shader:" + gl.getShaderInfoLog(shader));
+	throw ("could not compile shader:" + gl.getShaderInfoLog(shader));
 
 	return shader;
 
@@ -194,7 +188,7 @@ function createLayer(gl, charSetUVs, cols = 80, rows = 30) {
 		cols: cols,
 		rows: rows,
 		char: new Array(cols * rows),
-		z: layers.length,
+		index: layers.length,
 		uv: {
 			buffer: gl.createBuffer(),
 			dirty: false
@@ -279,7 +273,7 @@ function createLayer(gl, charSetUVs, cols = 80, rows = 30) {
 	gl.bindBuffer(gl.ARRAY_BUFFER, layer.colour.buffer);
 	gl.vertexAttribPointer(shader.attributes.colour, 4, gl.FLOAT, false, 0, 0);
 
-	gl.uniform1f(shader.uniforms.z, layer.z);
+	gl.uniform1f(shader.uniforms.z, layer.index);
 
 	gl.bindVertexArray(null);
 
@@ -289,7 +283,7 @@ function createLayer(gl, charSetUVs, cols = 80, rows = 30) {
 
 }
 
-function characterSet(gl, chars, size = 2048) {
+function characterSet(gl, chars, size = 512) {
 
 	const canvas = document.createElement("canvas");
 
@@ -312,11 +306,13 @@ function characterSet(gl, chars, size = 2048) {
 	do {
 
 		ctx.font = `${font--}px monospace`;
-		metrics = ctx.measureText("█");
+		metrics = ctx.measureText("㶑");
 		cols = Math.floor(canvas.width / metrics.width);
-		height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+		height = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) * 1.2;
 
 	} while (cols * Math.floor(canvas.height / height) < chars.length);
+
+	const stdMetrics = ctx.measureText("█");
 
 	for (let i = 0, l = chars.length; i < l; i++) {
 
@@ -325,10 +321,10 @@ function characterSet(gl, chars, size = 2048) {
 
 		ctx.fillText(chars[i], x, y);
 
-		let left = (x - 0.5 * metrics.width + 1) / size;
-		let top = (y - metrics.actualBoundingBoxAscent + 1) / size;
-		let right = (x + 0.5 * metrics.width - 2) / size;
-		let bottom = (y + metrics.actualBoundingBoxDescent - 1) / size;
+		let left = (x - 0.5 * stdMetrics.width + 1) / size;
+		let top = (y - stdMetrics.actualBoundingBoxAscent + 1) / size;
+		let right = (x + 0.5 * stdMetrics.width - 1) / size;
+		let bottom = (y + stdMetrics.actualBoundingBoxDescent - 1) / size;
 
 		uvs[chars[i]] = [left, bottom, left, top, right, bottom, right, top];
 
@@ -341,17 +337,20 @@ function characterSet(gl, chars, size = 2048) {
 	//gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE );
 	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
 	//gl.generateMipmap(gl.TEXTURE_2D);
+	//
+	document.body.append( canvas );
 
 	return uvs;
 
 }
 
 
-function setChar(col, row, char, layer = 0, colour = null) {
+function setChar(col, row, char, layerIndex = 0, colour = null) {
 
-	if (layer > layers.length - 1) return;
+	const layer = (layerIndex > layers.length - 1) ? layers[ layers.length - 1 ] : layers[ layerIndex ];
 
-	layer = layers[layer];
+	if ( col < 0 ) col = layer.cols + col;
+	if ( row < 0 ) row = layer.rows + row;
 
 	const charUVs = charSetUVs[char];
 	const indice = row * layer.indices.perRow + col * layer.indices.perCol;
@@ -397,38 +396,51 @@ function setChar(col, row, char, layer = 0, colour = null) {
 
 }
 
-function writeText(col, row, string, layer = 0, colour = null) {
+function writeText(col, row, string, layerIndex = 0, colour = null) {
 
-	for (let char of string) setChar(col++, row, char, layer, colour);
+	for (let char of string) {
+		setChar(col++, row, char, layerIndex, colour);
+	}
 
 }
 
 
-const characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕";
+const characters = `
+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+~!@#$%^&*()_+[]{}\\|:;\`'",.<>/?⛆☶ ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕☻ぷ
+`;
+
 const charSetUVs = characterSet(gl, characters);
 
 const view = {
-	cols: 100,
-	rows: 100
+	cols: 20,
+	rows: 10 
 };
 
 
-createLayer(gl, charSetUVs, view.cols, view.rows);
-createLayer(gl, charSetUVs, 20, 10);
-createLayer(gl, charSetUVs, 20, 10);
+const layer_ground = createLayer(gl, charSetUVs, view.cols, view.rows);
+const layer_groundcover = createLayer(gl, charSetUVs, view.cols, view.rows);
+const layer_groundcover_2 = createLayer(gl, charSetUVs, view.cols, view.rows);
+const layer_groundcover_3 = createLayer(gl, charSetUVs, view.cols, view.rows);
+const layer_characters = createLayer(gl, charSetUVs, view.cols, view.rows);
+const layer_ui_bg = createLayer(gl, charSetUVs, 20, 10);
+const layer_ui_fg = createLayer(gl, charSetUVs, 20, 10);
 
-writeText(0, layers[1].rows - 1, "███", 1, [1, 1, 1, 0.5]);
+writeText(0, - 1, "███", layer_ui_bg.index, [1, 1, 1, 0.5]);
 
 for (let row = 0; row < view.rows; row++) {
 	for (let col = 0; col < view.cols; col++) {
-		setChar(col, row, "X", 0, [0, 1, 0, 1]);
+		setChar(col, row, '█', layer_ground.index, [30/255, 30/255, 30/255, 1]);
+		setChar(col, row, '░', layer_groundcover.index, [50/255, 50/255, 50/255, 1]);
 	}
 }
 
+setChar(6, 0, '⛆', layer_groundcover_3.index, [50/255, 50/255, 150/255, 1]);
+
+setChar(Math.floor(view.cols/2), Math.floor(view.rows/2), 'ぷ', layer_characters.index, [255/255, 255/255, 255/255, 1]);
+
+
 let fps, startTime, prevTime, frameCount = 0;
-let col = 0;
-let row = 0;
-let charsPerUpdate = 100; //view.rows * view.cols;
 
 function update(currentTime) {
 
@@ -443,40 +455,14 @@ function update(currentTime) {
 
 	frameCount++;
 
-	// if ( currentTime - prevTime >= 1000 ) {
+	if ( currentTime - prevTime >= 1000 ) {
 
-	// 	fps = frameCount;
-	// 	writeText( 0, layers[ 2 ].rows - 1, `${fps}`, 2, [ 0, 0, 0, 1 ] );
-	// 	frameCount = 0;
-	// 	prevTime = currentTime;
+		fps = frameCount;
+		writeText( 0, - 1, `${fps}`, layer_ui_fg.index, [ 0, 0, 0, 1 ] );
+		frameCount = 0;
+		prevTime = currentTime;
 
-	// 	if ( fps >= 120 ) {
-
-	// 		if ( charsPerUpdate < view.rows * view.cols ) charsPerUpdate ++;
-
-	// 	} else {
-
-	// 		charsPerUpdate --;
-
-	// 	}
-
-	// }
-
-
-	// for ( let i = 0; i < charsPerUpdate; i ++ ) {
-
-	// 	setChar( col ++, row, "▒", 0, [ Math.random(), Math.random(), Math.random(), 1 ] );
-
-	// 	if ( col === view.cols ) {
-
-	// 		col = 0;
-	// 		row ++;
-
-	// 	}
-
-	// 	if ( row === view.rows ) row = 0;
-
-	// }
+	}
 
 }
 

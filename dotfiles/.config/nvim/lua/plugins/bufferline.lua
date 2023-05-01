@@ -1,11 +1,8 @@
-local M = {
-  "akinsho/bufferline.nvim",
-  lazy = false,
-  dependencies = "nvim-tree/nvim-web-devicons",
+return {
+	"akinsho/bufferline.nvim",
+	lazy = false,
+	dependencies = "nvim-tree/nvim-web-devicons",
+	config = function ()
+		require("bufferline").setup {}
+	end
 }
-
-function M.config()
-  require("bufferline").setup {}
-end
-
-return M
