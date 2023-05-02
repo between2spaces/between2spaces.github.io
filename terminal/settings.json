@@ -7,7 +7,7 @@
 	"initialRows": 30,
 	"startOnUserLogin": true,
 	"alwaysShowTabs": false,
-	"centerOnLaunch": true,
+	"launchMode": "focus",
 	"profiles": 
 	{
 		"defaults": 
@@ -60,7 +60,7 @@
 	},
 	"actions":
 	[
-		{ "command": "toggleFocusMode", "keys": "alt+shift+enter" },
+		{ "command": "toggleFocusMode", "keys": "ctrl+shift+enter" },
 		{ "command": { "action": "splitPane", "split": "up" }, "keys": "ctrl+shift+k" },
 		{ "command": { "action": "splitPane", "split": "right" }, "keys": "ctrl+shift+l" },
 		{ "command": { "action": "splitPane", "split": "down" }, "keys": "ctrl+shift+j" },
