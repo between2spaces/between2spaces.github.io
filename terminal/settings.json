@@ -57,5 +57,22 @@
 				"source": "Windows.Terminal.Azure"
 			}
 		]
-	}
+	},
+	"actions":
+	[
+		{ "command": "toggleFocusMode", "keys": "alt+shift+enter" },
+		{ "command": { "action": "splitPane", "split": "up" }, "keys": "ctrl+shift+k" },
+		{ "command": { "action": "splitPane", "split": "right" }, "keys": "ctrl+shift+l" },
+		{ "command": { "action": "splitPane", "split": "down" }, "keys": "ctrl+shift+j" },
+		{ "command": { "action": "splitPane", "split": "left" }, "keys": "ctrl+shift+h" },
+		{ "command": { "action": "resizePane", "direction": "down" }, "keys": "alt+shift+j" },
+		{ "command": { "action": "resizePane", "direction": "left" }, "keys": "alt+shift+h" },
+		{ "command": { "action": "resizePane", "direction": "right" }, "keys": "alt+shift+l" },
+		{ "command": { "action": "resizePane", "direction": "up" }, "keys": "alt+shift+k" },
+		{ "command": { "action": "moveFocus", "direction": "down" }, "keys": "alt+j" },
+		{ "command": { "action": "moveFocus", "direction": "left" }, "keys": "alt+h" },
+		{ "command": { "action": "moveFocus", "direction": "right" }, "keys": "alt+l" },
+		{ "command": { "action": "moveFocus", "direction": "up" }, "keys": "alt+k" },
+	]
 }
+
