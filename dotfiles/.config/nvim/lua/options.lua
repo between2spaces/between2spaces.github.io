@@ -1,6 +1,6 @@
 vim.g.python3_host_prog = "/usr/bin/python3"	-- set Python 3 executable
 vim.opt.backup = false                          -- creates a backup file
-vim.opt.clipboard = "unnamedplus"               -- allows neovim to access the system clipboard
+vim.opt.clipboard = "unnamed"	               -- allows neovim to access the system clipboard
 vim.cmd [[
 	let g:clipboard = {
     	\   'name': 'WslClipboard',

@@ -21,6 +21,10 @@ ssh-intranet-ngp-dev() { ssh intranet@zauaed1pubapp01.wkap.int; }
 ssh-intranet-ngp-tst() { ssh intranet@zauaetpubapp02.wkap.int; }
 ssh-intranet-ngp-prd() { ssh intranet@zaue1ppubap02.wkap.int; }
 
+sftp-intranet-ngp-dev() { sftp intranet@zauaed1pubapp01.wkap.int; }
+sftp-intranet-ngp-tst() { sftp intranet@zauaetpubapp02.wkap.int; }
+sftp-intranet-ngp-prd() { sftp intranet@zaue1ppubap02.wkap.int; }
+
 ssh-scarmody-ngp-dev() { ssh scarmody@zauaed1pubapp01.wkap.int; }
 ssh-scarmody-ngp-tst() { ssh scarmody@zauaetpubapp02.wkap.int; }
 ssh-scarmody-ngp-prd() { ssh scarmody@zaue1ppubap02.wkap.int; }

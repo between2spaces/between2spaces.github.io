@@ -17,26 +17,20 @@ vim.g.mapleader = " "
 
 -- Normal --
 -- Better window navigation
-keymap("n", "<C-h>", "<C-w>h", opts)
-keymap("n", "<C-j>", "<C-w>j", opts)
-keymap("n", "<C-k>", "<C-w>k", opts)
-keymap("n", "<C-l>", "<C-w>l", opts)
-
--- Resize with Ctrl+hjkl
-keymap("n", "<M-k>", ":resize -1<CR>", opts)
-keymap("n", "<M-j>", ":resize +1<CR>", opts)
-keymap("n", "<M-h>", ":vertical resize -1<CR>", opts)
-keymap("n", "<M-l>", ":vertical resize +1<CR>", opts)
+keymap("n", "<M-h>", "<C-w>h", opts)
+keymap("n", "<M-j>", "<C-w>j", opts)
+keymap("n", "<M-k>", "<C-w>k", opts)
+keymap("n", "<M-l>", "<C-w>l", opts)
 
 -- Navigate buffers
-keymap("n", "L", ":bnext<CR>", opts)
-keymap("n", "H", ":bprevious<CR>", opts)
+keymap("n", "<M-l>", ":bnext<CR>", opts)
+keymap("n", "<M-h>", ":bprevious<CR>", opts)
 
 -- Clear highlights
 keymap("n", "<leader>x", "<cmd>nohlsearch<CR>", opts)
 
--- Close window
-keymap("n", "<leader>q", "<C-w>q", opts)
+-- Close buffer
+keymap("n", "<leader>q", "<cmd>bd", opts)
 
 -- Better paste
 keymap("v", "p", '"_dP', opts)
