@@ -23,8 +23,8 @@ keymap("n", "<M-k>", "<C-w>k", opts)
 keymap("n", "<M-l>", "<C-w>l", opts)
 
 -- Navigate buffers
-keymap("n", "<M-l>", ":bnext<CR>", opts)
-keymap("n", "<M-h>", ":bprevious<CR>", opts)
+keymap("n", "<M-S-l>", ":bnext<CR>", opts)
+keymap("n", "<M-S-h>", ":bprevious<CR>", opts)
 
 -- Clear highlights
 keymap("n", "<leader>x", "<cmd>nohlsearch<CR>", opts)
