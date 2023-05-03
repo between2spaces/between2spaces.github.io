@@ -7,15 +7,23 @@ return {
 		if not status_ok then
 			return
 		end
-		local actions = require("telescope.actions")
+		local telescope_actions = require("telescope.actions")
 		telescope.setup {
 			defaults = {
 				mappings = {
 					i = {
-						["<esc>"] = actions.close,
+						["<esc>"] = telescope_actions.close,
 					},
 				},
 			},
+			pickers = {
+				find_files = {
+					find_command = { 'rg', '--files', '--hidden', '--iglob', '!.vscode-server/**', '--smart-case' }
+				},
+				live_grep = {
+					find_command = { 'rg', '--hidden', '--iglob', '!.vscode-server/**', '--smart-case' }
+				}
+			}
 		}
 	end
 }
