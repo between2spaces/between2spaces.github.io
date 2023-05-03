@@ -2,24 +2,6 @@ const canvas = document.createElement("canvas");
 
 document.body.append(canvas);
 
-
-function resize() {
-
-	const devicePixelRatio = window.devicePixelRatio || 1;
-
-	// set the size of the canvas based on the size it's displayed.
-	canvas.width = 800;//window.innerWidth * devicePixelRatio;
-	canvas.height = 100;//window.innerHeight * devicePixelRatio;
-
-	// propagate the integer size back to CSS pixels to ensure they align up 1:1.
-	canvas.style.width = window.innerWidth + 'px';
-	canvas.style.height = window.innerHeight + 'px';
-
-	gl.viewport(0, 0, canvas.width, canvas.height);
-
-}
-
-
 const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
 
 gl.disable(gl.DEPTH_TEST);
@@ -28,107 +10,148 @@ gl.enable(gl.BLEND);
 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 
+function resize() {
+
+	const devicePixelRatio = window.devicePixelRatio || 1;
+
+	canvas.width = window.innerWidth * devicePixelRatio;
+	canvas.height = window.innerHeight * devicePixelRatio;
+
+	canvas.style.width = window.innerWidth + 'px';
+	canvas.style.height = window.innerHeight + 'px';
+
+	gl.viewport(0, 0, canvas.width, canvas.height);
+
+}
+
 resize();
+
 window.addEventListener("resize", resize);
 
 
 
-const shader = {
-	vs: compileShader(gl, gl.VERTEX_SHADER, `#version 300 es
+const shader = ( () => {
 
-in vec2 position;
-in vec2 uv;
-in vec4 colour;
+	const shader = {
 
-uniform float z;
-uniform mat4 projection;
+		vs: compileShader(gl, gl.VERTEX_SHADER, `#version 300 es
 
-out vec2 fragUV;
-out vec4 fragRGBA;
+			in vec2 position;
+			in vec2 uv;
+			in vec4 colour;
 
-void main() {
-gl_Position = projection * vec4( position.x, position.y, z, 1.0 );
-fragUV = uv;
-fragRGBA = colour; 
+			uniform float z;
+			uniform mat4 projection;
+
+			out vec2 fragUV;
+			out vec4 fragRGBA;
+
+			void main() {
+			gl_Position = projection * vec4( position.x, position.y, z, 1.0 );
+			fragUV = uv;
+			fragRGBA = colour; 
+			}
+
+		` ),
+
+		fs: compileShader(gl, gl.FRAGMENT_SHADER, `#version 300 es
+
+			precision highp float;
+
+			in vec2 fragUV;	
+			in vec4 fragRGBA;	
+
+			uniform sampler2D glyph;
+
+			out vec4 fragColor;
+
+			void main() {
+			fragColor = texture(glyph, fragUV) * fragRGBA;
+			}
+
+		` ),
+
+		program: gl.createProgram(),
+		attributes: {},
+		uniforms: {}
+
+	};
+
+	gl.attachShader(shader.program, shader.vs);
+	gl.attachShader(shader.program, shader.fs);
+	gl.linkProgram(shader.program);
+
+	if (!gl.getProgramParameter(shader.program, gl.LINK_STATUS))
+		throw ("program failed to link:" + gl.getProgramInfoLog(shader.program));
+
+	for ( let attribute of [ "position", "uv", "colour", "z" ] ) {
+
+		shader.attributes[attribute] = gl.getAttribLocation(shader.program, attribute);
+
+	}
+
+	for ( let uniform of [ "projection", "glyph" ] ) {
+
+		shader.uniforms[uniform] = gl.getUniformLocation(shader.program, uniform);
+
+	}
+
+	return shader;
+
+} )();
+
+
+function compileShader(gl, shaderType, shaderSource) {
+
+	const shader = gl.createShader(shaderType);
+
+	gl.shaderSource(shader, shaderSource);
+	gl.compileShader(shader);
+
+	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+		throw ("could not compile shader:" + gl.getShaderInfoLog(shader));
+
+	return shader;
+
 }
-
-` ),
-
-	fs: compileShader(gl, gl.FRAGMENT_SHADER, `#version 300 es
-
-precision highp float;
-
-in vec2 fragUV;	
-in vec4 fragRGBA;	
-
-uniform sampler2D glyph;
-
-out vec4 fragColor;
-
-void main() {
-fragColor = texture(glyph, fragUV) * fragRGBA;
-}
-
-` ),
-
-	program: gl.createProgram(),
-	attributes: {},
-	uniforms: {}
-};
-
-
-gl.attachShader(shader.program, shader.vs);
-gl.attachShader(shader.program, shader.fs);
-gl.linkProgram(shader.program);
-
-if (!gl.getProgramParameter(shader.program, gl.LINK_STATUS))
-throw ("program failed to link:" + gl.getProgramInfoLog(shader.program));
-
-shader.attributes.position = gl.getAttribLocation(shader.program, "position");
-shader.attributes.uv = gl.getAttribLocation(shader.program, "uv");
-shader.attributes.colour = gl.getAttribLocation(shader.program, "colour");
-shader.attributes.z = gl.getAttribLocation(shader.program, "z");
-shader.uniforms.projection = gl.getUniformLocation(shader.program, "projection");
-shader.uniforms.glyph = gl.getUniformLocation(shader.program, "glyph");
 
 
 gl.useProgram(shader.program);
 
-const projection = { left: 0, right: 1, top: 10, bottom: 0, near: -1, far: 100, matrix: new Array(16) };
 
-(() => {
+
+
+const projection = (() => {
+
+	const matrix = new Array(16);
+	const projection = { left: 0, right: 1, top: 10, bottom: 0, near: -1, far: 100, matrix };
 
 	const lr = 1 / (projection.left - projection.right);
 	const bt = 1 / (projection.bottom - projection.top);
 	const nf = 1 / (projection.near - projection.far);
 
-	projection.matrix[0] = - 2 * lr;
-	projection.matrix[1] = 0;
-	projection.matrix[2] = 0;
-	projection.matrix[3] = 0;
-	projection.matrix[4] = 0;
-	projection.matrix[5] = - 2 * bt;
-	projection.matrix[6] = 0;
-	projection.matrix[7] = 0;
-	projection.matrix[8] = 0;
-	projection.matrix[9] = 0;
-	projection.matrix[10] = 2 * nf;
-	projection.matrix[11] = 0;
-	projection.matrix[12] = (projection.left + projection.right) * lr;
-	projection.matrix[13] = (projection.top + projection.bottom) * bt;
-	projection.matrix[14] = (projection.far + projection.near) * nf;
-	projection.matrix[15] = 1;
+	matrix[0] = - 2 * lr;
+	matrix[1] = matrix[2] = matrix[3] = matrix[4] = matrix[6] = matrix[7] = matrix[8] = matrix[9] = matrix[11] = 0;
+	matrix[5] = - 2 * bt;
+	matrix[10] = 2 * nf;
+	matrix[12] = (projection.left + projection.right) * lr;
+	matrix[13] = (projection.top + projection.bottom) * bt;
+	matrix[14] = (projection.far + projection.near) * nf;
+	matrix[15] = 1;
+
+	return projection;
 
 })();
 
-
-
 gl.uniformMatrix4fv(shader.uniforms.projection, false, projection.matrix);
+
+
 
 const texture = gl.createTexture();
 
 gl.activeTexture(gl.TEXTURE0);
 gl.uniform1i(shader.uniforms.glyph, 0);
+
 
 
 const layers = [];
@@ -159,7 +182,7 @@ function render(currentTime) {
 		}
 
 		gl.bindVertexArray(layer.vao);
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, layer.indices.perRow * layer.rows);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, layer.indices.total);
 
 	}
 
@@ -167,20 +190,6 @@ function render(currentTime) {
 
 }
 
-
-function compileShader(gl, shaderType, shaderSource) {
-
-	const shader = gl.createShader(shaderType);
-
-	gl.shaderSource(shader, shaderSource);
-	gl.compileShader(shader);
-
-	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
-	throw ("could not compile shader:" + gl.getShaderInfoLog(shader));
-
-	return shader;
-
-}
 
 function createLayer(gl, charSetUVs, cols = 80, rows = 30) {
 
@@ -283,7 +292,7 @@ function createLayer(gl, charSetUVs, cols = 80, rows = 30) {
 
 }
 
-function characterSet(gl, chars, size = 512) {
+function characterSet(gl, chars, size = 1024) {
 
 	const canvas = document.createElement("canvas");
 
@@ -408,6 +417,7 @@ function writeText(col, row, string, layerIndex = 0, colour = null) {
 const characters = `
 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 ~!@#$%^&*()_+[]{}\\|:;\`'",.<>/?⛆☶ ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕☻ぷ
+ⅈጸ
 `;
 
 const charSetUVs = characterSet(gl, characters);
@@ -437,7 +447,7 @@ for (let row = 0; row < view.rows; row++) {
 
 setChar(6, 0, '⛆', layer_groundcover_3.index, [50/255, 50/255, 150/255, 1]);
 
-setChar(Math.floor(view.cols/2), Math.floor(view.rows/2), 'ぷ', layer_characters.index, [255/255, 255/255, 255/255, 1]);
+setChar(Math.floor(view.cols/2), Math.floor(view.rows/2), "ጸ", layer_characters.index, [255/255, 255/255, 255/255, 1]);
 
 
 let fps, startTime, prevTime, frameCount = 0;
