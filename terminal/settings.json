@@ -17,7 +17,7 @@
 			"font": 
 			{
 				"face": "FiraCode Nerd Font Mono",
-				"size": 18,
+				"size": 16,
 				"weight": "normal"
 			},
 			"padding": "0",
@@ -61,18 +61,14 @@
 	"actions":
 	[
 		{ "command": "toggleFocusMode", "keys": "ctrl+shift+enter" },
-		{ "command": { "action": "splitPane", "split": "up" }, "keys": "ctrl+shift+k" },
-		{ "command": { "action": "splitPane", "split": "right" }, "keys": "ctrl+shift+l" },
-		{ "command": { "action": "splitPane", "split": "down" }, "keys": "ctrl+shift+j" },
-		{ "command": { "action": "splitPane", "split": "left" }, "keys": "ctrl+shift+h" },
-		{ "command": { "action": "resizePane", "direction": "down" }, "keys": "alt+shift+j" },
-		{ "command": { "action": "resizePane", "direction": "left" }, "keys": "alt+shift+h" },
-		{ "command": { "action": "resizePane", "direction": "right" }, "keys": "alt+shift+l" },
-		{ "command": { "action": "resizePane", "direction": "up" }, "keys": "alt+shift+k" },
-		{ "command": { "action": "moveFocus", "direction": "down" }, "keys": "alt+j" },
-		{ "command": { "action": "moveFocus", "direction": "left" }, "keys": "alt+h" },
-		{ "command": { "action": "moveFocus", "direction": "right" }, "keys": "alt+l" },
-		{ "command": { "action": "moveFocus", "direction": "up" }, "keys": "alt+k" },
+		{ "command": "closeTab", "keys": "ctrl+shift+q" },
+		{ "command": "duplicateTab", "keys": "ctrl+shift+n" },
+		{ "command": "nextTab", "keys": "ctrl+shift+l" },
+		{ "command": "prevTab", "keys": "ctrl+shift+h" },
+		{ "command": { "action": "newTab", "index": 0 }, "keys": "ctrl+shift+1" },
+		{ "command": { "action": "newTab", "index": 1 }, "keys": "ctrl+shift+2" },
+		{ "command": { "action": "newTab", "index": 2 }, "keys": "ctrl+shift+3" },
+		{ "command": { "action": "newTab", "index": 3 }, "keys": "ctrl+shift+4" }
 	]
 }
 
