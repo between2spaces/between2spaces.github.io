@@ -1,13 +1,13 @@
-const canvas = document.createElement("canvas");
+const canvas = document.createElement( "canvas" );
 
-document.body.append(canvas);
+document.body.append( canvas );
 
-const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
+const gl = canvas.getContext( "webgl2", { antialias: false, alpha: false } );
 
-gl.disable(gl.DEPTH_TEST);
-gl.disable(gl.DITHER);
-gl.enable(gl.BLEND);
-gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+gl.disable( gl.DEPTH_TEST );
+gl.disable( gl.DITHER );
+gl.enable( gl.BLEND );
+gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
 
 
 function resize() {
@@ -20,13 +20,13 @@ function resize() {
 	canvas.style.width = window.innerWidth + 'px';
 	canvas.style.height = window.innerHeight + 'px';
 
-	gl.viewport(0, 0, canvas.width, canvas.height);
+	gl.viewport( 0, 0, canvas.width, canvas.height );
 
 }
 
 resize();
 
-window.addEventListener("resize", resize);
+window.addEventListener( "resize", resize );
 
 
 
@@ -34,7 +34,7 @@ const shader = ( () => {
 
 	const shader = {
 
-		vs: compileShader(gl, gl.VERTEX_SHADER, `#version 300 es
+		vs: compileShader( gl, gl.VERTEX_SHADER, `#version 300 es
 
 			in vec2 position;
 			in vec2 uv;
@@ -54,7 +54,7 @@ const shader = ( () => {
 
 		` ),
 
-		fs: compileShader(gl, gl.FRAGMENT_SHADER, `#version 300 es
+		fs: compileShader( gl, gl.FRAGMENT_SHADER, `#version 300 es
 
 			precision highp float;
 
@@ -77,22 +77,22 @@ const shader = ( () => {
 
 	};
 
-	gl.attachShader(shader.program, shader.vs);
-	gl.attachShader(shader.program, shader.fs);
-	gl.linkProgram(shader.program);
+	gl.attachShader( shader.program, shader.vs );
+	gl.attachShader( shader.program, shader.fs );
+	gl.linkProgram( shader.program );
 
-	if (!gl.getProgramParameter(shader.program, gl.LINK_STATUS))
-		throw ("program failed to link:" + gl.getProgramInfoLog(shader.program));
+	if ( ! gl.getProgramParameter( shader.program, gl.LINK_STATUS ) )
+		throw ( "program failed to link:" + gl.getProgramInfoLog( shader.program ) );
 
 	for ( let attribute of [ "position", "uv", "colour", "z" ] ) {
 
-		shader.attributes[attribute] = gl.getAttribLocation(shader.program, attribute);
+		shader.attributes[ attribute ] = gl.getAttribLocation( shader.program, attribute );
 
 	}
 
 	for ( let uniform of [ "projection", "glyph" ] ) {
 
-		shader.uniforms[uniform] = gl.getUniformLocation(shader.program, uniform);
+		shader.uniforms[ uniform ] = gl.getUniformLocation( shader.program, uniform );
 
 	}
 
@@ -101,102 +101,102 @@ const shader = ( () => {
 } )();
 
 
-function compileShader(gl, shaderType, shaderSource) {
+function compileShader( gl, shaderType, shaderSource ) {
 
-	const shader = gl.createShader(shaderType);
+	const shader = gl.createShader( shaderType );
 
-	gl.shaderSource(shader, shaderSource);
-	gl.compileShader(shader);
+	gl.shaderSource( shader, shaderSource );
+	gl.compileShader( shader );
 
-	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
-		throw ("could not compile shader:" + gl.getShaderInfoLog(shader));
+	if ( ! gl.getShaderParameter( shader, gl.COMPILE_STATUS ) )
+		throw ( "could not compile shader:" + gl.getShaderInfoLog( shader ) );
 
 	return shader;
 
 }
 
 
-gl.useProgram(shader.program);
+gl.useProgram( shader.program );
 
 
 
 
-const projection = (() => {
+const projection = ( () => {
 
-	const matrix = new Array(16);
-	const projection = { left: 0, right: 1, top: 10, bottom: 0, near: -1, far: 100, matrix };
+	const matrix = new Array( 16 );
+	const projection = { left: 0, right: 1, top: 10, bottom: 0, near: - 1, far: 100, matrix };
 
-	const lr = 1 / (projection.left - projection.right);
-	const bt = 1 / (projection.bottom - projection.top);
-	const nf = 1 / (projection.near - projection.far);
+	const lr = 1 / ( projection.left - projection.right );
+	const bt = 1 / ( projection.bottom - projection.top );
+	const nf = 1 / ( projection.near - projection.far );
 
-	matrix[0] = - 2 * lr;
-	matrix[1] = matrix[2] = matrix[3] = matrix[4] = matrix[6] = matrix[7] = matrix[8] = matrix[9] = matrix[11] = 0;
-	matrix[5] = - 2 * bt;
-	matrix[10] = 2 * nf;
-	matrix[12] = (projection.left + projection.right) * lr;
-	matrix[13] = (projection.top + projection.bottom) * bt;
-	matrix[14] = (projection.far + projection.near) * nf;
-	matrix[15] = 1;
+	matrix[ 0 ] = - 2 * lr;
+	matrix[ 1 ] = matrix[ 2 ] = matrix[ 3 ] = matrix[ 4 ] = matrix[ 6 ] = matrix[ 7 ] = matrix[ 8 ] = matrix[ 9 ] = matrix[ 11 ] = 0;
+	matrix[ 5 ] = - 2 * bt;
+	matrix[ 10 ] = 2 * nf;
+	matrix[ 12 ] = ( projection.left + projection.right ) * lr;
+	matrix[ 13 ] = ( projection.top + projection.bottom ) * bt;
+	matrix[ 14 ] = ( projection.far + projection.near ) * nf;
+	matrix[ 15 ] = 1;
 
 	return projection;
 
-})();
+} )();
 
-gl.uniformMatrix4fv(shader.uniforms.projection, false, projection.matrix);
+gl.uniformMatrix4fv( shader.uniforms.projection, false, projection.matrix );
 
 
 
 const texture = gl.createTexture();
 
-gl.activeTexture(gl.TEXTURE0);
-gl.uniform1i(shader.uniforms.glyph, 0);
+gl.activeTexture( gl.TEXTURE0 );
+gl.uniform1i( shader.uniforms.glyph, 0 );
 
 
 
 const layers = [];
 
 
-function render(currentTime) {
+function render( currentTime ) {
 
-	requestAnimationFrame(render);
+	requestAnimationFrame( render );
 
-	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.clear( gl.COLOR_BUFFER_BIT );
 
-	for (let layer of layers) {
+	for ( let layer of layers ) {
 
-		if (layer.uv.dirty) {
+		if ( layer.uv.dirty ) {
 
-			gl.bindBuffer(gl.ARRAY_BUFFER, layer.uv.buffer);
-			gl.bufferSubData(gl.ARRAY_BUFFER, 0, layer.uv.data);
+			gl.bindBuffer( gl.ARRAY_BUFFER, layer.uv.buffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 0, layer.uv.data );
 			layer.uv.dirty = false;
 
 		}
 
-		if (layer.colour.dirty) {
+		if ( layer.colour.dirty ) {
 
-			gl.bindBuffer(gl.ARRAY_BUFFER, layer.colour.buffer);
-			gl.bufferSubData(gl.ARRAY_BUFFER, 0, layer.colour.data);
+			gl.bindBuffer( gl.ARRAY_BUFFER, layer.colour.buffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 0, layer.colour.data );
 			layer.colour.dirty = false;
 
 		}
 
-		gl.bindVertexArray(layer.vao);
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, layer.indices.total);
+		gl.bindVertexArray( layer.vao );
+		gl.drawArrays( gl.TRIANGLE_STRIP, 0, layer.indices.total );
 
 	}
 
-	update(currentTime);
+	update( currentTime );
 
 }
 
 
-function createLayer(gl, charSetUVs, cols = 80, rows = 30) {
+function createLayer( gl, charSetUVs, cols = 80, rows = 30 ) {
 
 	const layer = {
 		cols: cols,
 		rows: rows,
-		char: new Array(cols * rows),
+		char: new Array( cols * rows ),
 		index: layers.length,
 		uv: {
 			buffer: gl.createBuffer(),
@@ -210,96 +210,96 @@ function createLayer(gl, charSetUVs, cols = 80, rows = 30) {
 		indices: {
 			perCol: 4,
 			perRow: 4 * cols + 2,
-			total: (cols * 4 + 2) * rows
+			total: ( cols * 4 + 2 ) * rows
 		}
 	};
 
 	const vertices = [];
 	const uvs = [];
-	const charUV = charSetUVs[" "];
+	const charUV = charSetUVs[ " " ];
 	const colours = [];
 	const rowHeight = projection.top / rows;
 	let rowY = 0;
 
-	for (let row = 0; row < rows; row++) {
+	for ( let row = 0; row < rows; row ++ ) {
 
-		for (let col = 0; col < cols; col++) {
+		for ( let col = 0; col < cols; col ++ ) {
 
-			vertices.push(col / cols, rowY);
-			vertices.push(col / cols, rowY + rowHeight);
-			vertices.push((col + 1) / cols, rowY);
-			vertices.push((col + 1) / cols, rowY + rowHeight);
+			vertices.push( col / cols, rowY );
+			vertices.push( col / cols, rowY + rowHeight );
+			vertices.push( ( col + 1 ) / cols, rowY );
+			vertices.push( ( col + 1 ) / cols, rowY + rowHeight );
 
-			uvs.push(...charUV);
+			uvs.push( ...charUV );
 
-			colours.push(1, 0, 0, 1);
-			colours.push(1, 0, 0, 1);
-			colours.push(1, 0, 0, 1);
-			colours.push(1, 0, 0, 1);
+			colours.push( 1, 0, 0, 1 );
+			colours.push( 1, 0, 0, 1 );
+			colours.push( 1, 0, 0, 1 );
+			colours.push( 1, 0, 0, 1 );
 
-			layer.char[row * rows + col] = " ";
+			layer.char[ row * rows + col ] = " ";
 
 		}
 
 		rowY += rowHeight;
 
-		vertices.push(1, rowY);
-		vertices.push(0, rowY);
+		vertices.push( 1, rowY );
+		vertices.push( 0, rowY );
 
-		uvs.push(0, 0, 0, 0);
+		uvs.push( 0, 0, 0, 0 );
 
-		colours.push(0, 0, 0, 0);
-		colours.push(0, 0, 0, 0);
+		colours.push( 0, 0, 0, 0 );
+		colours.push( 0, 0, 0, 0 );
 
 	}
 
-	layer.uv.data = new Float32Array(uvs);
+	layer.uv.data = new Float32Array( uvs );
 
-	layer.colour.data = new Float32Array(colours);
+	layer.colour.data = new Float32Array( colours );
 
 	const positionBuffer = gl.createBuffer();
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+	gl.bindBuffer( gl.ARRAY_BUFFER, positionBuffer );
+	gl.bufferData( gl.ARRAY_BUFFER, new Float32Array( vertices ), gl.STATIC_DRAW );
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, layer.uv.buffer);
-	gl.bufferData(gl.ARRAY_BUFFER, layer.uv.data, gl.STATIC_DRAW);
+	gl.bindBuffer( gl.ARRAY_BUFFER, layer.uv.buffer );
+	gl.bufferData( gl.ARRAY_BUFFER, layer.uv.data, gl.STATIC_DRAW );
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, layer.colour.buffer);
-	gl.bufferData(gl.ARRAY_BUFFER, layer.colour.data, gl.STATIC_DRAW);
+	gl.bindBuffer( gl.ARRAY_BUFFER, layer.colour.buffer );
+	gl.bufferData( gl.ARRAY_BUFFER, layer.colour.data, gl.STATIC_DRAW );
 
-	gl.bindVertexArray(layer.vao);
+	gl.bindVertexArray( layer.vao );
 
-	gl.enableVertexAttribArray(shader.attributes.position);
-	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-	gl.vertexAttribPointer(shader.attributes.position, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray( shader.attributes.position );
+	gl.bindBuffer( gl.ARRAY_BUFFER, positionBuffer );
+	gl.vertexAttribPointer( shader.attributes.position, 2, gl.FLOAT, false, 0, 0 );
 
-	gl.enableVertexAttribArray(shader.attributes.uv);
-	gl.bindBuffer(gl.ARRAY_BUFFER, layer.uv.buffer);
-	gl.vertexAttribPointer(shader.attributes.uv, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray( shader.attributes.uv );
+	gl.bindBuffer( gl.ARRAY_BUFFER, layer.uv.buffer );
+	gl.vertexAttribPointer( shader.attributes.uv, 2, gl.FLOAT, false, 0, 0 );
 
-	gl.enableVertexAttribArray(shader.attributes.colour);
-	gl.bindBuffer(gl.ARRAY_BUFFER, layer.colour.buffer);
-	gl.vertexAttribPointer(shader.attributes.colour, 4, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray( shader.attributes.colour );
+	gl.bindBuffer( gl.ARRAY_BUFFER, layer.colour.buffer );
+	gl.vertexAttribPointer( shader.attributes.colour, 4, gl.FLOAT, false, 0, 0 );
 
-	gl.uniform1f(shader.uniforms.z, layer.index);
+	gl.uniform1f( shader.uniforms.z, layer.index );
 
-	gl.bindVertexArray(null);
+	gl.bindVertexArray( null );
 
-	layers.push(layer);
+	layers.push( layer );
 
 	return layer;
 
 }
 
-function characterSet(gl, chars, size = 1024) {
+function characterSet( gl, chars, size = 1024 ) {
 
-	const canvas = document.createElement("canvas");
+	const canvas = document.createElement( "canvas" );
 
 	canvas.width = size;
 	canvas.height = size;
 
-	const ctx = canvas.getContext("2d");
+	const ctx = canvas.getContext( "2d" );
 
 	ctx.fillStyle = "white";
 	ctx.textAlign = "center";
@@ -314,37 +314,37 @@ function characterSet(gl, chars, size = 1024) {
 
 	do {
 
-		ctx.font = `${font--}px monospace`;
-		metrics = ctx.measureText("㶑");
-		cols = Math.floor(canvas.width / metrics.width);
-		height = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) * 1.2;
+		ctx.font = `${font --}px monospace`;
+		metrics = ctx.measureText( "㶑" );
+		cols = Math.floor( canvas.width / metrics.width );
+		height = Math.ceil( metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent ) * 1.2;
 
-	} while (cols * Math.floor(canvas.height / height) < chars.length);
+	} while ( cols * Math.floor( canvas.height / height ) < chars.length );
 
-	const stdMetrics = ctx.measureText("█");
+	const stdMetrics = ctx.measureText( "█" );
 
-	for (let i = 0, l = chars.length; i < l; i++) {
+	for ( let i = 0, l = chars.length; i < l; i ++ ) {
 
-		let y = metrics.actualBoundingBoxAscent + Math.floor(i / cols) * height;
-		let x = metrics.width * 0.5 + (i % cols) * metrics.width;
+		let y = metrics.actualBoundingBoxAscent + Math.floor( i / cols ) * height;
+		let x = metrics.width * 0.5 + ( i % cols ) * metrics.width;
 
-		ctx.fillText(chars[i], x, y);
+		ctx.fillText( chars[ i ], x, y );
 
-		let left = (x - 0.5 * stdMetrics.width + 1) / size;
-		let top = (y - stdMetrics.actualBoundingBoxAscent + 1) / size;
-		let right = (x + 0.5 * stdMetrics.width - 1) / size;
-		let bottom = (y + stdMetrics.actualBoundingBoxDescent - 1) / size;
+		let left = ( x - 0.5 * stdMetrics.width + 1 ) / size;
+		let top = ( y - stdMetrics.actualBoundingBoxAscent + 1 ) / size;
+		let right = ( x + 0.5 * stdMetrics.width - 1 ) / size;
+		let bottom = ( y + stdMetrics.actualBoundingBoxDescent - 1 ) / size;
 
-		uvs[chars[i]] = [left, bottom, left, top, right, bottom, right, top];
+		uvs[ chars[ i ] ] = [ left, bottom, left, top, right, bottom, right, top ];
 
 	}
 
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);//gl.LINEAR );
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+	gl.bindTexture( gl.TEXTURE_2D, texture );
+	gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST );//gl.LINEAR );
+	gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST );
 	//gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE );
 	//gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE );
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+	gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas );
 	//gl.generateMipmap(gl.TEXTURE_2D);
 	//
 	document.body.append( canvas );
@@ -354,48 +354,48 @@ function characterSet(gl, chars, size = 1024) {
 }
 
 
-function setChar(col, row, char, layerIndex = 0, colour = null) {
+function setChar( col, row, char, layerIndex = 0, colour = null ) {
 
-	const layer = (layerIndex > layers.length - 1) ? layers[ layers.length - 1 ] : layers[ layerIndex ];
+	const layer = ( layerIndex > layers.length - 1 ) ? layers[ layers.length - 1 ] : layers[ layerIndex ];
 
 	if ( col < 0 ) col = layer.cols + col;
 	if ( row < 0 ) row = layer.rows + row;
 
-	const charUVs = charSetUVs[char];
+	const charUVs = charSetUVs[ char ];
 	const indice = row * layer.indices.perRow + col * layer.indices.perCol;
 	const charOffset = row * layer.cols + col;
 
-	if (layer.char[charOffset] !== char) {
+	if ( layer.char[ charOffset ] !== char ) {
 
-		layer.char[charOffset] = char;
+		layer.char[ charOffset ] = char;
 
 		let data = layer.uv.data;
 		let i = indice * 2;
 
-		data[i] = charUVs[0];
-		data[i + 1] = charUVs[1];
-		data[i + 2] = charUVs[2];
-		data[i + 3] = charUVs[3];
-		data[i + 4] = charUVs[4];
-		data[i + 5] = charUVs[5];
-		data[i + 6] = charUVs[6];
-		data[i + 7] = charUVs[7];
+		data[ i ] = charUVs[ 0 ];
+		data[ i + 1 ] = charUVs[ 1 ];
+		data[ i + 2 ] = charUVs[ 2 ];
+		data[ i + 3 ] = charUVs[ 3 ];
+		data[ i + 4 ] = charUVs[ 4 ];
+		data[ i + 5 ] = charUVs[ 5 ];
+		data[ i + 6 ] = charUVs[ 6 ];
+		data[ i + 7 ] = charUVs[ 7 ];
 
 		layer.uv.dirty = true;
 
 	}
 
-	if (colour) {
+	if ( colour ) {
 
 		let data = layer.colour.data;
 		let i = indice * 4;
 
-		if (data[i] !== colour[0] || data[i + 1] !== colour[1] || data[i + 2] !== colour[1] || data[i + 3] !== colour[1]) {
+		if ( data[ i ] !== colour[ 0 ] || data[ i + 1 ] !== colour[ 1 ] || data[ i + 2 ] !== colour[ 1 ] || data[ i + 3 ] !== colour[ 1 ] ) {
 
-			data[i] = data[i + 4] = data[i + 8] = data[i + 12] = colour[0];
-			data[i + 1] = data[i + 5] = data[i + 9] = data[i + 13] = colour[1];
-			data[i + 2] = data[i + 6] = data[i + 10] = data[i + 14] = colour[2];
-			data[i + 3] = data[i + 7] = data[i + 11] = data[i + 15] = colour[3];
+			data[ i ] = data[ i + 4 ] = data[ i + 8 ] = data[ i + 12 ] = colour[ 0 ];
+			data[ i + 1 ] = data[ i + 5 ] = data[ i + 9 ] = data[ i + 13 ] = colour[ 1 ];
+			data[ i + 2 ] = data[ i + 6 ] = data[ i + 10 ] = data[ i + 14 ] = colour[ 2 ];
+			data[ i + 3 ] = data[ i + 7 ] = data[ i + 11 ] = data[ i + 15 ] = colour[ 3 ];
 
 			layer.colour.dirty = true;
 
@@ -405,10 +405,12 @@ function setChar(col, row, char, layerIndex = 0, colour = null) {
 
 }
 
-function writeText(col, row, string, layerIndex = 0, colour = null) {
+function writeText( col, row, string, layerIndex = 0, colour = null ) {
 
-	for (let char of string) {
-		setChar(col++, row, char, layerIndex, colour);
+	for ( let char of string ) {
+
+		setChar( col ++, row, char, layerIndex, colour );
+
 	}
 
 }
@@ -420,50 +422,22 @@ const characters = `
 ⅈጸ
 `;
 
-const charSetUVs = characterSet(gl, characters);
-
-const view = {
-	cols: 20,
-	rows: 10 
-};
-
-
-const layer_ground = createLayer(gl, charSetUVs, view.cols, view.rows);
-const layer_groundcover = createLayer(gl, charSetUVs, view.cols, view.rows);
-const layer_groundcover_2 = createLayer(gl, charSetUVs, view.cols, view.rows);
-const layer_groundcover_3 = createLayer(gl, charSetUVs, view.cols, view.rows);
-const layer_characters = createLayer(gl, charSetUVs, view.cols, view.rows);
-const layer_ui_bg = createLayer(gl, charSetUVs, 20, 10);
-const layer_ui_fg = createLayer(gl, charSetUVs, 20, 10);
-
-writeText(0, - 1, "███", layer_ui_bg.index, [1, 1, 1, 0.5]);
-
-for (let row = 0; row < view.rows; row++) {
-	for (let col = 0; col < view.cols; col++) {
-		setChar(col, row, '█', layer_ground.index, [30/255, 30/255, 30/255, 1]);
-		setChar(col, row, '░', layer_groundcover.index, [50/255, 50/255, 50/255, 1]);
-	}
-}
-
-setChar(6, 0, '⛆', layer_groundcover_3.index, [50/255, 50/255, 150/255, 1]);
-
-setChar(Math.floor(view.cols/2), Math.floor(view.rows/2), "ጸ", layer_characters.index, [255/255, 255/255, 255/255, 1]);
-
+const charSetUVs = characterSet( gl, characters );
 
 let fps, startTime, prevTime, frameCount = 0;
 
-function update(currentTime) {
+function update( currentTime ) {
 
-	if (layers.length < 3) return;
+	if ( layers.length < 3 ) return;
 
-	if (!startTime) {
+	if ( ! startTime ) {
 
 		startTime = currentTime;
 		prevTime = startTime;
 
 	}
 
-	frameCount++;
+	frameCount ++;
 
 	if ( currentTime - prevTime >= 1000 ) {
 
@@ -479,4 +453,171 @@ function update(currentTime) {
 
 
 render();
+
+
+
+
+const world = {
+	cols: 20,
+	rows: 10,
+	depth: 20,
+};
+
+world.cell = new Array( world.cols * world.rows );
+
+for ( let row = 0; row < world.rows; row ++ ) {
+
+	for ( let col = 0; col < world.cols; col ++ ) {
+
+		const xy = world.cell[ row * world.cols + col ] = { x: col, y: row, depths: new Array( world.depth ) };
+
+		for ( let z = 0; z < world.depth; z ++ ) {
+
+			xy.depths[ z ] = { xy: xy, z, items: [] };
+
+		}
+
+	}
+
+}
+
+//function setWorldCell()
+
+const view = {
+	cols: 20,
+	rows: 10,
+	depth: 4,
+	halfCols: 10,
+	halfRows: 5,
+	halfDepth: 2,
+	centre: { x: Math.floor( world.cols / 2 ), y: Math.floor( world.rows / 2 ), z: Math.floor( world.depth / 2 ) }
+};
+
+function viewContains( x, y, z ) {
+
+	return ( x < view.centre.x - view.halfCols || x >= view.centre.x + view.halfCols || y < view.centre.y - view.halfRows || y >> view.centre.y + view.halfRows || z < view.centre.z - view.halfDepth || z >> view.centre.z + view.halfDepth ) ? false : true;
+
+}
+
+console.log( "help" );
+const layer_ground = createLayer( gl, charSetUVs, view.cols, view.rows );
+const layer_groundcover = createLayer( gl, charSetUVs, view.cols, view.rows );
+const layer_groundcover_2 = createLayer( gl, charSetUVs, view.cols, view.rows );
+const layer_groundcover_3 = createLayer( gl, charSetUVs, view.cols, view.rows );
+const layer_characters = createLayer( gl, charSetUVs, view.cols, view.rows );
+const layer_ui_bg = createLayer( gl, charSetUVs, 20, 10 );
+const layer_ui_fg = createLayer( gl, charSetUVs, 20, 10 );
+
+writeText( 0, - 1, "███", layer_ui_bg.index, [ 1, 1, 1, 0.5 ] );
+
+for ( let row = 0; row < view.rows; row ++ ) {
+
+	for ( let col = 0; col < view.cols; col ++ ) {
+
+		setChar( col, row, '█', layer_ground.index, [ 30 / 255, 30 / 255, 30 / 255, 1 ] );
+		setChar( col, row, '░', layer_groundcover.index, [ 50 / 255, 50 / 255, 50 / 255, 1 ] );
+
+	}
+
+}
+
+setChar( 6, 0, '█', layer_ground.index, [ 50 / 255, 50 / 255, 100 / 255, 1 ] );
+setChar( 6, 0, '⛆', layer_groundcover.index, [ 50 / 255, 50 / 255, 150 / 255, 1 ] );
+
+
+setChar( Math.floor( view.cols / 2 ), Math.floor( view.rows / 2 ), "ጸ", layer_characters.index, [ 255 / 255, 255 / 255, 255 / 255, 1 ] );
+
+
+const glyphs = [ "ጸ" ];
+
+function createPlayer() {
+
+	return { glyphIndex: glyphs.indexOf( "ጸ" ), cell: null };
+
+}
+
+function worldXY( x, y ) {
+
+	return world.cell[ y * world.cols + x ];
+
+}
+
+function worldXYZ( x, y, z ) {
+
+	return world.cell[ y * world.cols + x ].depths[ z ];
+
+}
+
+
+
+
+function movePlayer( direction ) {
+
+	if ( direction === "north" ) {
+
+		const cell = player.cell;
+		const destination = worldXYZ( cell.xy.x, cell.xy.y + 1, cell.z );
+		console.log( destination.xy.x, destination.xy.y );
+		moveItem( player, destination );
+
+	}
+
+}
+
+function moveItem( item, cell ) {
+
+	if ( item.cell ) {
+
+		const index = item.cell.items.indexOf( item );
+
+		if ( index > - 1 ) {
+
+			item.cell.items.splice( index, 1 );
+
+		}
+
+	}
+
+	cell.items.push( item );
+	item.cell = cell;
+
+	if ( viewContains( cell.xy.x, cell.xy.y, cell.z ) ) {
+
+		console.log( "view contains true" );
+
+		setChar( cell.xy.x - view.centre.x, cell.xy.y - view.centre.y, glyphs[ item.glyphIndex ], layer_characters.index, [ 255 / 255, 255 / 255, 255 / 255, 1 ] );
+
+	}
+
+}
+
+function onKeydown( event ) {
+
+	console.log( event.key );
+	const key = event.key;
+	let action;
+
+	if ( key === "k" ) action = { action: "movePlayer", direction: "north" };
+
+	if ( ! action ) return;
+
+	switch ( action.action ) {
+
+		case "movePlayer":
+			movePlayer( action.direction );
+			break;
+
+	}
+
+}
+
+
+const player = createPlayer();
+
+let xy = worldXY( Math.floor( view.cols / 2 ), Math.floor( view.rows / 2 ) );
+player.cell = xy.depths[ Math.floor( world.depth / 2 ) ];
+player.cell.items.push( player );
+
+
+window.addEventListener( "keydown", onKeydown );
 

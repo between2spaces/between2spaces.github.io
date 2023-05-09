@@ -59,10 +59,10 @@ done
 sudo apt install -y ca-certificates curl gnupg lsb-release
 
 if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docker.list ]; then
-    echo "Adding Dockers official GPG key and setting up repo..."
-    sudo mkdir -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+	echo "Adding Dockers official GPG key and setting up repo..."
+	sudo mkdir -p /etc/apt/keyrings
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 fi
 
 
@@ -130,7 +130,7 @@ echo "Node Version Manager"
 export NVM_DIR="$HOME/.nvm"
 if [ ! -d $NVM_DIR ];
 then
-    git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
+	git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
 fi
 
 CWD=$PWD
@@ -175,7 +175,13 @@ fi
 # Neovim health support
 
 sudo apt install ripgrep 	# for Telescope
+sudo apt install fd-find    # for Telescope
 pip install pynvim			# Python support
+
+if [ ! -f ~/.local/bin/fd ];
+then
+	ln -s $(which fdfind) ~/.local/bin/fd 
+fi
 
 
 
