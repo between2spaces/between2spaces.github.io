@@ -9,7 +9,7 @@ then
 		git pull
 	else
 		echo "Cloning github repo..."
-		cd $HOME 
+		cd $HOME
 		git clone https://github.com/between2spaces/between2spaces.github.io.git
 		cd between2spaces.github.io
 	fi
@@ -27,7 +27,7 @@ git config --global credential.helper "store"
 git config user.email "between2spaces@gmail.com"
 git config user.name "between2spaces"
 
-git config pull.rebase true 
+git config pull.rebase true
 
 
 
@@ -77,9 +77,15 @@ sudo apt autoremove -y
 sudo apt autoclean -y
 
 
+# Java
+
+sudo apt install openjdk-19-jdk
+
+
 # Python3 and pip
 
 sudo apt install -y python3-pip
+
 
 # Powerline-shell
 
@@ -104,7 +110,7 @@ then
 	# Tmp working directory
 	TMP_DIR="$(mktemp -d)"
 	cd $TMP_DIR
-	echo "Installing Tmux using working directory $TMP_DIR..." 
+	echo "Installing Tmux using working directory $TMP_DIR..."
 
 	git clone https://github.com/tmux/tmux.git
 	cd tmux
@@ -146,7 +152,7 @@ source ~/.profile
 
 
 
-# Neovim 
+# Neovim
 
 if [[ "$(nvim --version | head -n 1)" != "NVIM v0.9.1-dev-57+ge81b2eb94" ]];
 then
@@ -157,7 +163,7 @@ then
 	# Tmp working directory
 	TMP_DIR="$(mktemp -d)"
 	cd $TMP_DIR
-	echo "Installing Neovim 0.9 using working directory $TMP_DIR..." 
+	echo "Installing Neovim 0.9 using working directory $TMP_DIR..."
 
 	# Install Neovim 0.9
 	git clone https://github.com/neovim/neovim.git
