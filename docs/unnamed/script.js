@@ -4,10 +4,14 @@ document.body.append( canvas );
 
 const gl = canvas.getContext( "webgl2", { antialias: false, alpha: false } );
 
-gl.disable( gl.DEPTH_TEST );
-gl.disable( gl.DITHER );
+gl.clearColor( 1, 1, 1, 1 );
+
+//gl.disable( gl.DEPTH_TEST );
+//gl.disable( gl.DITHER );
 gl.enable( gl.BLEND );
 gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+
+
 
 
 function resize() {
@@ -49,7 +53,7 @@ const shader = ( () => {
 			void main() {
 			gl_Position = projection * vec4( position.x, position.y, z, 1.0 );
 			fragUV = uv;
-			fragRGBA = colour; 
+			fragRGBA = colour;
 			}
 
 		` ),
@@ -58,8 +62,8 @@ const shader = ( () => {
 
 			precision highp float;
 
-			in vec2 fragUV;	
-			in vec4 fragRGBA;	
+			in vec2 fragUV;
+			in vec4 fragRGBA;
 
 			uniform sampler2D glyph;
 
@@ -153,42 +157,7 @@ gl.activeTexture( gl.TEXTURE0 );
 gl.uniform1i( shader.uniforms.glyph, 0 );
 
 
-
 const layers = [];
-
-
-function render( currentTime ) {
-
-	requestAnimationFrame( render );
-
-	gl.clear( gl.COLOR_BUFFER_BIT );
-
-	for ( let layer of layers ) {
-
-		if ( layer.uv.dirty ) {
-
-			gl.bindBuffer( gl.ARRAY_BUFFER, layer.uv.buffer );
-			gl.bufferSubData( gl.ARRAY_BUFFER, 0, layer.uv.data );
-			layer.uv.dirty = false;
-
-		}
-
-		if ( layer.colour.dirty ) {
-
-			gl.bindBuffer( gl.ARRAY_BUFFER, layer.colour.buffer );
-			gl.bufferSubData( gl.ARRAY_BUFFER, 0, layer.colour.data );
-			layer.colour.dirty = false;
-
-		}
-
-		gl.bindVertexArray( layer.vao );
-		gl.drawArrays( gl.TRIANGLE_STRIP, 0, layer.indices.total );
-
-	}
-
-	update( currentTime );
-
-}
 
 
 function createLayer( gl, charSetUVs, cols = 80, rows = 30 ) {
@@ -292,7 +261,7 @@ function createLayer( gl, charSetUVs, cols = 80, rows = 30 ) {
 
 }
 
-function characterSet( gl, chars, size = 1024 ) {
+function characterSet( gl, chars, size = 2048 ) {
 
 	const canvas = document.createElement( "canvas" );
 
@@ -424,27 +393,59 @@ const characters = `
 
 const charSetUVs = characterSet( gl, characters );
 
-let fps, startTime, prevTime, frameCount = 0;
+const renderInfo = {
+	fps: 0,
+	prevTime: 0,
+	currTime: 0,
+	frame: 0
+};
 
-function update( currentTime ) {
 
-	if ( layers.length < 3 ) return;
 
-	if ( ! startTime ) {
+requestAnimationFrame( render );
 
-		startTime = currentTime;
-		prevTime = startTime;
+
+function render( currTime ) {
+
+	requestAnimationFrame( render );
+
+	gl.clear( gl.COLOR_BUFFER_BIT );
+
+	renderInfo.frame ++;
+	renderInfo.currTime = currTime;
+
+	if ( renderInfo.prevTime === 0 ) {
+
+		renderInfo.prevTime = currTime;
+
+	} else if ( currTime - renderInfo.prevTime >= 1000 ) {
+
+		writeText( 0, - 1, `${renderInfo.frame}`, layer_ui_fg.index, [ 0, 0, 0, 1 ] );
+		renderInfo.frame = 0;
+		renderInfo.prevTime = currTime;
 
 	}
 
-	frameCount ++;
+	for ( let layer of layers ) {
 
-	if ( currentTime - prevTime >= 1000 ) {
+		if ( layer.uv.dirty ) {
 
-		fps = frameCount;
-		writeText( 0, - 1, `${fps}`, layer_ui_fg.index, [ 0, 0, 0, 1 ] );
-		frameCount = 0;
-		prevTime = currentTime;
+			gl.bindBuffer( gl.ARRAY_BUFFER, layer.uv.buffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 0, layer.uv.data );
+			layer.uv.dirty = false;
+
+		}
+
+		if ( layer.colour.dirty ) {
+
+			gl.bindBuffer( gl.ARRAY_BUFFER, layer.colour.buffer );
+			gl.bufferSubData( gl.ARRAY_BUFFER, 0, layer.colour.data );
+			layer.colour.dirty = false;
+
+		}
+
+		gl.bindVertexArray( layer.vao );
+		gl.drawArrays( gl.TRIANGLE_STRIP, 0, layer.indices.total );
 
 	}
 
@@ -452,46 +453,45 @@ function update( currentTime ) {
 
 
 
-render();
 
+function createWorld( cols, rows, depth ) {
 
+	const world = { cols, rows, depth, xy: new Array( cols * rows ) };
 
+	let x = 0;
+	let y = 0;
 
-const world = {
-	cols: 20,
-	rows: 10,
-	depth: 20,
-};
+	for ( let i = 0, limit = world.xy.length; i < limit; i ++ ) {
 
-world.cell = new Array( world.cols * world.rows );
+		const xy = world.xy[ y * cols + x ] = { x, y, z: new Array( depth ) };
 
-for ( let row = 0; row < world.rows; row ++ ) {
+		for ( let z = 0; z < depth; z ++ ) {
 
-	for ( let col = 0; col < world.cols; col ++ ) {
-
-		const xy = world.cell[ row * world.cols + col ] = { x: col, y: row, depths: new Array( world.depth ) };
-
-		for ( let z = 0; z < world.depth; z ++ ) {
-
-			xy.depths[ z ] = { xy: xy, z, items: [] };
+			xy.z[ z ] = { xy: xy, z, items: [] };
 
 		}
 
 	}
 
+	return world;
+
 }
 
-//function setWorldCell()
 
-const view = {
-	cols: 20,
-	rows: 10,
-	depth: 4,
-	halfCols: 10,
-	halfRows: 5,
-	halfDepth: 2,
-	centre: { x: Math.floor( world.cols / 2 ), y: Math.floor( world.rows / 2 ), z: Math.floor( world.depth / 2 ) }
-};
+
+const world = createWorld( 20, 10, 5 );
+
+function createView( cols, rows, depth ) {
+
+	const view = { cols, rows, depth, halfCols: Math.floor( cols / 2 ), halfRows: Math.floor( rows / 2 ), halfDepth: Math.floor( depth / 2 ) };
+
+	view.x = view.halfCols;
+	view.y = view.halfRows;
+	view.z = view.halfDepth;
+
+	return view;
+
+}
 
 function viewContains( x, y, z ) {
 
@@ -499,7 +499,6 @@ function viewContains( x, y, z ) {
 
 }
 
-console.log( "help" );
 const layer_ground = createLayer( gl, charSetUVs, view.cols, view.rows );
 const layer_groundcover = createLayer( gl, charSetUVs, view.cols, view.rows );
 const layer_groundcover_2 = createLayer( gl, charSetUVs, view.cols, view.rows );
@@ -508,31 +507,18 @@ const layer_characters = createLayer( gl, charSetUVs, view.cols, view.rows );
 const layer_ui_bg = createLayer( gl, charSetUVs, 20, 10 );
 const layer_ui_fg = createLayer( gl, charSetUVs, 20, 10 );
 
-writeText( 0, - 1, "███", layer_ui_bg.index, [ 1, 1, 1, 0.5 ] );
 
-for ( let row = 0; row < view.rows; row ++ ) {
-
-	for ( let col = 0; col < view.cols; col ++ ) {
-
-		setChar( col, row, '█', layer_ground.index, [ 30 / 255, 30 / 255, 30 / 255, 1 ] );
-		setChar( col, row, '░', layer_groundcover.index, [ 50 / 255, 50 / 255, 50 / 255, 1 ] );
-
-	}
-
-}
-
-setChar( 6, 0, '█', layer_ground.index, [ 50 / 255, 50 / 255, 100 / 255, 1 ] );
-setChar( 6, 0, '⛆', layer_groundcover.index, [ 50 / 255, 50 / 255, 150 / 255, 1 ] );
+//setChar( Math.floor( view.cols / 2 ), Math.floor( view.rows / 2 ), "⬤", layer_characters.index, [ 255 / 255, 255 / 255, 255 / 255, 1 ] );
 
 
-setChar( Math.floor( view.cols / 2 ), Math.floor( view.rows / 2 ), "ጸ", layer_characters.index, [ 255 / 255, 255 / 255, 255 / 255, 1 ] );
-
-
-const glyphs = [ "ጸ" ];
+const glyphs = { player: "⬤" };
 
 function createPlayer() {
 
-	return { glyphIndex: glyphs.indexOf( "ጸ" ), cell: null };
+	return {
+		glyphName: "player",
+		cell: null
+	};
 
 }
 
@@ -585,7 +571,7 @@ function moveItem( item, cell ) {
 
 		console.log( "view contains true" );
 
-		setChar( cell.xy.x - view.centre.x, cell.xy.y - view.centre.y, glyphs[ item.glyphIndex ], layer_characters.index, [ 255 / 255, 255 / 255, 255 / 255, 1 ] );
+		setChar( cell.xy.x - view.centre.x, cell.xy.y - view.centre.y, glyphs[ item.glyphName ], layer_characters.index, [ 255 / 255, 255 / 255, 255 / 255, 1 ] );
 
 	}
 

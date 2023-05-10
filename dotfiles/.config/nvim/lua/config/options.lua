@@ -7,6 +7,7 @@ opt.autowrite = true -- Enable auto write
 opt.clipboard = "" -- Disable sync with system clipboard
 opt.conceallevel = 0 -- Do not conceal text
 opt.tabstop = 4 -- Number of spaces tabs count for
+opt.shiftwidth = 4 -- Number of spaces per intentation level
 
 -- Configure use of WslClipboard
 vim.cmd([[
