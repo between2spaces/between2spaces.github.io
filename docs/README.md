@@ -5,4 +5,5 @@
 ## Recent
 
 * [Unnamed project](/unnamed)
+* [WebGPU Life](/webgpu_life)
 

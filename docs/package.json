@@ -7,11 +7,12 @@
 	"licence": "MIT",
 	"type": "module",
 	"scripts": {
-		"start": "bash ./start.sh"
+		"start": "npx -y npm-check-updates -u; npm install; python3 -m http.server"
 	},
 	"devDependencies": {
 		"eslint": "^8.40.0",
 		"eslint-config-mdcs": "^5.0.0",
+		"eslint-plugin-html": "^7.1.0",
 		"npm-check-updates": "^16.10.12"
 	}
 }

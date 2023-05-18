@@ -481,17 +481,20 @@ function createWorld( cols, rows, depth ) {
 
 const world = createWorld( 20, 10, 5 );
 
-function createView( cols, rows, depth ) {
+function createView( x, y, z, cols, rows, depth ) {
 
-	const view = { cols, rows, depth, halfCols: Math.floor( cols / 2 ), halfRows: Math.floor( rows / 2 ), halfDepth: Math.floor( depth / 2 ) };
+	const view = { x, y, z, cols, rows, depth };
 
-	view.x = view.halfCols;
+	view.x = Math.floor( world.cols / 2 );
 	view.y = view.halfRows;
 	view.z = view.halfDepth;
 
 	return view;
 
 }
+
+
+const view = createView( 0, 0, 5, world.cols, world.rows, world.depth );
 
 function viewContains( x, y, z ) {
 
@@ -568,8 +571,6 @@ function moveItem( item, cell ) {
 	item.cell = cell;
 
 	if ( viewContains( cell.xy.x, cell.xy.y, cell.z ) ) {
-
-		console.log( "view contains true" );
 
 		setChar( cell.xy.x - view.centre.x, cell.xy.y - view.centre.y, glyphs[ item.glyphName ], layer_characters.index, [ 255 / 255, 255 / 255, 255 / 255, 1 ] );
 
