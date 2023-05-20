@@ -198,9 +198,10 @@ sudo pip3 install docker-compose
 
 
 
-# Symlink package.json to ~ and npm install
+# Symlink package.json and .eslintrc.json to ~ and npm install
 
 rm -rf $HOME/package.json && ln -s $PWD/package.json $HOME/package.json
+rm -rf $HOME/.eslintrc.json && ln -s $PWD/.eslintrc.json $HOME/.eslintrc.json
 CWD=$PWD
 cd $HOME
 npm install

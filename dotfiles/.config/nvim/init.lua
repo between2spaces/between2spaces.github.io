@@ -9,8 +9,8 @@ vim.opt.clipboard = '' -- Disable sync with system clipboard
 --vim.opt.tabstop = 4 -- Number of spaces tabs count for
 --vim.opt.shiftwidth = 4 -- Number of spaces per intentation level
 --vim.opt.shiftround = true
-vim.opt.autoindent = false
-vim.opt.smartindent = false
+
+vim.opt.formatprg = 'npx eslint --fix --stdin'
 
 
 -- Configure use of WslClipboard
