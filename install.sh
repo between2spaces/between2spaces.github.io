@@ -6,7 +6,7 @@ then
 	then
 		echo "Updating existing clone..."
 		cd $HOME/between2spaces.github.io
-		git pull
+		git add .; git commit -a -m "lazy commit"; git push; git pull
 	else
 		echo "Cloning github repo..."
 		cd $HOME
@@ -195,6 +195,17 @@ fi
 
 sudo apt install -y docker-ce docker-ce-cli containerd.io
 sudo pip3 install docker-compose
+
+
+
+# Symlink package.json to ~ and npm install
+
+rm -rf $HOME/package.json && ln -s $PWD/package.json $HOME/package.json
+CWD=$PWD
+cd $HOME
+npm install
+cd $CWD
+
 
 
 

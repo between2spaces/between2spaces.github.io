@@ -14,5 +14,16 @@
     "parserOptions": {
         "ecmaVersion": "latest",
         "sourceType": "module"
+    },
+    "rules": {
+        "indent": [
+            "error",
+            "tab",
+            {
+                "ignoredNodes": [
+                    "TemplateLiteral"
+                ]
+            }
+        ]
     }
 }
