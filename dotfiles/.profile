@@ -9,14 +9,18 @@ if [ -n "$BASH_VERSION" ]; then
 	fi
 fi
 
-# set PATH so it includes user's private bin if it exists
+# set PATH so it includes user's private bin(s) if they exist
 if [ -d "$HOME/bin" ] ; then
 	PATH="$HOME/bin:$PATH"
 fi
 
-# set PATH so it includes user's private bin if it exists
 if [ -d "$HOME/.local/bin" ] ; then
 	PATH="$HOME/.local/bin:$PATH"
 fi
+
+if [ -d "$HOME/node_modules/.bin" ] ; then
+	PATH="$HOME/node_modules/.bin:$PATH"
+fi
+
 
 
