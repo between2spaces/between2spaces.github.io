@@ -4,6 +4,6 @@
 
 ## Recent
 
-* [Unnamed project](/unnamed)
-* [WebGPU Life](/webgpu_life)
+* [WebGPU Texture](/wgpu_texture)
+* [WebGPU Life](/wgpu_life)
 
