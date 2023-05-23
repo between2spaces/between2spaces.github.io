@@ -1,27 +1,23 @@
--- disbale netrw at the very start of init.lua
---vim.g.loaded_netrw = 1
---vim.g.loaded_netrwPlugin = 1
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
 
 
-vim.g.mapleader = ' '
-vim.g.maplocalleader = ' '
+vim.g.mapleader = ' ' -- Use <space> as the leader
 
 vim.opt.timeout = true
 vim.opt.timeoutlen = 300
 vim.opt.autowrite = true -- Enable auto write
-vim.opt.autoread = true
+vim.opt.autoread = true -- Enable auto read
 vim.opt.clipboard = '' -- Disable sync with system clipboard
 vim.opt.tabstop = 4 -- Number of spaces tabs count for
 vim.opt.shiftwidth = 0 -- Match tabstop
 vim.opt.relativenumber = true -- Enable relative line numbers
 vim.opt.signcolumn = "yes" -- Always display sign column
+vim.opt.confirm = true -- Quit Vim if NvimTree is last buffer
+vim.opt.termguicolors = true -- Enables 24-bit RGB "gui" colours in terminal
 
 
-vim.opt.termguicolors = true
-
-
-
--- Configure use of WslClipboard
+-- Use WslClipboard for copy/paste to/from system clipboard
 vim.g.clipboard = {
 	name = 'WslClipboard',
 	copy = {
@@ -36,9 +32,9 @@ vim.g.clipboard = {
 }
 
 
-vim.cmd.colorscheme('habamax')
 
 
+-- Configure Lazy plugin manager
 
 local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'
 if not vim.loop.fs_stat(lazypath) then
@@ -47,14 +43,13 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 
-
 require( 'lazy' ).setup( {
 
 	{ 'folke/tokyonight.nvim' },
 	{ 'projekt0n/github-nvim-theme' },
-	{ 'Mofiqul/vscode.nvim' },
 	{ 'nvim-lua/plenary.nvim' },
 	{ 'nvim-tree/nvim-web-devicons' },
+	{ 'nvim-tree/nvim-tree.lua' },
 	{ 'jose-elias-alvarez/null-ls.nvim' },
 	{ 'neovim/nvim-lspconfig' },
 	{ 'williamboman/mason.nvim', build = function() pcall(vim.cmd, 'MasonUpdate') end },
@@ -67,9 +62,6 @@ require( 'lazy' ).setup( {
 	{ 'nvim-telescope/telescope-file-browser.nvim' },
 	{ 'folke/which-key.nvim' },
 	{ 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
-	{ 'nvim-tree/nvim-tree.lua' },
-	--{ 'famiu/bufdelete.nvim' },
-	--{ 'adelarsq/neoline.vim' },
 	{ 'akinsho/bufferline.nvim' },
 	{ 'nvim-lualine/lualine.nvim' },
 
@@ -123,7 +115,8 @@ null_ls.setup({
 
 
 
--- Telescope
+-- Telescope setup
+
 require("telescope").setup {
 	defaults = {
 		file_ignore_patterns = {
@@ -144,27 +137,59 @@ require("telescope").setup {
 	extensions = {
 		file_browser = {
 			hidden = true,
-			hijack_netrw = true,
 		},
 	},
 }
 
+-- Telescope file browser extension
 
-
--- File browser extension
 require("telescope").load_extension "file_browser"
 
 
--- NvimTree
---require( 'nvim-tree' ).setup({
---	view = {
---		side = 'right',
---		width = 30,
---	},
---	filters = {
---		dotfiles = false,
---	},
---})
+
+-- NvimTree setup
+
+local HEIGHT_RATIO = 0.8
+local WIDTH_RATIO = 0.5
+
+require( 'nvim-tree' ).setup({
+	disable_netrw = true,
+	hijack_netrw = true,
+	respect_buf_cwd = true,
+	sync_root_with_cwd = true,
+	update_focused_file = { enable = true },
+	view = {
+		relativenumber = true,
+		float = {
+			enable = true,
+			open_win_config = function()
+				local screen_w = vim.opt.columns:get()
+				local screen_h = vim.opt.lines:get() - vim.opt.cmdheight:get()
+				local window_w = screen_w * WIDTH_RATIO
+				local window_h = screen_h * HEIGHT_RATIO
+				local window_w_int = math.floor(window_w)
+				local window_h_int = math.floor(window_h)
+				local center_x = (screen_w - window_w) / 2
+				local center_y = ((vim.opt.lines:get() - window_h) / 2)
+				- vim.opt.cmdheight:get()
+				return {
+					border = "rounded",
+					relative = "editor",
+					row = center_y,
+					col = center_x,
+					width = window_w_int,
+					height = window_h_int,
+				}
+			end,
+		},
+		width = function()
+			return math.floor(vim.opt.columns:get() * WIDTH_RATIO)
+		end,
+	},
+	-- filters = {
+	--   custom = { "^.git$" },
+	-- },
+})
 
 -- Open NvimTree at Start but do not focus
 --vim.api.nvim_create_autocmd( { "VimEnter" }, {
@@ -173,8 +198,7 @@ require("telescope").load_extension "file_browser"
 --	end
 --} )
 
--- Quit Vim if NvimTree is last buffer
-vim.opt.confirm = true
+
 --vim.api.nvim_create_autocmd("BufEnter", {
 --	group = vim.api.nvim_create_augroup("NvimTreeClose", {clear = true}),
 --	callback = function()
@@ -231,6 +255,5 @@ require('lualine').setup()
 
 
 -- Colorscheme
---require('vscode').load('dark')
 vim.cmd('colorscheme github_dark')
 
