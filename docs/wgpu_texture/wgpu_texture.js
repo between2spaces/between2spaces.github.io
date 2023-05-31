@@ -7,16 +7,16 @@ async function main() {
 
 	const canvas = document.querySelector( 'canvas' );
 
-	window.addEventListener( 'resize', fitWindow );
+	window.addEventListener( 'resize', resize );
 
-	function fitWindow() {
+	function resize() {
 
-		canvas.width = window.innerWidth;
-		canvas.height = window.innerHeight;
+		canvas.width = Math.min( window.innerWidth, device.limits.maxTextureDimension2D );
+		canvas.height = Math.min( window.innerHeight, device.limits.maxTextureDimension2D );
 
 	}
 
-	fitWindow();
+	resize();
 
 
 	const context = canvas.getContext( 'webgpu' );

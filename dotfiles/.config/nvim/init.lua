@@ -11,10 +11,12 @@ vim.opt.autoread = true -- Enable auto read
 vim.opt.clipboard = '' -- Disable sync with system clipboard
 vim.opt.tabstop = 4 -- Number of spaces tabs count for
 vim.opt.shiftwidth = 0 -- Match tabstop
-vim.opt.relativenumber = true -- Enable relative line numbers
-vim.opt.signcolumn = "yes" -- Always display sign column
+--vim.opt.relativenumber = true -- Enable relative line numbers
+vim.opt.signcolumn = "no" -- Never display sign column
 vim.opt.confirm = true -- Quit Vim if NvimTree is last buffer
 vim.opt.termguicolors = true -- Enables 24-bit RGB "gui" colours in terminal
+
+vim.opt.mouse = "" -- Disable mouse
 
 
 -- Use WslClipboard for copy/paste to/from system clipboard
@@ -64,6 +66,8 @@ require( 'lazy' ).setup( {
 	{ 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
 	{ 'akinsho/bufferline.nvim' },
 	{ 'nvim-lualine/lualine.nvim' },
+	{ 'MunifTanjim/nui.nvim' },
+	{ 'VonHeikemen/fine-cmdline.nvim' },
 
 }, {
 
@@ -252,6 +256,10 @@ require("bufferline").setup{}
 -- Lualine
 require('lualine').setup()
 
+
+-- Find Command line
+vim.api.nvim_set_keymap('n', ':', '<cmd>FineCmdline<CR>', {noremap = true})
+vim.opt.cmdheight = 0
 
 
 -- Colorscheme
