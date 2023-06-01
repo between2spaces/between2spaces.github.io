@@ -20,15 +20,15 @@ endpoints = {
 	},
 }
 
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print('usage: python3 ga_user_preferences.py (dev|tst|prd) <username>')
+def init(*arguments):
+    num_args = len(arguments)
+    if len(sys.argv) < 2 + num_args:
+        print('usage: python3 {} (dev|tst|prd){}'.format(sys.argv[0], '' if num_args == 0 else ' <{}>'.format('> <'.join(arguments))))
         sys.exit(0)
 
     env = sys.argv[1]
-    username = sys.argv[2]
-
     endpoint = endpoints[env]
+
     client = Client(endpoint['url']+'?wsdl', timeout=1200)
     credentials = suds.sax.element.Element('LoginCredentials')
     credentials.append(suds.sax.element.Element('userid').setText(endpoint['userid']))
@@ -36,5 +36,4 @@ if __name__ == '__main__':
     credentials.append(suds.sax.element.Element('groupid').setText('webservice_group'))
     client.set_options(soapheaders=credentials)
 
-    for awsUser in client.service.getUsers('user/username', username).awsUser:
-        print(awsUser)
+    return (client, *sys.argv[2:])
