@@ -6,6 +6,8 @@ vim.g.mapleader = ' ' -- Use <space> as the leader
 
 vim.opt.timeout = true
 vim.opt.timeoutlen = 300
+vim.opt.updatetime = 100
+vim.opt.lazyredraw = true
 vim.opt.autowrite = true -- Enable auto write
 vim.opt.autoread = true -- Enable auto read
 vim.opt.clipboard = '' -- Disable sync with system clipboard
@@ -17,6 +19,8 @@ vim.opt.confirm = true -- Quit Vim if NvimTree is last buffer
 vim.opt.termguicolors = true -- Enables 24-bit RGB "gui" colours in terminal
 
 vim.opt.mouse = "" -- Disable mouse
+
+vim.opt.clipboard = "unnamedplus"
 
 
 -- Use WslClipboard for copy/paste to/from system clipboard
@@ -64,7 +68,6 @@ require( 'lazy' ).setup( {
 	{ 'nvim-telescope/telescope-file-browser.nvim' },
 	{ 'folke/which-key.nvim' },
 	{ 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
-	{ 'akinsho/bufferline.nvim' },
 	{ 'nvim-lualine/lualine.nvim' },
 	{ 'MunifTanjim/nui.nvim' },
 	{ 'VonHeikemen/fine-cmdline.nvim' },
@@ -245,11 +248,6 @@ wk.register({
 	l = { '<cmd>bnext<cr>', 'Buffer next' },
 	q = { '<cmd>bdelete<cr>', 'Buffer delete' },
 }, { prefix = '<leader>' })
-
-
-
--- Bufferline
-require("bufferline").setup{}
 
 
 

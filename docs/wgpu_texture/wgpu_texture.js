@@ -11,8 +11,10 @@ async function main() {
 
 	function resize() {
 
-		canvas.width = Math.min( window.innerWidth, device.limits.maxTextureDimension2D );
-		canvas.height = Math.min( window.innerHeight, device.limits.maxTextureDimension2D );
+		const l = device.limits;
+
+		canvas.width = Math.min( window.innerWidth, l.maxTextureDimension2D );
+		canvas.height = Math.min( window.innerHeight, l.maxTextureDimension2D );
 
 	}
 
@@ -52,7 +54,6 @@ async function main() {
 		`
 	} );
 
-	// Vertex buffer
 	const vertices = new Float32Array( [
 		// ◢ Triangle 1
 		- 0.8, - 0.8,
@@ -154,11 +155,13 @@ async function main() {
 
 main();
 
+
+
+
+
+
+
 function morgue() {
-
-
-
-
 
 
 	// Grid uniform buffer ///////////////
@@ -172,7 +175,6 @@ function morgue() {
 
 	device.queue.writeBuffer( uniformBuffer, 0, uniformArray );
 	//////////////////////////////////////
-
 
 
 	// State storage buffer //////////////
@@ -200,8 +202,6 @@ function morgue() {
 
 	device.queue.writeBuffer( cellStateBuffer[ 0 ], 0, cellStateArray );
 	//////////////////////////////////////
-
-
 
 
 
@@ -252,11 +252,9 @@ fn computeMain( @builtin(global_invocation_id) cell: vec3u ) {
 
 
 
-
 	let step = 0;
 
 	function update() {
-
 
 		step ++;
 
@@ -281,7 +279,7 @@ fn computeMain( @builtin(global_invocation_id) cell: vec3u ) {
 
 	}
 
-
 	//setInterval( update, UPDATE_INTERVAL );
 
 }
+
