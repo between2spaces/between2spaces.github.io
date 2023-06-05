@@ -49,7 +49,10 @@ async function main() {
 
 		@fragment
 		fn fragmentMain( input: VertexOutput ) -> @location( 0 ) vec4f {
-			return vec4f( 1, 1, 1, 1);
+			let red = vec4f( 1, 0, 0, 1 );
+			let cyan = vec4f( 0, 1, 1, 1 );
+			let grid = vec2u( input.pos.xy ) / 16;
+			return select( red, cyan, ( grid.x + grid.y ) % 2 == 1 );
 		}
 		`
 	} );
