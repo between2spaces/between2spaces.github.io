@@ -20,7 +20,7 @@ vim.opt.termguicolors = true -- Enables 24-bit RGB "gui" colours in terminal
 
 vim.opt.mouse = "" -- Disable mouse
 
-vim.opt.clipboard = "unnamedplus"
+--vim.opt.clipboard = "unnamedplus"  too slow when just normal deleting
 
 
 -- Use WslClipboard for copy/paste to/from system clipboard
