@@ -22,12 +22,9 @@ async function main() {
 
 
 	const context = canvas.getContext( 'webgpu' );
-	const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+	const format = navigator.gpu.getPreferredCanvasFormat();
 
-	context.configure( {
-		device: device,
-		format: canvasFormat,
-	} );
+	context.configure( { device, format } );
 
 	const module = device.createShaderModule( {
 		label: "Shader Module",
@@ -36,12 +33,10 @@ async function main() {
 			colour: vec4f,
 		};
 
-		@group(0) @binding(0) var<uniform> uniforms: Uniforms;
-		@group(0) @binding(1) var bSampler: sampler;
-		@group(0) @binding(2) var texture: texture_2d<f32>;
+		@group(0) @binding(0) var bSampler: sampler;
+		@group(0) @binding(1) var texture: texture_2d<f32>;
 
 		struct VertexInput {
-			@location(0) pos: vec2f,
 			@builtin(vertex_index) vertexIndex: u32,
 		};
 
@@ -66,7 +61,7 @@ async function main() {
 			let xy = pos[ input.vertexIndex ];
 			var output: VertexOutput;
 			output.pos = vec4f( xy, 0, 1 );
-			output.texcoord = vec2f( xy.x + 0.5, -xy.y + 0.5 );
+			output.texcoord = vec2f( xy.x + 0.5, - xy.y + 0.5 );
 			return output;
 		}
 
@@ -78,48 +73,48 @@ async function main() {
 	} );
 
 
-	const uniformColour = [ 1, 0, 0, 1 ];
-	const uniformArray = new Float32Array( [ ...uniformColour ] );
-	const uniformColourOffset = 0;
+	//	const uniformColour = [ 1, 0, 0, 1 ];
+	//	const uniformsArray = new Float32Array( [ ...uniformColour ] );
+	//	const uniformsColourOffset = 0;
+	//
+	//	const uniformsBuffer = device.createBuffer( {
+	//		label: "Uniforms",
+	//		size: uniformsArray.byteLength,
+	//		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	//	} );
+	//
+	//	uniformsArray.set( uniformColour, uniformsColourOffset );
+	//	device.queue.writeBuffer( uniformsBuffer, 0, uniformsArray );
 
-	const uniformBuffer = device.createBuffer( {
-		label: "Uniforms",
-		size: uniformArray.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	} );
 
-	uniformArray.set( uniformColour, uniformColourOffset );
-	device.queue.writeBuffer( uniformBuffer, 0, uniformArray );
+	//const vertices = new Float32Array( [
+	//	// ◢ Triangle 1
+	//	- 0.5, - 0.5,
+	//	0.5, - 0.5,
+	//	0.5, 0.5,
 
+	//	// ◤ Triangle 2
+	//	- 0.5, - 0.5,
+	//	0.5, 0.5,
+	//	- 0.5, 0.5,
+	//] );
 
-	const vertices = new Float32Array( [
-		// ◢ Triangle 1
-		- 0.5, - 0.5,
-		0.5, - 0.5,
-		0.5, 0.5,
+	//const vertexBuffer = device.createBuffer( {
+	//	label: "Vertex Buffer",
+	//	size: vertices.byteLength,
+	//	usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+	//} );
 
-		// ◤ Triangle 2
-		- 0.5, - 0.5,
-		0.5, 0.5,
-		- 0.5, 0.5,
-	] );
+	//device.queue.writeBuffer( vertexBuffer, 0, vertices );
 
-	const vertexBuffer = device.createBuffer( {
-		label: "Vertex Buffer",
-		size: vertices.byteLength,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-	} );
-
-	device.queue.writeBuffer( vertexBuffer, 0, vertices );
-
-	const vertexBufferLayout = {
-		arrayStride: 8,
-		attributes: [ {
-			format: "float32x2",
-			offset: 0,
-			shaderLocation: 0,
-		} ],
-	};
+	//const vertexBufferLayout = {
+	//	arrayStride: 8,
+	//	attributes: [ {
+	//		format: "float32x2",
+	//		offset: 0,
+	//		shaderLocation: 0,
+	//	} ],
+	//};
 
 
 	const textureSize = 8;
@@ -148,44 +143,54 @@ async function main() {
 	const sampler = device.createSampler();
 
 
-	const bindGroupLayout = device.createBindGroupLayout( {
-		label: 'Bind Group Layout',
-		entries: [
-			{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: {} },
-			{ binding: 1, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, sampler: {} },
-			{ binding: 2, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, texture: {} },
-		]
-	} );
-
-	const bindGroup = device.createBindGroup( {
-		label: 'Renderer bind group A',
-		layout: bindGroupLayout,
-		entries: [
-			{ binding: 0, resource: { buffer: uniformBuffer } },
-			{ binding: 1, resource: sampler },
-			{ binding: 2, resource: texture.createView() },
-		],
-	} );
-
-	const pipelineLayout = device.createPipelineLayout( {
-		label: 'Pipeline Layout',
-		bindGroupLayouts: [ bindGroupLayout ],
-	} );
+	//const bindGroupLayout = device.createBindGroupLayout( {
+	//	label: 'Bind Group Layout',
+	//	entries: [
+	//{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: {} },
+	//			{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, sampler: {} },
+	//			{ binding: 1, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, texture: {} },
+	//		]
+	//} );
 
 	const pipeline = device.createRenderPipeline( {
 		label: 'Render Pipeline',
-		layout: pipelineLayout,
-		vertex: {
-			module,
-			entryPoint: "vertexMain",
-			buffers: [ vertexBufferLayout ]
-		},
-		fragment: {
-			module,
-			entryPoint: "fragmentMain",
-			targets: [ { format: canvasFormat } ]
-		}
+		layout: 'auto',
+		vertex: { module, entryPoint: "vertexMain", buffers: [], },
+		fragment: { module, entryPoint: "fragmentMain", targets: [ { format } ] }
 	} );
+
+
+	const bindGroup = device.createBindGroup( {
+		label: 'Renderer bind group A',
+		layout: pipeline.getBindGroupLayout( 0 ),
+		entries: [
+			{ binding: 0, resource: sampler },
+			{ binding: 1, resource: texture.createView() },
+		],
+	} );
+
+
+	const bindGroups = [];
+
+	for ( let i = 0; i < 8; i ++ ) {
+
+		const sampler = device.createSampler( {
+			addressModeU: ( i & 1 ) ? 'repeat' : 'clamp-to-edge',
+			addressModeV: ( i & 2 ) ? 'repeat' : 'clamp-to-edge',
+			magFilter: ( i & 4 ) ? 'linear' : 'nearest',
+		} );
+
+		const bindGroup = device.createBindGroup( {
+			layout: pipeline.getBindGroupLayout( 0 ),
+			entries: [
+				{ binding: 0, resource: sampler },
+				{ binding: 1, resource: texture.createView() },
+			],
+		} );
+
+		bindGroups.push( bindGroup );
+
+	}
 
 	const renderPassDescriptor = {
 		label: 'Canvas Render Pass',
@@ -205,8 +210,8 @@ async function main() {
 		const pass = encoder.beginRenderPass( renderPassDescriptor );
 		pass.setPipeline( pipeline );
 		pass.setBindGroup( 0, bindGroup );
-		pass.setVertexBuffer( 0, vertexBuffer );
-		pass.draw( vertices.length / 2 );
+		//pass.setVertexBuffer( 0, vertexBuffer );
+		pass.draw( 6 );
 		pass.end();
 
 		device.queue.submit( [ encoder.finish() ] );
@@ -219,131 +224,3 @@ async function main() {
 }
 
 main();
-
-
-
-
-
-
-
-function morgue() {
-
-
-	// Grid uniform buffer ///////////////
-	const uniformArray = new Float32Array( [ GRID_SIZE, GRID_SIZE ] );
-
-	const uniformBuffer = device.createBuffer( {
-		label: "Grid Uniforms",
-		size: uniformArray.byteLength,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	} );
-
-	device.queue.writeBuffer( uniformBuffer, 0, uniformArray );
-	//////////////////////////////////////
-
-
-	// State storage buffer //////////////
-	const cellStateArray = new Uint32Array( GRID_SIZE * GRID_SIZE );
-
-	const cellStateBuffer = [
-		device.createBuffer( {
-			label: "Cell State A",
-			size: cellStateArray.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		} ),
-		device.createBuffer( {
-			label: "Cell State B",
-			size: cellStateArray.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		} )
-	];
-
-	// Intialise random starting state
-	for ( let i = 0; i < cellStateArray.length; i ++ ) {
-
-		cellStateArray[ i ] = Math.random() > 0.6 ? 1 : 0;
-
-	}
-
-	device.queue.writeBuffer( cellStateBuffer[ 0 ], 0, cellStateArray );
-	//////////////////////////////////////
-
-
-
-	const WORKGROUP_SIZE = 8;
-
-	const simulationShaderModule = device.createShaderModule( {
-		lable: "Game of Life simulation shader",
-		code: `
-@group(0) @binding(0) var<uniform> grid: vec2f;
-@group(0) @binding(1) var<storage> cellStateIn: array<u32>;
-@group(0) @binding(2) var<storage, read_write> cellStateOut: array<u32>;
-
-fn cellIndex( cell: vec2u ) -> u32 {
-	return (cell.y % u32(grid.y)) * u32(grid.x)+ (cell.x % u32(grid.x));
-}
-
-fn cellActive( x: u32, y: u32 ) -> u32 {
-	return cellStateIn[ cellIndex( vec2( x, y ) ) ];
-}
-
-@compute
-@workgroup_size(${WORKGROUP_SIZE}, ${WORKGROUP_SIZE})
-fn computeMain( @builtin(global_invocation_id) cell: vec3u ) {
-	let activeNeighbours = 0 +
-		cellActive( cell.x + 1, cell.y + 1 ) +
-		cellActive( cell.x + 1, cell.y ) +
-		cellActive( cell.x + 1, cell.y - 1 ) +
-		cellActive( cell.x, cell.y - 1 ) +
-		cellActive( cell.x - 1, cell.y - 1 ) +
-		cellActive( cell.x - 1, cell.y ) +
-		cellActive( cell.x - 1, cell.y + 1 ) +
-		cellActive( cell.x, cell.y + 1 );
-	let i = cellIndex(cell.xy);
-
-	switch activeNeighbours {
-		case 2: {
-			cellStateOut[i] = cellStateIn[i];
-		}
-		case 3: {
-			cellStateOut[i] = 1;
-		}
-		default: {
-			cellStateOut[i] = 0;
-		}
-	}
-}
-` } );
-
-
-
-	let step = 0;
-
-	function update() {
-
-		step ++;
-
-		const pass = encoder.beginRenderPass( {
-			colorAttachments: [ {
-				view: context.getCurrentTexture().createView(),
-				loadOp: "clear",
-				clearValue: { r: 0, g: 0, b: 0.4, a: 1 },
-				storeOp: "store",
-			} ]
-		} );
-
-		pass.setPipeline( cellPipeline );
-		pass.setBindGroup( 0, bindGroups[ step % 2 ] );
-		pass.setVertexBuffer( 0, vertexBuffer );
-		pass.draw( vertices.length / 2, GRID_SIZE * GRID_SIZE );
-		pass.end();
-
-		device.queue.submit( [ encoder.finish() ] );
-
-		requestAnimationFrame( update );
-
-	}
-
-	//setInterval( update, UPDATE_INTERVAL );
-
-}
