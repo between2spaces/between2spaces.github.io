@@ -1,3 +1,4 @@
+
 async function main() {
 
 	const adapter = await navigator.gpu?.requestAdapter();
@@ -192,6 +193,12 @@ async function main() {
 
 	}
 
+	const settings = {
+		addressModeU: 'repeat',
+		addressModeV: 'repeat',
+		magFilter: 'linear',
+	};
+
 	const renderPassDescriptor = {
 		label: 'Canvas Render Pass',
 		colorAttachments: [ {
@@ -202,6 +209,12 @@ async function main() {
 	};
 
 	function render() {
+
+		// which bindGroup to use based on current settings
+		const ndx = ( settings.addressModeU === 'repeat' ? 1 : 0 ) +
+                ( settings.addressModeV === 'repeat' ? 2 : 0 ) +
+                ( settings.magFilter === 'linear' ? 4 : 0 );
+		const bindGroup = bindGroups[ ndx ];
 
 		renderPassDescriptor.colorAttachments[ 0 ].view = context.getCurrentTexture().createView();
 
