@@ -141,7 +141,11 @@ async function main() {
 
 	device.queue.writeTexture( { texture }, textureData, { bytesPerRow: textureSize * 4 }, { width: textureSize, height: textureSize } );
 
-	const sampler = device.createSampler();
+	const sampler = device.createSampler( {
+		addressModeU: 'clamp-to-edge',
+		addressModeV: 'clamp-to-edge',
+		magFilter: 'linear',
+	} );
 
 
 	//const bindGroupLayout = device.createBindGroupLayout( {
@@ -171,33 +175,33 @@ async function main() {
 	} );
 
 
-	const bindGroups = [];
+	//const bindGroups = [];
 
-	for ( let i = 0; i < 8; i ++ ) {
+	//for ( let i = 0; i < 8; i ++ ) {
 
-		const sampler = device.createSampler( {
-			addressModeU: ( i & 1 ) ? 'repeat' : 'clamp-to-edge',
-			addressModeV: ( i & 2 ) ? 'repeat' : 'clamp-to-edge',
-			magFilter: ( i & 4 ) ? 'linear' : 'nearest',
-		} );
+	//	const sampler = device.createSampler( {
+	//		addressModeU: ( i & 1 ) ? 'repeat' : 'clamp-to-edge',
+	//		addressModeV: ( i & 2 ) ? 'repeat' : 'clamp-to-edge',
+	//		magFilter: ( i & 4 ) ? 'linear' : 'nearest',
+	//	} );
 
-		const bindGroup = device.createBindGroup( {
-			layout: pipeline.getBindGroupLayout( 0 ),
-			entries: [
-				{ binding: 0, resource: sampler },
-				{ binding: 1, resource: texture.createView() },
-			],
-		} );
+	//	const bindGroup = device.createBindGroup( {
+	//		layout: pipeline.getBindGroupLayout( 0 ),
+	//		entries: [
+	//			{ binding: 0, resource: sampler },
+	//			{ binding: 1, resource: texture.createView() },
+	//		],
+	//	} );
 
-		bindGroups.push( bindGroup );
+	//	bindGroups.push( bindGroup );
 
-	}
+	//}
 
-	const settings = {
-		addressModeU: 'repeat',
-		addressModeV: 'repeat',
-		magFilter: 'linear',
-	};
+	//const settings = {
+	//	addressModeU: 'repeat',
+	//	addressModeV: 'repeat',
+	//	magFilter: 'linear',
+	//};
 
 	const renderPassDescriptor = {
 		label: 'Canvas Render Pass',
@@ -209,12 +213,6 @@ async function main() {
 	};
 
 	function render() {
-
-		// which bindGroup to use based on current settings
-		const ndx = ( settings.addressModeU === 'repeat' ? 1 : 0 ) +
-                ( settings.addressModeV === 'repeat' ? 2 : 0 ) +
-                ( settings.magFilter === 'linear' ? 4 : 0 );
-		const bindGroup = bindGroups[ ndx ];
 
 		renderPassDescriptor.colorAttachments[ 0 ].view = context.getCurrentTexture().createView();
 

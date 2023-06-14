@@ -12,8 +12,8 @@
 			"bellStyle": "taskbar",
 			"closeOnExit": "always",
 			"font": {
-				"face": "FiraCode Nerd Font Mono",
-				"size": 26,
+				"face": "Delugia PL",
+				"size": 20,
 				"weight": "normal"
 			},
 			"padding": "0",
