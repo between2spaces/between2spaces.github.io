@@ -73,89 +73,61 @@ async function main() {
 		`
 	} );
 
+	async function loadImageBitmap( url ) {
 
-	//	const uniformColour = [ 1, 0, 0, 1 ];
-	//	const uniformsArray = new Float32Array( [ ...uniformColour ] );
-	//	const uniformsColourOffset = 0;
-	//
-	//	const uniformsBuffer = device.createBuffer( {
-	//		label: "Uniforms",
-	//		size: uniformsArray.byteLength,
-	//		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	//	} );
-	//
-	//	uniformsArray.set( uniformColour, uniformsColourOffset );
-	//	device.queue.writeBuffer( uniformsBuffer, 0, uniformsArray );
+		const res = await fetch( url );
+		const blob = await res.blob();
+		return await createImageBitmap( blob, { colorSpaceConversion: 'none' } );
 
+	}
 
-	//const vertices = new Float32Array( [
-	//	// ◢ Triangle 1
-	//	- 0.5, - 0.5,
-	//	0.5, - 0.5,
-	//	0.5, 0.5,
-
-	//	// ◤ Triangle 2
-	//	- 0.5, - 0.5,
-	//	0.5, 0.5,
-	//	- 0.5, 0.5,
-	//] );
-
-	//const vertexBuffer = device.createBuffer( {
-	//	label: "Vertex Buffer",
-	//	size: vertices.byteLength,
-	//	usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-	//} );
-
-	//device.queue.writeBuffer( vertexBuffer, 0, vertices );
-
-	//const vertexBufferLayout = {
-	//	arrayStride: 8,
-	//	attributes: [ {
-	//		format: "float32x2",
-	//		offset: 0,
-	//		shaderLocation: 0,
-	//	} ],
-	//};
-
-
-	const textureSize = 8;
-	const _ = [ 255, 0, 0, 255 ]; // red
-	const y = [ 255, 255, 0, 255 ]; // yellow
-	const b = [ 0, 0, 255, 255 ]; // blue
-	const textureData = new Uint8Array( [
-		b, _, _, _, _, _, _, _,
-		_, _, y, y, y, y, _, _,
-		_, _, y, y, y, y, _, _,
-		_, _, y, y, _, _, _, _,
-		_, _, y, y, y, _, _, _,
-		_, _, y, y, _, _, _, _,
-		_, _, y, y, _, _, _, _,
-		_, _, _, _, _, _, _, _,
-	].flat() );
-
+	const url = 'https://webgpufundamentals.org/webgpu/resources/images/f-texture.png';
+	const source = await loadImageBitmap( url );
 	const texture = device.createTexture( {
-		size: [ textureSize, textureSize ],
+		label: url,
 		format: 'rgba8unorm',
-		usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+		size: [ source.width, source.height ],
+		usage: GPUTextureUsage.TEXTURE_BINDING |
+           GPUTextureUsage.COPY_DST |
+           GPUTextureUsage.RENDER_ATTACHMENT,
 	} );
 
-	device.queue.writeTexture( { texture }, textureData, { bytesPerRow: textureSize * 4 }, { width: textureSize, height: textureSize } );
+	device.queue.copyExternalImageToTexture(
+		{ source, flipY: false },
+		{ texture },
+		{ width: source.width, height: source.height },
+	);
+
+	//const textureSize = 8;
+	//const _ = [ 255, 0, 0, 255 ]; // red
+	//const y = [ 255, 255, 0, 255 ]; // yellow
+	//const b = [ 0, 0, 255, 255 ]; // blue
+	//const textureData = new Uint8Array( [
+	//	b, _, _, _, _, _, _, _,
+	//	_, _, y, y, y, y, _, _,
+	//	_, _, y, y, y, y, _, _,
+	//	_, _, y, y, _, _, _, _,
+	//	_, _, y, y, y, _, _, _,
+	//	_, _, y, y, _, _, _, _,
+	//	_, _, y, y, _, _, _, _,
+	//	_, _, _, _, _, _, _, _,
+	//].flat() );
+
+	//const texture = device.createTexture( {
+	//	size: [ textureSize, textureSize ],
+	//	format: 'rgba8unorm',
+	//	usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+	//} );
+
+	//device.queue.writeTexture( { texture }, textureData, { bytesPerRow: textureSize * 4 }, { width: textureSize, height: textureSize } );
 
 	const sampler = device.createSampler( {
 		addressModeU: 'clamp-to-edge',
 		addressModeV: 'clamp-to-edge',
-		magFilter: 'linear',
+		magFilter: 'nearest',
+		minFilter: 'nearest',
 	} );
 
-
-	//const bindGroupLayout = device.createBindGroupLayout( {
-	//	label: 'Bind Group Layout',
-	//	entries: [
-	//{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: {} },
-	//			{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, sampler: {} },
-	//			{ binding: 1, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, texture: {} },
-	//		]
-	//} );
 
 	const pipeline = device.createRenderPipeline( {
 		label: 'Render Pipeline',
@@ -175,34 +147,6 @@ async function main() {
 	} );
 
 
-	//const bindGroups = [];
-
-	//for ( let i = 0; i < 8; i ++ ) {
-
-	//	const sampler = device.createSampler( {
-	//		addressModeU: ( i & 1 ) ? 'repeat' : 'clamp-to-edge',
-	//		addressModeV: ( i & 2 ) ? 'repeat' : 'clamp-to-edge',
-	//		magFilter: ( i & 4 ) ? 'linear' : 'nearest',
-	//	} );
-
-	//	const bindGroup = device.createBindGroup( {
-	//		layout: pipeline.getBindGroupLayout( 0 ),
-	//		entries: [
-	//			{ binding: 0, resource: sampler },
-	//			{ binding: 1, resource: texture.createView() },
-	//		],
-	//	} );
-
-	//	bindGroups.push( bindGroup );
-
-	//}
-
-	//const settings = {
-	//	addressModeU: 'repeat',
-	//	addressModeV: 'repeat',
-	//	magFilter: 'linear',
-	//};
-
 	const renderPassDescriptor = {
 		label: 'Canvas Render Pass',
 		colorAttachments: [ {
@@ -211,6 +155,7 @@ async function main() {
 			storeOp: 'store',
 		} ]
 	};
+
 
 	function render() {
 
@@ -221,7 +166,6 @@ async function main() {
 		const pass = encoder.beginRenderPass( renderPassDescriptor );
 		pass.setPipeline( pipeline );
 		pass.setBindGroup( 0, bindGroup );
-		//pass.setVertexBuffer( 0, vertexBuffer );
 		pass.draw( 6 );
 		pass.end();
 

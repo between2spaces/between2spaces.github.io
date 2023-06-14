@@ -96,6 +96,7 @@ lsp.setup()
 local augroup = vim.api.nvim_create_augroup('LspFormatting', {})
 local null_ls = require('null-ls')
 null_ls.setup({
+	debug = true,
 	sources = {
 		null_ls.builtins.diagnostics.eslint,		-- Linter for JavaScript
 		null_ls.builtins.formatting.eslint,  		-- Formatter for JavaScript
@@ -223,6 +224,12 @@ vim.api.nvim_set_keymap( 'n', '<C-l>', '<C-w>l', opts )
 vim.api.nvim_set_keymap( 'n', '<Tab>', ':Telescope buffers<cr>', opts )
 vim.api.nvim_set_keymap( 'n', '<S-l>', ':bnext<cr>', opts )
 vim.api.nvim_set_keymap( 'n', '<S-h>', ':bprevious<cr>', opts )
+
+-- Diagnostics bindings
+vim.api.nvim_set_keymap( 'n', '<leader>d', '<cmd>lua vim.diagnostic.open_float()<CR>', opts )
+vim.api.nvim_set_keymap( 'n', '[d', '<cmd>lua vim.diagnostic.goto_prev()<CR>', opts )
+vim.api.nvim_set_keymap( 'n', ']d', '<cmd>lua vim.diagnostic.goto_next()<CR>', opts )
+vim.api.nvim_set_keymap( 'n', '<leader>fd', '<cmd>Telescope diagnostics<CR>', opts )
 
 
 -- Custom key mappings using Which-key
