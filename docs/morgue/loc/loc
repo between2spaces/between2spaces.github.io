@@ -29,7 +29,8 @@ def crawlAds(baseSearchUrl):
         nextPageUrl = "{}&page={}".format(baseSearchUrl, pagination)
         lastPage = len(page.xpath('//*[@href="{}"]'.format(nextPageUrl))) == 0
 
-        for ad in page.xpath('//div[contains(@class, "bp_ad ") and not(contains(@class, "--native_ad"))]'):
+        for ad in page.xpath('//div'):
+            print(ad)
             good = '✓'
             vip = ad.xpath('.//div[contains(@class, "resultImage--P")]')
             if len(vip) > 0:
