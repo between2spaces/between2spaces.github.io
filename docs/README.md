@@ -4,6 +4,6 @@
 
 ## Recent
 
-* [WebGPU Texture](/wgpu_texture)
-* [WebGPU Life](/wgpu_life)
+* [WebGPU Texture](./wgpu_texture)
+* [WebGPU Life](./wgpu_life)
 

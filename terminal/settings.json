@@ -4,7 +4,8 @@
 	"copyFormatting": "none",
 	"copyOnSelect": true,
 	"defaultProfile": "{e381fe40-9d15-58b7-99ea-5908cd6561e5}",
-	"initialRows": 30,
+	"initialRows": 25,
+	"initialCols": 100,
 	"startOnUserLogin": true,
 	"alwaysShowTabs": false,
 	"profiles": {
@@ -13,7 +14,7 @@
 			"closeOnExit": "always",
 			"font": {
 				"face": "Delugia PL",
-				"size": 20,
+				"size": 18,
 				"weight": "normal"
 			},
 			"padding": "0",

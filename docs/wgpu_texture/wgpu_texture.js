@@ -1,4 +1,3 @@
-
 async function main() {
 
 	const adapter = await navigator.gpu?.requestAdapter();
