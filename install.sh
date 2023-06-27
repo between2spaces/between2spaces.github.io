@@ -1,5 +1,3 @@
-
-set -e
 if [ $# -eq 0 ];
 then
 	if [[ -d "$HOME/between2spaces.github.io" ]];
@@ -17,6 +15,7 @@ then
 	exit 0
 fi
 
+set -e
 
 # Git
 
