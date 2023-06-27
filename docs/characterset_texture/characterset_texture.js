@@ -57,10 +57,10 @@ function setCharacterSet( characters, texSize = 512, fontFamily = "fontFace" ) {
 
 	for ( let i = 0; i < characters.length; i ++ ) {
 
-		let cy = Math.floor( i / cols );
-		let cx = i % cols;
+		let cy = Math.floor( i / cols ) * dy;
+		let cx = ( i % cols ) * dx;
 
-		ctx.fillText( characters[ i , cx, cy );
+		ctx.fillText( characters[ i ], cx, cy );
 
 	}
 
