@@ -45,20 +45,21 @@ async function main() {
 			@location(0) texcoord: vec2f,
 		};
 
+		var vertices = array<vec2f, 6>(
+			// ◤ Triangle 1
+			vec2f( - 0.5, 0.5 ),
+			vec2f( 0.5, 0.5 ),
+			vec2f( - 0.5, - 0.5 ),
+
+			// ◢ Triangle 2
+			vec2f( - 0.5, - 0.5 ),
+			vec2f( 0.5, 0.5 ),
+			vec2f( 0.5, - 0.5 ),
+		);
+
 		@vertex
 		fn vertexMain( input: VertexInput ) -> VertexOutput {
-			var pos = array<vec2f, 6>(
-				// ◤ Triangle 1
-				vec2f( - 0.5, 0.5 ),
-				vec2f( 0.5, 0.5 ),
-				vec2f( - 0.5, - 0.5 ),
-
-				// ◢ Triangle 2
-				vec2f( - 0.5, - 0.5 ),
-				vec2f( 0.5, 0.5 ),
-				vec2f( 0.5, - 0.5 ),
-			);
-			let xy = pos[ input.vertexIndex ];
+			let xy = vertices[ input.vertexIndex ];
 			var output: VertexOutput;
 			output.pos = vec4f( xy, 0, 1 );
 			output.texcoord = vec2f( xy.x + 0.5, - xy.y + 0.5 );
@@ -96,29 +97,6 @@ async function main() {
 		{ texture },
 		{ width: source.width, height: source.height },
 	);
-
-	//const textureSize = 8;
-	//const _ = [ 255, 0, 0, 255 ]; // red
-	//const y = [ 255, 255, 0, 255 ]; // yellow
-	//const b = [ 0, 0, 255, 255 ]; // blue
-	//const textureData = new Uint8Array( [
-	//	b, _, _, _, _, _, _, _,
-	//	_, _, y, y, y, y, _, _,
-	//	_, _, y, y, y, y, _, _,
-	//	_, _, y, y, _, _, _, _,
-	//	_, _, y, y, y, _, _, _,
-	//	_, _, y, y, _, _, _, _,
-	//	_, _, y, y, _, _, _, _,
-	//	_, _, _, _, _, _, _, _,
-	//].flat() );
-
-	//const texture = device.createTexture( {
-	//	size: [ textureSize, textureSize ],
-	//	format: 'rgba8unorm',
-	//	usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-	//} );
-
-	//device.queue.writeTexture( { texture }, textureData, { bytesPerRow: textureSize * 4 }, { width: textureSize, height: textureSize } );
 
 	const sampler = device.createSampler( {
 		addressModeU: 'clamp-to-edge',

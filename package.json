@@ -13,6 +13,6 @@
 		"eslint": "^8.43.0",
 		"eslint-config-mdcs": "^5.0.0",
 		"eslint-plugin-html": "^7.1.0",
-		"npm-check-updates": "^16.10.12"
+		"npm-check-updates": "^16.10.13"
 	}
 }
