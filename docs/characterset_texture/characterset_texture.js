@@ -4,6 +4,7 @@ async function main() {
 	characterSet.setAttribute( "rows", 10 );
 	characterSet.setAttribute( "cols", 20 );
 	characterSet.value = "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕";
+	characterSet.addEventListener( "keyup", () => setCharacterSet( characterSet.value ) );
 
 	const fontFace = document.querySelector( "#fontFace" );
 	fontFace.setAttribute( "rows", 10 );
@@ -14,6 +15,13 @@ async function main() {
 	font-weight: normal;
 	font-style: normal;
 }`;
+	document.querySelector( "#fontFaceHeadStyle" ).textContent = fontFace.value;
+	fontFace.addEventListener( "keyup", () => {
+
+		document.querySelector( "#fontFaceHeadStyle" ).textContent = fontFace.value;
+		setCharacterSet( characterSet.value );
+
+	} );
 
 	setCharacterSet( characterSet.value );
 
@@ -24,6 +32,7 @@ main();
 
 
 function setCharacterSet( characters, texSize = 512, fontFamily = "fontFace" ) {
+
 
 	const canvas = document.querySelector( "canvas" );
 	canvas.style.border = "1px solid black";
@@ -41,24 +50,24 @@ function setCharacterSet( characters, texSize = 512, fontFamily = "fontFace" ) {
 	let rows;
 	let cols;
 
-	//do {
+	do {
 
-	fontSize --;
-	ctx.font = `${fontSize}px ${fontFamily}`;
-	metrics = ctx.measureText( "▓" );
-	metrics.height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent + 10;
-	rows = Math.floor( texSize / metrics.height );
-	cols = Math.floor( texSize / metrics.width );
+		fontSize -= 0.1;
+		ctx.font = `${fontSize}px ${fontFamily}`;
+		metrics = ctx.measureText( "▓" );
+		metrics.height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent + 10;
+		rows = Math.floor( texSize / metrics.height );
+		cols = Math.floor( texSize / metrics.width );
 
-	//} while ( rows * cols < characters.length );
+	} while ( rows * cols < characters.length );
 
 	let dx = texSize / cols;
 	let dy = texSize / rows;
 
 	for ( let i = 0; i < characters.length; i ++ ) {
 
-		let cy = Math.floor( i / cols ) * dy;
-		let cx = ( i % cols ) * dx;
+		let cy = 0.5 * dy + Math.floor( i / cols ) * dy;
+		let cx = 0.5 * dx + ( i % cols ) * dx;
 
 		ctx.fillText( characters[ i ], cx, cy );
 
