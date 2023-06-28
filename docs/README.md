@@ -4,7 +4,8 @@
 
 ## Recent
 
-* [WebGPU Texture](./wgpu_texture)
+* [WebGPU Font](./wgpu_font)
 * [CharacterSet Texture](./characterset_texture)
+* [WebGPU Texture](./wgpu_texture)
 * [WebGPU Life](./wgpu_life)
 

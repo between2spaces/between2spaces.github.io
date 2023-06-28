@@ -5,14 +5,51 @@
 	<head>
 		<meta charset="utf-8">
 		<title>CharacterSet Texture</title>
-		<style> body { background: #444; } </style>
+		<style>
+			body { background: #444; color: white; }
+			.inline { display: inline-block; }
+		</style>
 		<style id="fontFaceHeadStyle"></style>
 	</head>
 
 	<body>
-		<textarea id="characterSet"></textarea>
-		<textarea id="fontFace"></textarea>
-		<canvas></canvas>
+		<fieldset class="inline">
+			<legend>Characters</legend>
+			<textarea id="characterSet"></textarea>
+		</fieldset>
+		<fieldset class="inline">
+			<legend>Font</legend>
+			<textarea id="fontFace">
+				@font-face {
+					font-family: "fontFace";
+					src: url("square.ttf"); /* https://strlen.com/square/?s[]=font */
+					font-weight: normal;
+					font-style: normal;
+				}
+			</textarea>
+		</fieldset>
+		<fieldset class="inline">
+			<legend>Options</legend>
+			<div>
+				<label for="size">Size</label>
+				<select id="size">
+					<option value="128">128</option>
+					<option value="256">256</option>
+					<option value="512">512</option>
+					<option value="1024">1024</option>
+					<option value="2048">2048</option>
+					<option value="4096">4096</option>
+				</select>
+			</div>
+			<div>
+				<input type="checkbox" id="boundaries"/>
+				<label for="boundaries">Show cell boundaries</label>
+			</div>
+		</fieldset>
+		<fieldset>
+			<legend>Texture</legend>
+			<canvas></canvas>
+		</fieldset>
 		<script type="module" src="characterset_texture.js"></script>
 	</body>
 

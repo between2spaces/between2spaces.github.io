@@ -4,26 +4,20 @@ async function main() {
 	characterSet.setAttribute( "rows", 10 );
 	characterSet.setAttribute( "cols", 20 );
 	characterSet.value = "0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕";
-	characterSet.addEventListener( "keyup", () => setCharacterSet( characterSet.value ) );
-
 	const fontFace = document.querySelector( "#fontFace" );
 	fontFace.setAttribute( "rows", 10 );
 	fontFace.setAttribute( "cols", 40 );
-	fontFace.value = `@font-face {
-	font-family: "fontFace";
-	src: url("https://mdn.github.io/learning-area/css/styling-text/web-fonts/fonts/zantroke-webfont.woff2") format("woff2");
-	font-weight: normal;
-	font-style: normal;
-}`;
 	document.querySelector( "#fontFaceHeadStyle" ).textContent = fontFace.value;
 	fontFace.addEventListener( "keyup", () => {
 
 		document.querySelector( "#fontFaceHeadStyle" ).textContent = fontFace.value;
-		setCharacterSet( characterSet.value );
 
 	} );
 
-	setCharacterSet( characterSet.value );
+	const size = document.querySelector( "#size" );
+	size.value = "512";
+
+	setInterval( update, 200 );
 
 }
 
@@ -31,8 +25,10 @@ async function main() {
 main();
 
 
-function setCharacterSet( characters, texSize = 512, fontFamily = "fontFace" ) {
+function update() {
 
+	const characters = document.querySelector( "#characterSet" ).value;
+	const texSize = parseInt( document.querySelector( "#size" ).value );
 
 	const canvas = document.querySelector( "canvas" );
 	canvas.style.border = "1px solid black";
@@ -45,19 +41,19 @@ function setCharacterSet( characters, texSize = 512, fontFamily = "fontFace" ) {
 	ctx.textAlign = "center";
 	ctx.textBaseline = "middle";
 
-	let fontSize = 44;
+	let fontSize = 100;
 	let metrics;
 	let rows;
 	let cols;
 
 	do {
 
-		fontSize -= 0.1;
-		ctx.font = `${fontSize}px ${fontFamily}`;
+		fontSize -= 1;
+		ctx.font = `${fontSize}px fontFace`;
 		metrics = ctx.measureText( "▓" );
 		metrics.height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent + 10;
-		rows = Math.floor( texSize / metrics.height );
-		cols = Math.floor( texSize / metrics.width );
+		rows = Math.floor( texSize / ( metrics.height + 3 ) );
+		cols = Math.floor( texSize / ( metrics.width + 3 ) );
 
 	} while ( rows * cols < characters.length );
 
@@ -73,20 +69,33 @@ function setCharacterSet( characters, texSize = 512, fontFamily = "fontFace" ) {
 
 	}
 
-	// for ( let cy = Math.ceil( 0.5 * metrics.height ); cy < texSize; cy += metrics.height ) {
+	if ( document.querySelector( "#boundaries" ).checked ) {
 
-	// 	for ( let cx = Math.ceil( 0.5 * metrics.width ); cx < texSize - 0.5 * metrics.width; cx += metrics.width ) {
+		// debug/test spacing - everything should be locatable using texSize, cols, rows
 
-	// 		if ( i >= characters.length ) break;
+		dx = texSize / cols;
+		dy = texSize / rows;
+		ctx.strokeStyle = "blue";
+		ctx.lineWidth = 1;
 
-	// 		let char = characters[ i ++ ];
+		for ( let x = dx; x < texSize; x += dx ) {
 
-	// 		ctx.fillText( char, cx, cy );
+			ctx.beginPath();
+			ctx.moveTo( x, 0 );
+			ctx.lineTo( x, texSize );
+			ctx.stroke();
 
-	// 	}
+		}
 
-	// }
+		for ( let y = dy; y < texSize; y += dy ) {
 
-	console.log( fontSize );
+			ctx.beginPath();
+			ctx.moveTo( 0, y );
+			ctx.lineTo( texSize, y );
+			ctx.stroke();
+
+		}
+
+	}
 
 }
