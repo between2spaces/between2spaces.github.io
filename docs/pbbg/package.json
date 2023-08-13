@@ -1,0 +1,18 @@
+{
+	"name": "pbbg",
+	"description": "An attempt at a PBBG",
+	"author": "Between2Spaces",
+	"version": "0.1.0",
+	"private": true,
+	"licence": "MIT",
+	"type": "module",
+    "engines": {
+        "node": "16.x"
+    },
+	"scripts": {
+		"start": "npx -y npm-check-updates -u; npm install; if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; export $(sed -e '/^[ ]*#/d' .env | xargs) && node server"
+	},
+	"devDependencies": {
+		"ws": "^8.13.0"
+	}
+}
