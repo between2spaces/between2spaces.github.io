@@ -41,19 +41,7 @@ wss.on( 'connection', ( ws, req ) => {
 
 	let secret = secretRE.exec( req.url );
 
-	if ( secret ) {
-
-		ws.secret = secret[ 1 ];
-		if ( ws.secret in wsBySecret ) ws.id = wsBySecret[ ws.secret ].id;
-
-	}
-
-	// if ( ! ws.id && ws.secret ) {
-
-	// 	const player = loadPlayerBySecret( ws.secret );
-	// 	if ( player ) ws.id = player.id;
-
-	// }
+	secret && secret[ 1 ] in wsBySecret && ( ws = wsBySecret[ secret[ 1 ] ] );
 
 	if ( ! ws.id ) {
 
@@ -290,19 +278,6 @@ function load( file ) {
 
 }
 
-function loadPlayerBySecret( secret ) {
-
-	if ( ! secret ) return;
-
-	console.log( `loadPlayerBySecret( "${secret}" )` );
-
-	for ( const file of fs.readdirSync( '.data/players' ) ) {
-
-		if ( file.startsWith( `${secret}-` ) ) return load( `.data/players/${file}` );
-
-	}
-
-}
 
 //if ( ! fs.existsSync( '.data/players' ) ) fs.mkdirSync( '.data/players', { recursive: true } );
 
@@ -449,14 +424,14 @@ setInterval( () => {
 
 		}
 
-		const _dirtyEntities = dirtyEntities;
-		dirtyEntities = {};
+		const _dirtyEntities = world.dirtyEntities;
+		world.dirtyEntities = {};
 
 		for ( const id in _dirtyEntities ) {
 
 			const entity = _dirtyEntities[ id ];
 			if ( entity.destroyed ) continue;
-			if ( entity.update() ) dirtyEntities[ id ] = entity;
+			if ( entity.update() ) world.dirtyEntities[ id ] = entity;
 
 		}
 
