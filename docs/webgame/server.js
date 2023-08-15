@@ -11,16 +11,17 @@ export default class Server {
 
 	constructor( args ) {
 
-		args.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
-		args.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
+		this.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
+		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
+		this.clientBySecret = {};
+		this.inMessages = [];
+		this.outMessages = [];
 
 		serverInstance = this;
 
-		this.clientBySecret = {};
-
 		const wss = new WebSocketServer( {
 			port: process.env.PORT,
-			verifyClient: info => args.allowedOrigins.indexOf( info.req.headers.origin ) > - 1
+			verifyClient: info => this.allowedOrigins.indexOf( info.req.headers.origin ) > - 1
 		} );
 
 
@@ -41,6 +42,47 @@ export default class Server {
 			}
 
 		} );
+
+	}
+
+	run() {
+
+		setInterval( () => {
+
+			try {
+
+				const inMessages = serverInstance.inMessages;
+
+				serverInstance.inMessages = [];
+
+				for ( const message of inMessages ) {
+
+					const onevent = `on${message.message.event}`;
+
+					if ( onevent in this ) {
+
+						this[ onevent ]( message.message, message.from );
+
+					} else {
+
+						console.log( `${onevent}( message, from ) not found` );
+
+					}
+
+				}
+
+				const timeout = Date.now() - this.clientTimeout;
+
+				for ( const id in this.clients ) {
+				}
+
+			} catch ( e ) {
+
+				console.error( e );
+
+			}
+
+		}, this.heartbeat );
 
 	}
 
@@ -156,5 +198,7 @@ if ( process.argv[ 1 ] === url.fileURLToPath( import.meta.url ) ) {
 
 	// Main ESM module
 	new Server( { allowedOrigins: [ 'http://localhost:8000', 'https://between2spaces.github.io' ], heartbeat: 3333 } );
+
+	serverInstance.run();
 
 }
