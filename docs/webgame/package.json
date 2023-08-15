@@ -1,6 +1,6 @@
 {
-	"name": "pbbg",
-	"description": "An attempt at a PBBG",
+	"name": "webgame",
+	"description": "An attempt at a web game",
 	"author": "Between2Spaces",
 	"version": "0.1.0",
 	"private": true,
