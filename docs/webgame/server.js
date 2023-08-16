@@ -13,7 +13,10 @@ export default class Server {
 
 		this.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
 		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
+		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 10000;
+		this.clientLastseen = {};
 		this.clientBySecret = {};
+		this.wsById = {};
 		this.inMessages = [];
 		this.outMessages = [];
 
@@ -32,14 +35,42 @@ export default class Server {
 
 			if ( secret && secret[ 1 ] in this.clientBySecret ) {
 
-				client = this.clientBySecret[ secret[ 1 ] ];
+				client = this.clientBySecret[ secret = secret[ 1 ] ];
 				this.send( null, client, client.id );
 
 			} else {
 
 				client = new Client();
+				secret = uuid();
 
 			}
+
+			this.clientLastseen[ client.id ] = Date.now();
+			this.wsById[ client.id ] = ws;
+
+			console.log( `${client.id} connected.` );
+
+			ws.on( 'message', data => {
+
+				try {
+
+					this.clientLastseen[ client.id ] = Date.now();
+					console.log( `${client.id} -> ${data}` );
+					if ( `${data}` === 'undefined' ) return;
+					const messages = JSON.parse( data );
+					for ( const message of ( messages.constructor !== Array ) ? [ messages ] : messages )
+						this.inMessages.push( { message: message, from: client.id } );
+
+				} catch ( e ) {
+
+					console.error( e );
+
+				}
+
+			} );
+
+			this.send( 'Connect', { id: client.id, secret: secret, clientTimeout: this.clientTimeout, serverHeartbeat: this.heartbeat }, client.id );
+			this.send( 'Connect', client );
 
 		} );
 
@@ -47,42 +78,90 @@ export default class Server {
 
 	run() {
 
+		console.log();
+		console.log( `Server listening on port ${process.env.PORT}` );
+		console.log();
+		console.log( `allowedOrigins: ${serverInstance.allowedOrigins}` );
+		console.log( `serverHeartbeat: ${serverInstance.heartbeat}` );
+		console.log( `clientTimeout: ${serverInstance.clientTimeout}` );
+		console.log();
+
 		setInterval( () => {
 
-			try {
+			if ( ! ( 'Client' in Entity.byTypeId ) ) return;
 
-				const inMessages = serverInstance.inMessages;
+			const clients = Entity.byTypeId[ 'Client' ];
 
-				serverInstance.inMessages = [];
+			// disconnect clients we haven't heard from in awhile
+			const timeout = Date.now() - serverInstance.clientTimeout;
+			for ( const id in clients ) if ( serverInstance.clientLastseen[ id ] < timeout ) clients[ id ].disconnect();
 
-				for ( const message of inMessages ) {
+			// process inbound messages
+			const inMessages = serverInstance.inMessages;
 
-					const onevent = `on${message.message.event}`;
+			serverInstance.inMessages = [];
 
-					if ( onevent in this ) {
+			for ( const message of inMessages ) {
 
-						this[ onevent ]( message.message, message.from );
+				const onevent = `on${message.message.event}`;
 
-					} else {
+				if ( onevent in this ) {
 
-						console.log( `${onevent}( message, from ) not found` );
+					this[ onevent ]( message.message, message.from );
 
-					}
+				} else {
+
+					console.log( `${onevent}( message, from ) not found` );
 
 				}
 
-				const timeout = Date.now() - this.clientTimeout;
+			}
 
-				for ( const id in this.clients ) {
+			// process outbound messages
+			const outMessages = serverInstance.outMessages;
+
+			serverInstance.outMessages = {};
+
+			const global = outMessages.global || [];
+			const sent = {};
+
+			for ( const id in outMessages ) {
+
+				const message = JSON.stringify( global.length ? outMessages[ id ].concat( global ) : outMessages[ id ] );
+
+				if ( ! ( id in clients ) ) {
+
+					id !== 'global' && console.log( `WARN: disconnected @${id} <- ${message}` );
+					continue;
+
 				}
 
-			} catch ( e ) {
+				serverInstance.wsById[ id ].send( message );
+				console.log( `@${id} <- ${message}` );
+				sent[ id ] = null;
 
-				console.error( e );
+			}
+
+			if ( ! global.length ) return;
+
+			const message = JSON.stringify( global );
+			console.log( `@global <- ${message}` );
+
+			for ( const id in serverInstance.wsById ) {
+
+				if ( id in sent ) continue;
+				serverInstance.wsById[ id ].send( message );
 
 			}
 
 		}, this.heartbeat );
+
+	}
+
+	send( event, message, to = 'global' ) {
+
+		if ( event ) message.event = event;
+		( to in this.outMessages ? this.outMessages[ to ] : ( this.outMessages[ to ] = [] ) ).push( message );
 
 	}
 
@@ -171,10 +250,32 @@ class Entity {
 
 	}
 
-	onDestroy() {
+	purge() {
+
+		delete Entity.byId[ this.id ];
+
+		if ( this.id in Entity.byParentId ) {
+
+			for ( let entity in Entity.byParentId[ this.id ] ) {
+
+				entity.setProperty( 'parentId', this.parentId );
+
+			}
+
+			delete Entity.byParentId[ this.id ];
+
+		}
+
+		delete Entity.byTypeId[ this.type ][ this.id ];
+		delete Entity.dirtyById[ this.id ];
+
+		serverInstance.send( 'Purge', { id: this.id } );
+
+		console.log( `${this.id} purged.` );
+
 	}
 
-	onUpdate() {
+	update() {
 	}
 
 }
@@ -189,14 +290,28 @@ class Client extends Entity {
 
 	constructor() {
 
+		super();
+
+	}
+
+	disconnect() {
+
+		delete serverInstance.clientLastseen[ this.id ];
+		delete serverInstance.wsById[ this.id ];
+		console.log( `${this.id} disconnected.` );
+		serverInstance.send( 'Disconnect', { id: this.id } );
+		this.purge();
+
 	}
 
 }
 
 
-if ( process.argv[ 1 ] === url.fileURLToPath( import.meta.url ) ) {
+if ( url.fileURLToPath( import.meta.url ).replace( process.argv[ 1 ], '' ).replace( '.js', '' ) === '' ) {
 
+	// path of this module matches path of module passed to node process
 	// Main ESM module
+
 	new Server( { allowedOrigins: [ 'http://localhost:8000', 'https://between2spaces.github.io' ], heartbeat: 3333 } );
 
 	serverInstance.run();
