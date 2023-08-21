@@ -69,7 +69,7 @@ export default class Server {
 
 			} );
 
-			this.send( 'Connect', { id: client.id, secret: secret, clientTimeout: this.clientTimeout, serverHeartbeat: this.heartbeat }, client.id );
+			this.send( 'Identity', { id: client.id, secret: secret, clientTimeout: this.clientTimeout, serverHeartbeat: this.heartbeat }, client.id );
 			this.send( 'Connect', client );
 
 		} );

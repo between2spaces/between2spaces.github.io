@@ -84,16 +84,28 @@ export default class Client {
 
 			if ( ! onevent ) return;
 
-			( onevent in this && this[ onevent ]( message ) ) || console.log( `${onevent}( message ) not found` );
+			if ( onevent in this ) {
+
+				this[ onevent ]( message );
+
+			} else {
+
+				console.log( `${onevent}( message ) not found` );
+
+			}
 
 		};
 
 	}
 
-	onConnect( message ) {
+	onIdentity( message ) {
 
 		this.identity = { id: message.id, secret: message.secret };
 		localStorage.setItem( 'client.identity', JSON.stringify( this.identity ) );
+
+	}
+
+	onConnect( message ) {
 
 	}
 
