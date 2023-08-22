@@ -98,6 +98,19 @@ export default class Client {
 
 	}
 
+	send( event, message ) {
+
+		if ( event ) message.event = event;
+		console.log( `<- ${JSON.stringify( message )}` );
+		this.socketWorker.postMessage( message );
+
+	}
+
+
+	onClientHeartbeat( message ) {
+
+	}
+
 	onIdentity( message ) {
 
 		this.identity = { id: message.id, secret: message.secret };
@@ -116,4 +129,6 @@ export default class Client {
 }
 
 
-const client = new Client( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://daffodil-polite-seat.glitch.me/' );
+//window.client = new Client( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://knowing-laced-tulip.glitch.me/' );
+
+window.client = new Client( 'wss://knowing-laced-tulip.glitch.me/' );

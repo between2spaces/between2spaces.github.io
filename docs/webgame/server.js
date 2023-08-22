@@ -14,9 +14,8 @@ export default class Server {
 		this.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
 		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
 		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 10000;
-		this.clientLastseen = {};
 		this.clientBySecret = {};
-		this.wsById = {};
+		this.infoById = {};
 		this.inMessages = [];
 		this.outMessages = [];
 
@@ -36,7 +35,6 @@ export default class Server {
 			if ( secret && secret[ 1 ] in this.clientBySecret ) {
 
 				client = this.clientBySecret[ secret = secret[ 1 ] ];
-				this.send( null, client, client.id );
 
 			} else {
 
@@ -45,21 +43,25 @@ export default class Server {
 
 			}
 
-			this.clientLastseen[ client.id ] = Date.now();
-			this.wsById[ client.id ] = ws;
-
-			console.log( `${client.id} connected.` );
-
 			ws.on( 'message', data => {
 
 				try {
 
-					this.clientLastseen[ client.id ] = Date.now();
+					this.infoById[ client.id ].lastseen = Date.now();
+
 					console.log( `${client.id} -> ${data}` );
+
 					if ( `${data}` === 'undefined' ) return;
-					const messages = JSON.parse( data );
-					for ( const message of ( messages.constructor !== Array ) ? [ messages ] : messages )
+
+					let messages = JSON.parse( data );
+
+					messages = ( messages.constructor !== Array ) ? [ messages ] : messages;
+
+					for ( const message of messages ) {
+
 						this.inMessages.push( { message: message, from: client.id } );
+
+					}
 
 				} catch ( e ) {
 
@@ -69,8 +71,24 @@ export default class Server {
 
 			} );
 
+			this.infoById[ client.id ] = { ws, secret, client, lastseen: Date.now() };
+
 			this.send( 'Identity', { id: client.id, secret: secret, clientTimeout: this.clientTimeout, serverHeartbeat: this.heartbeat }, client.id );
-			this.send( 'Connect', client );
+
+			if ( secret in this.clientBySecret ) {
+
+				console.log( `${client.id} reconnected` );
+				this.send( null, client, client.id );
+
+			} else {
+
+				console.log( `${client.id} connected` );
+				this.clientBySecret[ secret ] = client;
+				this.send( 'Connect', client );
+
+			}
+
+			this.onConnect( client );
 
 		} );
 
@@ -86,81 +104,143 @@ export default class Server {
 		console.log( `clientTimeout: ${serverInstance.clientTimeout}` );
 		console.log();
 
-		setInterval( () => {
+		this.scheduleNextUpdate();
 
-			if ( ! ( 'Client' in Entity.byTypeId ) ) return;
+	}
 
-			const clients = Entity.byTypeId[ 'Client' ];
+	scheduleNextUpdate() {
 
-			// disconnect clients we haven't heard from in awhile
-			const timeout = Date.now() - serverInstance.clientTimeout;
-			for ( const id in clients ) if ( serverInstance.clientLastseen[ id ] < timeout ) clients[ id ].disconnect();
+		let timeout = Date.now() - this.lastUpdate;
 
-			// process inbound messages
-			const inMessages = serverInstance.inMessages;
+		timeout = timeout > this.heartbeat ? 0 : this.heartbeat - timeout;
 
-			serverInstance.inMessages = [];
+		console.log( `next update in ${timeout}ms...` );
 
-			for ( const message of inMessages ) {
+		setTimeout( () => {
 
-				const onevent = `on${message.message.event}`;
+			this.lastUpdate = Date.now();
+			serverInstance.onUpdate();
 
-				if ( onevent in this ) {
+		}, timeout );
 
-					this[ onevent ]( message.message, message.from );
+	}
 
-				} else {
+	onUpdate() {
 
-					console.log( `${onevent}( message, from ) not found` );
+		if ( ! ( 'Client' in Entity.byTypeId ) )
+			return this.scheduleNextUpdate();
 
-				}
+		const clients = Entity.byTypeId[ 'Client' ];
 
-			}
+		// disconnect clients we haven't heard from in awhile
+		const timeout = this.lastUpdate - this.clientTimeout;
 
-			// process outbound messages
-			const outMessages = serverInstance.outMessages;
+		for ( const id in clients ) {
 
-			serverInstance.outMessages = {};
+			if ( this.infoById[ id ].lastseen < timeout ) {
 
-			const global = outMessages.global || [];
-			const sent = {};
-
-			for ( const id in outMessages ) {
-
-				const message = JSON.stringify( global.length ? outMessages[ id ].concat( global ) : outMessages[ id ] );
-
-				if ( ! ( id in clients ) ) {
-
-					id !== 'global' && console.log( `WARN: disconnected @${id} <- ${message}` );
-					continue;
-
-				}
-
-				serverInstance.wsById[ id ].send( message );
-				console.log( `@${id} <- ${message}` );
-				sent[ id ] = null;
+				clients[ id ].disconnect();
 
 			}
 
-			if ( ! global.length ) return;
+		}
 
-			const message = JSON.stringify( global );
-			console.log( `@global <- ${message}` );
+		// process inbound messages
+		const inMessages = this.inMessages;
 
-			for ( const id in serverInstance.wsById ) {
+		this.inMessages = [];
 
-				if ( id in sent ) continue;
-				serverInstance.wsById[ id ].send( message );
+		for ( const message of inMessages ) {
+
+			const onevent = `on${message.message.event}`;
+			const client = Entity.byId[ message.from ];
+
+			if ( onevent in client ) {
+
+				client[ onevent ]( message.message );
+
+			} else {
+
+				console.log( `<client>.${onevent}( message ) not found` );
 
 			}
 
-		}, this.heartbeat );
+		}
+
+		// broadcast entity deltas and call entity update
+		const dirtyById = Entity.dirtyById;
+
+		Entity.dirtyById = {};
+
+		for ( const id in dirtyById ) {
+
+			const delta = dirtyById[ id ];
+
+			if ( Object.keys( delta ).length ) {
+
+				delta.id = id;
+				this.send( null, delta );
+
+			}
+
+			Entity.byId[ id ].onUpdate();
+
+			if ( ! ( id in Entity.dirtyById ) ) console.log( `${id} went to sleep` );
+
+		}
+
+
+
+		// process outbound messages
+		const outMessages = this.outMessages;
+
+		this.outMessages = {};
+
+		const global = outMessages.global || [];
+		const sent = {};
+
+		for ( const id in outMessages ) {
+
+			const message = JSON.stringify( global.length ? outMessages[ id ].concat( global ) : outMessages[ id ] );
+
+			if ( ! ( id in clients ) ) {
+
+				id !== 'global' && console.log( `WARN: message to unknown Client @${id} <- ${message}` );
+				continue;
+
+			}
+
+			this.infoById[ id ].ws.send( message );
+			console.log( `@${id} <- ${message}` );
+			sent[ id ] = null;
+
+		}
+
+		if ( ! global.length ) return this.scheduleNextUpdate();
+
+		const message = JSON.stringify( global );
+		console.log( `@global <- ${message}` );
+
+		for ( const id in this.infoById ) {
+
+			if ( id in sent ) continue;
+			this.infoById[ id ].ws.send( message );
+
+		}
+
+		this.scheduleNextUpdate();
 
 	}
 
 	send( event, message, to = 'global' ) {
 
-		if ( event ) message.event = event;
+		if ( event ) {
+
+			message = Object.assign( {}, message );
+			message.event = event;
+
+		}
+
 		( to in this.outMessages ? this.outMessages[ to ] : ( this.outMessages[ to ] = [] ) ).push( message );
 
 	}
@@ -172,10 +252,23 @@ export default class Server {
 
 	onConnect( client ) {
 
+		const clients = Entity.byTypeId[ 'Client' ];
+
+		for ( let id in clients ) {
+
+			this.send( null, clients[ id ], client.id );
+
+		}
+
 	}
 
 
 	onDisconnect( client ) {
+
+		delete this.clientBySecret[ this.infoById[ client.id ].secret ];
+		delete this.infoById[ client.id ];
+		console.log( `${client.id} disconnected.` );
+		this.send( 'Disconnect', { id: client.id } );
 
 	}
 
@@ -202,7 +295,11 @@ class Entity {
 		Entity.byId[ this.id ] = this;
 
 		// set properties of the new Entity
-		for ( const property of Object.keys( args ) ) if ( property !== 'id' ) this.setProperty( property, args[ property ] );
+		for ( const property of Object.keys( args ) ) {
+
+			property !== 'id' && this.setProperty( property, args[ property ] );
+
+		}
 
 		// tell the server instance about this new Entity
 		serverInstance.onNewEntity( this );
@@ -275,7 +372,8 @@ class Entity {
 
 	}
 
-	update() {
+	onUpdate() {
+
 	}
 
 }
@@ -296,11 +394,33 @@ class Client extends Entity {
 
 	disconnect() {
 
-		delete serverInstance.clientLastseen[ this.id ];
-		delete serverInstance.wsById[ this.id ];
-		console.log( `${this.id} disconnected.` );
-		serverInstance.send( 'Disconnect', { id: this.id } );
+		serverInstance.onDisconnect( this );
 		this.purge();
+
+	}
+
+	onMessage( message ) {
+
+		let to = 'global';
+
+		if ( 'to' in message ) {
+
+			to = message.to;
+			delete message[ 'to' ];
+
+		}
+
+		serverInstance.send( 'Message', message, to );
+
+	}
+
+	onSetProperty( message ) {
+
+		if ( ! ( 'id' in message ) ) return console.log( `SetProperty message missing 'id'` );
+		if ( ! ( 'property' in message ) ) return console.log( `SetProperty message missing 'property'` );
+		if ( ! ( message.id in Entity.byId ) ) return console.log( `SetProperty message unknown Entity '${message.id}'` );
+
+		Entity.byId[ message.id ].setProperty( message.property, 'value' in message ? message.value : null );
 
 	}
 

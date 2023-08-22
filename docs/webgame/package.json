@@ -12,7 +12,7 @@
 	"scripts": {
 		"start": "npx -y npm-check-updates -u; npm install; if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; export $(sed -e '/^[ ]*#/d' .env | xargs) && node server"
 	},
-	"devDependencies": {
+	"dependencies": {
 		"ws": "^8.13.0"
 	}
 }
