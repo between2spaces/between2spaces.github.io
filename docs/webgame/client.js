@@ -43,6 +43,7 @@ export default class Client {
             
                         if ( 'clientTimeout' in message ) clientTimeout = message.clientTimeout;
                         if ( 'serverHeartbeat' in message ) serverHeartbeat = message.serverHeartbeat;
+						if ( 'reconnect' in message ) setTimeout( connect, 0 );
             
                         sendClient( message );
             

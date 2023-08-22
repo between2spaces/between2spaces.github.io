@@ -47,6 +47,9 @@ export default class Server {
 
 				try {
 
+					if ( ! ( client.id in this.infoById ) )
+						return ws.send( '{ event: "Reconnect" }' );
+
 					this.infoById[ client.id ].lastseen = Date.now();
 
 					console.log( `${client.id} -> ${data}` );
