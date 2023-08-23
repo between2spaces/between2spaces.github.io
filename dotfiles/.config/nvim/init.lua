@@ -13,14 +13,12 @@ vim.opt.autoread = true -- Enable auto read
 vim.opt.clipboard = '' -- Disable sync with system clipboard
 vim.opt.tabstop = 4 -- Number of spaces tabs count for
 vim.opt.shiftwidth = 0 -- Match tabstop
---vim.opt.relativenumber = true -- Enable relative line numbers
 vim.opt.signcolumn = "no" -- Never display sign column
 vim.opt.confirm = true -- Quit Vim if NvimTree is last buffer
 vim.opt.termguicolors = true -- Enables 24-bit RGB "gui" colours in terminal
 
 vim.opt.mouse = "" -- Disable mouse
 
---vim.opt.clipboard = "unnamedplus"  too slow when just normal deleting
 
 
 -- Use WslClipboard for copy/paste to/from system clipboard
@@ -63,7 +61,9 @@ require( 'lazy' ).setup( {
 	{ 'williamboman/mason-lspconfig.nvim' },
 	{ 'hrsh7th/nvim-cmp' },
 	{ 'hrsh7th/cmp-nvim-lsp' },
+	{ 'hrsh7th/cmp-buffer' },
 	{ 'L3MON4D3/LuaSnip' },
+	{ 'saadparwaiz1/cmp_luasnip' },
 	{ 'nvim-telescope/telescope.nvim' },
 	{ 'nvim-telescope/telescope-file-browser.nvim' },
 	{ 'folke/which-key.nvim' },
@@ -90,6 +90,13 @@ end)
 require('lspconfig').lua_ls.setup(lsp.nvim_lua_ls())
 
 lsp.setup()
+
+
+-- Ensure Lua and TypeScript LSP servers are installed
+require('mason-lspconfig').setup {
+	ensure_installed = { 'lua_ls', 'tsserver' },
+}
+
 
 
 -- Null-ls 
@@ -123,8 +130,23 @@ null_ls.setup({
 
 
 
--- Telescope setup
+-- Completion
+local cmp = require('cmp')
+cmp.setup {
+	snippet = {
+		expand = function(args)
+			require('luansip').lsp_expand(args.body)
+		end,
+	},
+	sources = cmp.config.sources( {
+		{ name = 'nvim_lsp' },
+	}, {
+		{ name = 'buffer' },
+	} )
+}
 
+
+-- Telescope setup
 require("telescope").setup {
 	defaults = {
 		file_ignore_patterns = {
@@ -194,36 +216,18 @@ require( 'nvim-tree' ).setup({
 			return math.floor(vim.opt.columns:get() * WIDTH_RATIO)
 		end,
 	},
-	-- filters = {
-	--   custom = { "^.git$" },
-	-- },
+	git = {
+		ignore = false,
+	},
 })
-
--- Open NvimTree at Start but do not focus
---vim.api.nvim_create_autocmd( { "VimEnter" }, {
---	callback = function()
---		require( 'nvim-tree.api' ).tree.toggle( false, true )
---	end
---} )
-
-
---vim.api.nvim_create_autocmd("BufEnter", {
---	group = vim.api.nvim_create_augroup("NvimTreeClose", {clear = true}),
---	callback = function()
---		local layout = vim.api.nvim_call_function("winlayout", {})
---		if layout[1] == "leaf" and vim.api.nvim_buf_get_option(vim.api.nvim_win_get_buf(layout[2]), "filetype") == "NvimTree" and layout[3] == nil then vim.cmd("quit") end
---	end
---})
 
 
 
 -- Custom binding for easier Window and Buffer navigation
 local opts = { noremap = true, silent = true }
-vim.api.nvim_set_keymap( 'n', '<C-h>', '<C-w>h', opts )
-vim.api.nvim_set_keymap( 'n', '<C-l>', '<C-w>l', opts )
+vim.api.nvim_set_keymap( 'n', '<C-h>', ':bprevious<cr>', opts )
+vim.api.nvim_set_keymap( 'n', '<C-l>', ':bnext<cr>', opts )
 vim.api.nvim_set_keymap( 'n', '<Tab>', ':Telescope buffers<cr>', opts )
-vim.api.nvim_set_keymap( 'n', '<S-l>', ':bnext<cr>', opts )
-vim.api.nvim_set_keymap( 'n', '<S-h>', ':bprevious<cr>', opts )
 
 -- Diagnostics bindings
 vim.api.nvim_set_keymap( 'n', '<leader>d', '<cmd>lua vim.diagnostic.open_float()<CR>', opts )

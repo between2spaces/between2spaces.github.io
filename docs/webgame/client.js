@@ -36,14 +36,16 @@ export default class Client {
                 };
             
                 ws.onmessage = event => {
-            
-                    const messages = JSON.parse( event.data );
+
+                    let messages = JSON.parse( event.data );
+
+					messages = ( messages.constructor !== Array ) ? [ messages ] : messages;
             
                     for ( const message of messages ) {
             
                         if ( 'clientTimeout' in message ) clientTimeout = message.clientTimeout;
                         if ( 'serverHeartbeat' in message ) serverHeartbeat = message.serverHeartbeat;
-						if ( 'reconnect' in message ) setTimeout( connect, 0 );
+						if ( 'Reconnect' in message ) setTimeout( connect, 0 );
             
                         sendClient( message );
             
@@ -99,14 +101,18 @@ export default class Client {
 
 	}
 
-	send( event, message ) {
+	send( event, message = {}, to = null ) {
+
+		message = Object.assign( {}, message );
 
 		if ( event ) message.event = event;
+		if ( to ) message.to = to;
+
 		console.log( `<- ${JSON.stringify( message )}` );
+
 		this.socketWorker.postMessage( message );
 
 	}
-
 
 	onClientHeartbeat( message ) {
 
@@ -130,6 +136,6 @@ export default class Client {
 }
 
 
-//window.client = new Client( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://knowing-laced-tulip.glitch.me/' );
+window.client = new Client( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://knowing-laced-tulip.glitch.me/' );
 
-window.client = new Client( 'wss://knowing-laced-tulip.glitch.me/' );
+//window.client = new Client( 'wss://knowing-laced-tulip.glitch.me/' );

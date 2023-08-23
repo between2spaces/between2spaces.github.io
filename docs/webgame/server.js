@@ -3,9 +3,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import * as url from 'node:url';
 
-
 let serverInstance;
-
 
 export default class Server {
 
@@ -15,6 +13,7 @@ export default class Server {
 		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
 		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 10000;
 		this.clientBySecret = {};
+		this.adminClientById = {};
 		this.infoById = {};
 		this.inMessages = [];
 		this.outMessages = [];
@@ -47,8 +46,7 @@ export default class Server {
 
 				try {
 
-					if ( ! ( client.id in this.infoById ) )
-						return ws.send( '{ event: "Reconnect" }' );
+					if ( ! ( client.id in this.infoById ) ) return ws.close();
 
 					this.infoById[ client.id ].lastseen = Date.now();
 
@@ -62,7 +60,9 @@ export default class Server {
 
 					for ( const message of messages ) {
 
-						this.inMessages.push( { message: message, from: client.id } );
+						message.from = client.id;
+
+						this.inMessages.push( message );
 
 					}
 
@@ -130,19 +130,17 @@ export default class Server {
 
 	onUpdate() {
 
-		if ( ! ( 'Client' in Entity.byTypeId ) )
+		if ( ! ( 'Client' in Entity.byType ) )
 			return this.scheduleNextUpdate();
-
-		const clients = Entity.byTypeId[ 'Client' ];
 
 		// disconnect clients we haven't heard from in awhile
 		const timeout = this.lastUpdate - this.clientTimeout;
 
-		for ( const id in clients ) {
+		for ( let client of Entity.byType[ 'Client' ] ) {
 
-			if ( this.infoById[ id ].lastseen < timeout ) {
+			if ( this.infoById[ client.id ].lastseen < timeout ) {
 
-				clients[ id ].disconnect();
+				client.disconnect();
 
 			}
 
@@ -155,16 +153,63 @@ export default class Server {
 
 		for ( const message of inMessages ) {
 
-			const onevent = `on${message.message.event}`;
-			const client = Entity.byId[ message.from ];
+			console.log( JSON.stringify( message ) );
 
-			if ( onevent in client ) {
+			const onevent = `on${message.event}`;
 
-				client[ onevent ]( message.message );
+			let to = 'server';
+
+			if ( 'to' in message ) {
+
+				to = message.to;
+				delete message[ 'to' ];
+
+			}
+
+			let targets;
+
+			if ( to === 'server' ) {
+
+				targets = [ serverInstance ];
+
+			} else if ( to.startsWith( 'type=' ) ) {
+
+				const type = to.replace( 'type=', '' );
+
+				if ( ! ( type in Entity.byType ) ) {
+
+					console.log( `Warn: Message to '${to}' has no targets` );
+					continue;
+
+				}
+
+				targets = Entity.byType[ type ];
 
 			} else {
 
-				console.log( `<client>.${onevent}( message ) not found` );
+				if ( ! ( to in Entity.byId ) ) {
+
+					console.log( `Warn: Message to '${to}' has no targets` );
+					continue;
+
+				}
+
+				targets = [ Entity.byId[ to ] ];
+
+			}
+
+
+			for ( let target of targets ) {
+
+				if ( onevent in target ) {
+
+					target[ onevent ]( message );
+
+				} else {
+
+					console.log( `<${to}>.${onevent}( ${ JSON.stringify( message ) } ) not found` );
+
+				}
 
 			}
 
@@ -206,7 +251,7 @@ export default class Server {
 
 			const message = JSON.stringify( global.length ? outMessages[ id ].concat( global ) : outMessages[ id ] );
 
-			if ( ! ( id in clients ) ) {
+			if ( ! ( id in this.infoById ) ) {
 
 				id !== 'global' && console.log( `WARN: message to unknown Client @${id} <- ${message}` );
 				continue;
@@ -255,11 +300,9 @@ export default class Server {
 
 	onConnect( client ) {
 
-		const clients = Entity.byTypeId[ 'Client' ];
+		for ( let client of Entity.byType[ 'Client' ] ) {
 
-		for ( let id in clients ) {
-
-			this.send( null, clients[ id ], client.id );
+			this.send( null, client, client.id );
 
 		}
 
@@ -272,6 +315,37 @@ export default class Server {
 		delete this.infoById[ client.id ];
 		console.log( `${client.id} disconnected.` );
 		this.send( 'Disconnect', { id: client.id } );
+
+	}
+
+	onFlagAdmin( message ) {
+
+		if ( message.from in serverInstance.adminClientById )
+			delete serverInstance.adminClientById[ message.from ];
+
+		if ( ! ( 'secret' in message ) ) {
+
+			const msg = `WARN: FlagAdmin message ${JSON.stringify( message )} does not provide 'secret'`;
+
+			this.send( 'Message', { FlagAdminError: msg }, message.from );
+
+			return console.log( msg );
+
+		}
+
+		if ( message.secret !== process.env.ADMIN_SECRET ) {
+
+			const msg = `WARN: FlagAdmin message ${JSON.stringify( message )} has invalid 'secret'`;
+
+			this.send( 'Message', { FlagAdminError: msg }, message.from );
+
+			return console.log( msg );
+
+		}
+
+		serverInstance.adminClientById[ message.from ] = Entity.byId[ message.from ];
+
+		this.send( 'Message', { FlagAdminSuccess: true }, message.from );
 
 	}
 
@@ -323,8 +397,14 @@ class Entity {
 		}
 
 		// if type is changing, remove entity from existing type:id map
-		if ( property === 'type' && this.type in Entity.byTypeId && this.id in Entity.byTypeId[ this.type ] )
-			delete Entity.byTypeId[ this.type ][ this.id ];
+		if ( property === 'type' && this.type in Entity.byType ) {
+
+			const entitiesOfType = Entity.byType[ this.type ];
+			const index = entitiesOfType.indexOf( this );
+
+			if ( index > - 1 ) entitiesOfType.splice( index, 1 );
+
+		}
 
 		// create a dirty map if not already marked dirty
 		if ( ! ( this.id in Entity.dirtyById ) ) Entity.dirtyById[ this.id ] = {};
@@ -343,8 +423,10 @@ class Entity {
 		// if type has changed, add entity to type:id map
 		if ( property === 'type' ) {
 
-			if ( ! ( this.type in Entity.byTypeId ) ) Entity.byTypeId[ this.type ] = {};
-			Entity.byTypeId[ this.type ][ this.id ] = this;
+			if ( ! ( this.type in Entity.byType ) ) Entity.byType[ this.type ] = [];
+			const byType = Entity.byType[ this.type ];
+			const index = byType.indexOf( this.type );
+			if ( index === - 1 ) byType.push( this );
 
 		}
 
@@ -366,7 +448,10 @@ class Entity {
 
 		}
 
-		delete Entity.byTypeId[ this.type ][ this.id ];
+		const entitiesOfType = Entity.byType[ this.type ];
+		const index = entitiesOfType.indexOf( this );
+		if ( index > - 1 ) entitiesOfType.splice( index, 1 );
+
 		delete Entity.dirtyById[ this.id ];
 
 		serverInstance.send( 'Purge', { id: this.id } );
@@ -383,7 +468,7 @@ class Entity {
 
 Entity.byId = {};
 Entity.byParentId = {};
-Entity.byTypeId = {};
+Entity.byType = {};
 Entity.dirtyById = {};
 
 
@@ -404,16 +489,7 @@ class Client extends Entity {
 
 	onMessage( message ) {
 
-		let to = 'global';
-
-		if ( 'to' in message ) {
-
-			to = message.to;
-			delete message[ 'to' ];
-
-		}
-
-		serverInstance.send( 'Message', message, to );
+		serverInstance.send( 'Message', message, this.id );
 
 	}
 
@@ -427,6 +503,12 @@ class Client extends Entity {
 
 	}
 
+	onDebug() {
+
+		this.disconnect();
+
+	}
+
 }
 
 
@@ -434,6 +516,7 @@ if ( url.fileURLToPath( import.meta.url ).replace( process.argv[ 1 ], '' ).repla
 
 	// path of this module matches path of module passed to node process
 	// Main ESM module
+	console.log( process.env.ADMIN_SECRET );
 
 	new Server( { allowedOrigins: [ 'http://localhost:8000', 'https://between2spaces.github.io' ], heartbeat: 3333 } );
 
