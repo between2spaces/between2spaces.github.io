@@ -1,6 +1,5 @@
 import { WebSocketServer } from 'ws';
 import crypto from 'crypto';
-import fs from 'fs';
 import * as url from 'node:url';
 
 let serverInstance;
@@ -215,6 +214,7 @@ export default class Server {
 
 		}
 
+
 		// broadcast entity deltas and call entity update
 		const dirtyById = Entity.dirtyById;
 
@@ -351,6 +351,8 @@ export default class Server {
 
 }
 
+
+
 function uuid( bytes = 4, id ) {
 
 	while ( ! id || id in uuid.usedUUIDs ) id = crypto.randomBytes( bytes ).toString( 'hex' );
@@ -359,6 +361,7 @@ function uuid( bytes = 4, id ) {
 }
 
 uuid.usedUUIDs = {};
+
 
 
 class Entity {
@@ -470,6 +473,7 @@ Entity.byId = {};
 Entity.byParentId = {};
 Entity.byType = {};
 Entity.dirtyById = {};
+
 
 
 class Client extends Entity {
