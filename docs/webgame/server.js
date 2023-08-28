@@ -75,7 +75,12 @@ export default class Server {
 
 			this.infoById[ client.id ] = { ws, secret, client, lastseen: Date.now() };
 
-			this.send( 'Identity', { id: client.id, secret: secret, clientTimeout: this.clientTimeout, serverHeartbeat: this.heartbeat }, client.id );
+			this.send( 'Identity', {
+				id: client.id,
+				secret: secret,
+				clientTimeout: this.clientTimeout,
+				serverHeartbeat: this.heartbeat
+			}, client.id );
 
 			if ( secret in this.clientBySecret ) {
 
