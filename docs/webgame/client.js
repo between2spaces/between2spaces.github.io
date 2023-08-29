@@ -18,20 +18,20 @@ export default class Client {
             
             function connect() {
             
-                sendClient( { log: 'Connecting to ${this.serverURL}...' } );
+                postMessage( { log: 'Connecting to ${this.serverURL}...' } );
             
                 ws = new WebSocket( '${this.serverURL}' );
             
-                ws.onopen = () => sendClient( { log: 'Connected.' } );
+                ws.onopen = () => postMessage( { log: 'Connected.' } );
             
                 ws.onclose = () => {
                     ws = null;
-                    sendClient( { log: 'Socket closed. Reconnect attempt in 5 second.' } );
+                    postMessage( { log: 'Socket closed. Reconnect attempt in 5 second.' } );
                     setTimeout( connect, 5000 );
                 };
             
                 ws.onerror = err => {
-                    sendClient( { log: 'Socket error. Closing socket.' } );
+                    postMessage( { log: 'Socket error. Closing socket.' } );
                     ws.close();
                 };
             
@@ -47,7 +47,7 @@ export default class Client {
                         if ( 'serverHeartbeat' in message ) serverHeartbeat = message.serverHeartbeat;
 						if ( 'Reconnect' in message ) setTimeout( connect, 0 );
             
-                        sendClient( message );
+                        postMessage( message );
             
                     }
             
@@ -66,15 +66,13 @@ export default class Client {
             
             function sendServer( message ) {
                 timeout && clearTimeout( timeout );
-                ws && ws.send( JSON.stringify( message ) );
+				const string = JSON.stringify( message );
+				postMessage( { event: 'Debug', sent: '--> "' + string + '"' } );
+                ws && ws.send( string );
                 timeout = setTimeout( sendServer, clientTimeout );
             }
             
-            function sendClient( json ) {
-                postMessage( json );
-            }
-            
-            setInterval( () => sendClient( { event: 'ClientHeartbeat' } ), clientHeartbeat );
+            setInterval( () => postMessage( { event: 'ClientHeartbeat' } ), clientHeartbeat );
         ` ] ) ) );
 
 		this.socketWorker.onmessage = event => {
@@ -101,16 +99,15 @@ export default class Client {
 
 	}
 
-	send( event, message = {}, to = null ) {
-
-		message = Object.assign( {}, message );
-
-		if ( event ) message.event = event;
-		if ( to ) message.to = to;
-
-		console.log( `<- ${JSON.stringify( message )}` );
+	send( message ) {
 
 		this.socketWorker.postMessage( message );
+
+	}
+
+	onDebug( message ) {
+
+		console.log( message );
 
 	}
 

@@ -14,8 +14,7 @@ export default class Server {
 		this.clientBySecret = {};
 		this.adminClientById = {};
 		this.infoById = {};
-		this.inMessages = [];
-		this.outMessages = [];
+		this.messages = [];
 
 		serverInstance = this;
 
@@ -61,7 +60,7 @@ export default class Server {
 
 						message.from = client.id;
 
-						this.inMessages.push( message );
+						this.messages.push( message );
 
 					}
 
@@ -75,23 +74,24 @@ export default class Server {
 
 			this.infoById[ client.id ] = { ws, secret, client, lastseen: Date.now() };
 
-			this.send( 'Identity', {
-				id: client.id,
+			this.messages.push( {
+				event: 'Identity',
+				to: client.id,
 				secret: secret,
 				clientTimeout: this.clientTimeout,
 				serverHeartbeat: this.heartbeat
-			}, client.id );
+			} );
 
 			if ( secret in this.clientBySecret ) {
 
 				console.log( `${client.id} reconnected` );
-				this.send( null, client, client.id );
+				this.messages.push( Object.assign( { event: 'Connect', to: client.id }, client ) );
 
 			} else {
 
 				console.log( `${client.id} connected` );
 				this.clientBySecret[ secret ] = client;
-				this.send( 'Connect', client );
+				this.messages.push( Object.assign( { event: 'Connect', to: client.id }, client ) );
 
 			}
 
@@ -142,20 +142,16 @@ export default class Server {
 
 		for ( let client of Entity.byType[ 'Client' ] ) {
 
-			if ( this.infoById[ client.id ].lastseen < timeout ) {
-
-				client.disconnect();
-
-			}
+			this.infoById[ client.id ].lastseen < timeout && client.disconnect();
 
 		}
 
-		// process inbound messages
-		const inMessages = this.inMessages;
+		// process messages
+		const messages = this.messages;
 
-		this.inMessages = [];
+		this.messages = [];
 
-		for ( const message of inMessages ) {
+		for ( const message of messages ) {
 
 			console.log( JSON.stringify( message ) );
 
@@ -182,7 +178,7 @@ export default class Server {
 
 				if ( ! ( type in Entity.byType ) ) {
 
-					console.log( `Warn: Message to '${to}' has no targets` );
+					this.messages.push( { to: message.from, event: 'Warning', value: `Message to '${to}' has no targets` } );
 					continue;
 
 				}
@@ -193,7 +189,7 @@ export default class Server {
 
 				if ( ! ( to in Entity.byId ) ) {
 
-					console.log( `Warn: Message to '${to}' has no targets` );
+					this.messages.push( { to: message.from, event: 'Warning', value: `Message to '${to}' has no targets` } );
 					continue;
 
 				}
@@ -211,7 +207,7 @@ export default class Server {
 
 				} else {
 
-					console.log( `<${to}>.${onevent}( ${ JSON.stringify( message ) } ) not found` );
+					this.messages.push( { to: message.from, event: 'Warning', value: `<${to}>.${onevent}( ${ JSON.stringify( message ) } ) not found` } );
 
 				}
 
@@ -232,7 +228,9 @@ export default class Server {
 			if ( Object.keys( delta ).length ) {
 
 				delta.id = id;
-				this.send( null, delta );
+				delta.to = 'type=Client';
+				delta.event = 'Update';
+				this.messages.push( delta );
 
 			}
 
@@ -242,61 +240,10 @@ export default class Server {
 
 		}
 
-
-
-		// process outbound messages
-		const outMessages = this.outMessages;
-
-		this.outMessages = {};
-
-		const global = outMessages.global || [];
-		const sent = {};
-
-		for ( const id in outMessages ) {
-
-			const message = JSON.stringify( global.length ? outMessages[ id ].concat( global ) : outMessages[ id ] );
-
-			if ( ! ( id in this.infoById ) ) {
-
-				id !== 'global' && console.log( `WARN: message to unknown Client @${id} <- ${message}` );
-				continue;
-
-			}
-
-			this.infoById[ id ].ws.send( message );
-			console.log( `@${id} <- ${message}` );
-			sent[ id ] = null;
-
-		}
-
-		if ( ! global.length ) return this.scheduleNextUpdate();
-
-		const message = JSON.stringify( global );
-		console.log( `@global <- ${message}` );
-
-		for ( const id in this.infoById ) {
-
-			if ( id in sent ) continue;
-			this.infoById[ id ].ws.send( message );
-
-		}
-
 		this.scheduleNextUpdate();
 
 	}
 
-	send( event, message, to = 'global' ) {
-
-		if ( event ) {
-
-			message = Object.assign( {}, message );
-			message.event = event;
-
-		}
-
-		( to in this.outMessages ? this.outMessages[ to ] : ( this.outMessages[ to ] = [] ) ).push( message );
-
-	}
 
 	onNewEntity( entity ) {
 
@@ -304,12 +251,6 @@ export default class Server {
 
 
 	onConnect( client ) {
-
-		for ( let client of Entity.byType[ 'Client' ] ) {
-
-			this.send( null, client, client.id );
-
-		}
 
 	}
 
@@ -319,7 +260,7 @@ export default class Server {
 		delete this.clientBySecret[ this.infoById[ client.id ].secret ];
 		delete this.infoById[ client.id ];
 		console.log( `${client.id} disconnected.` );
-		this.send( 'Disconnect', { id: client.id } );
+		this.messages.push( { event: 'Disconnect', to: 'type=Client', id: client.id } );
 
 	}
 
@@ -332,7 +273,7 @@ export default class Server {
 
 			const msg = `WARN: FlagAdmin message ${JSON.stringify( message )} does not provide 'secret'`;
 
-			this.send( 'Message', { FlagAdminError: msg }, message.from );
+			this.messages.push( { event: 'Message', to: message.from, FlagAdminError: msg } );
 
 			return console.log( msg );
 
@@ -342,7 +283,7 @@ export default class Server {
 
 			const msg = `WARN: FlagAdmin message ${JSON.stringify( message )} has invalid 'secret'`;
 
-			this.send( 'Message', { FlagAdminError: msg }, message.from );
+			this.messages.push( { event: 'Message', to: message.from, FlagAdminError: msg } );
 
 			return console.log( msg );
 
@@ -350,7 +291,7 @@ export default class Server {
 
 		serverInstance.adminClientById[ message.from ] = Entity.byId[ message.from ];
 
-		this.send( 'Message', { FlagAdminSuccess: true }, message.from );
+		this.messages.push( { event: 'Message', to: message.from, FlagAdminSuccess: true } );
 
 	}
 
@@ -462,7 +403,7 @@ class Entity {
 
 		delete Entity.dirtyById[ this.id ];
 
-		serverInstance.send( 'Purge', { id: this.id } );
+		serverInstance.messages.push( { event: 'Purge', to: 'type=Client', id: this.id } );
 
 		console.log( `${this.id} purged.` );
 
@@ -496,9 +437,35 @@ class Client extends Entity {
 
 	}
 
+	sendToWS( message ) {
+
+		const string = JSON.stringify( message );
+		console.log( `${this.id}@ws <- ${string}` );
+		serverInstance.infoById[ this.id ].ws.send( string );
+
+	}
+
+	onIdentity( message ) {
+
+		this.sendToWS( message );
+
+	}
+
+	onConnect( message ) {
+
+		this.sendToWS( message );
+
+	}
+
+	onWarning( message ) {
+
+		this.sendToWS( message );
+
+	}
+
 	onMessage( message ) {
 
-		serverInstance.send( 'Message', message, this.id );
+		this.sendToWS( message );
 
 	}
 
