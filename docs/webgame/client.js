@@ -79,21 +79,9 @@ export default class Client {
 
 			const message = event.data;
 
-			const onevent = 'event' in message ? `on${message.event}` : 'id' in message ? 'onUpdate' : null;
+			const fn = `_${message.fn}`;
 
-			if ( onevent !== 'onClientHeartbeat' ) console.log( message );
-
-			if ( ! onevent ) return;
-
-			if ( onevent in this ) {
-
-				this[ onevent ]( message );
-
-			} else {
-
-				console.log( `${onevent}( message ) not found` );
-
-			}
+			this[ fn in this ? fn : '_undefined' ]( message );
 
 		};
 
@@ -105,28 +93,54 @@ export default class Client {
 
 	}
 
-	onDebug( message ) {
+	_log( message ) {
 
 		console.log( message );
 
 	}
 
-	onClientHeartbeat( message ) {
+	_debug( message ) {
+
+		this._log( message );
 
 	}
 
-	onIdentity( message ) {
+	_warn( message ) {
+
+		this._log( message );
+
+	}
+
+	_error( message ) {
+
+		this._log( message );
+
+	}
+
+	_success( message ) {
+
+		this._log( message );
+
+	}
+
+	_undefined( message ) {
+
+		this._log( message );
+
+	}
+
+	_identity( message ) {
 
 		this.identity = { id: message.id, secret: message.secret };
 		localStorage.setItem( 'client.identity', JSON.stringify( this.identity ) );
 
 	}
 
-	onConnect( message ) {
+	_connect( message ) {
 
 	}
 
-	onUpdate( delta ) {
+	_update( message ) {
 
 	}
 

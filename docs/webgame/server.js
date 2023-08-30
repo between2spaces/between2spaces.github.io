@@ -75,8 +75,9 @@ export default class Server {
 			this.infoById[ client.id ] = { ws, secret, client, lastseen: Date.now() };
 
 			this.messages.push( {
-				event: 'Identity',
+				fn: 'identity',
 				to: client.id,
+				id: client.id,
 				secret: secret,
 				clientTimeout: this.clientTimeout,
 				serverHeartbeat: this.heartbeat
@@ -85,13 +86,11 @@ export default class Server {
 			if ( secret in this.clientBySecret ) {
 
 				console.log( `${client.id} reconnected` );
-				this.messages.push( Object.assign( { event: 'Connect', to: client.id }, client ) );
 
 			} else {
 
 				console.log( `${client.id} connected` );
 				this.clientBySecret[ secret ] = client;
-				this.messages.push( Object.assign( { event: 'Connect', to: client.id }, client ) );
 
 			}
 
@@ -126,13 +125,13 @@ export default class Server {
 		setTimeout( () => {
 
 			this.lastUpdate = Date.now();
-			serverInstance.onUpdate();
+			serverInstance.update();
 
 		}, timeout );
 
 	}
 
-	onUpdate() {
+	update() {
 
 		if ( ! ( 'Client' in Entity.byType ) )
 			return this.scheduleNextUpdate();
@@ -153,13 +152,11 @@ export default class Server {
 
 		for ( const message of messages ) {
 
-			console.log( JSON.stringify( message ) );
-
-			const onevent = `on${message.event}`;
+			const fn = `_${message.fn}`;
 
 			let to = 'server';
 
-			if ( 'to' in message ) {
+			if ( 'to' in message && message.to ) {
 
 				to = message.to;
 				delete message[ 'to' ];
@@ -178,7 +175,7 @@ export default class Server {
 
 				if ( ! ( type in Entity.byType ) ) {
 
-					this.messages.push( { to: message.from, event: 'Warning', value: `Message to '${to}' has no targets` } );
+					this.messages.push( { to: message.from, fn: 'warn', value: `Message to '${to}' has no targets` } );
 					continue;
 
 				}
@@ -189,7 +186,7 @@ export default class Server {
 
 				if ( ! ( to in Entity.byId ) ) {
 
-					this.messages.push( { to: message.from, event: 'Warning', value: `Message to '${to}' has no targets` } );
+					this.messages.push( { to: message.from, fn: 'warn', value: `Message to '${to}' has no targets` } );
 					continue;
 
 				}
@@ -201,15 +198,7 @@ export default class Server {
 
 			for ( let target of targets ) {
 
-				if ( onevent in target ) {
-
-					target[ onevent ]( message );
-
-				} else {
-
-					this.messages.push( { to: message.from, event: 'Warning', value: `<${to}>.${onevent}( ${ JSON.stringify( message ) } ) not found` } );
-
-				}
+				target[ fn in target ? fn : '_undefined' ]( message );
 
 			}
 
@@ -229,12 +218,12 @@ export default class Server {
 
 				delta.id = id;
 				delta.to = 'type=Client';
-				delta.event = 'Update';
+				delta.fn = 'update';
 				this.messages.push( delta );
 
 			}
 
-			Entity.byId[ id ].onUpdate();
+			Entity.byId[ id ]._update();
 
 			if ( ! ( id in Entity.dirtyById ) ) console.log( `${id} went to sleep` );
 
@@ -252,6 +241,13 @@ export default class Server {
 
 	onConnect( client ) {
 
+		// broadcast all Entities to message.from
+		for ( let id in Entity.byId ) {
+
+			this.messages.push( Object.assign( { fn: 'update', to: client.id }, Entity.byId[ id ] ) );
+
+		}
+
 	}
 
 
@@ -260,22 +256,22 @@ export default class Server {
 		delete this.clientBySecret[ this.infoById[ client.id ].secret ];
 		delete this.infoById[ client.id ];
 		console.log( `${client.id} disconnected.` );
-		this.messages.push( { event: 'Disconnect', to: 'type=Client', id: client.id } );
+		this.messages.push( { fn: 'disconnect', to: 'type=Client', id: client.id } );
 
 	}
 
-	onFlagAdmin( message ) {
+	flagAdmin( message ) {
 
 		if ( message.from in serverInstance.adminClientById )
 			delete serverInstance.adminClientById[ message.from ];
 
 		if ( ! ( 'secret' in message ) ) {
 
-			const msg = `WARN: FlagAdmin message ${JSON.stringify( message )} does not provide 'secret'`;
+			const msg = `FlagAdmin message ${JSON.stringify( message )} does not provide 'secret'`;
 
-			this.messages.push( { event: 'Message', to: message.from, FlagAdminError: msg } );
+			this.messages.push( { fn: 'error', to: message.from, FlagAdminError: msg } );
 
-			return console.log( msg );
+			return console.log( `Error: ${msg}` );
 
 		}
 
@@ -283,15 +279,15 @@ export default class Server {
 
 			const msg = `WARN: FlagAdmin message ${JSON.stringify( message )} has invalid 'secret'`;
 
-			this.messages.push( { event: 'Message', to: message.from, FlagAdminError: msg } );
+			this.messages.push( { fn: 'error', to: message.from, FlagAdminError: msg } );
 
-			return console.log( msg );
+			return console.log( `Error: ${msg}` );
 
 		}
 
 		serverInstance.adminClientById[ message.from ] = Entity.byId[ message.from ];
 
-		this.messages.push( { event: 'Message', to: message.from, FlagAdminSuccess: true } );
+		this.messages.push( { fn: 'success', to: message.from, FlagAdminSuccess: true } );
 
 	}
 
@@ -403,13 +399,13 @@ class Entity {
 
 		delete Entity.dirtyById[ this.id ];
 
-		serverInstance.messages.push( { event: 'Purge', to: 'type=Client', id: this.id } );
+		serverInstance.messages.push( { fn: 'purge', to: 'type=Client', id: this.id } );
 
 		console.log( `${this.id} purged.` );
 
 	}
 
-	onUpdate() {
+	update() {
 
 	}
 
@@ -437,6 +433,12 @@ class Client extends Entity {
 
 	}
 
+	update() {
+
+		super.update();
+
+	}
+
 	sendToWS( message ) {
 
 		const string = JSON.stringify( message );
@@ -445,31 +447,13 @@ class Client extends Entity {
 
 	}
 
-	onIdentity( message ) {
+	_undefined( message ) {
 
 		this.sendToWS( message );
 
 	}
 
-	onConnect( message ) {
-
-		this.sendToWS( message );
-
-	}
-
-	onWarning( message ) {
-
-		this.sendToWS( message );
-
-	}
-
-	onMessage( message ) {
-
-		this.sendToWS( message );
-
-	}
-
-	onSetProperty( message ) {
+	_setProperty( message ) {
 
 		if ( ! ( 'id' in message ) ) return console.log( `SetProperty message missing 'id'` );
 		if ( ! ( 'property' in message ) ) return console.log( `SetProperty message missing 'property'` );
@@ -479,7 +463,7 @@ class Client extends Entity {
 
 	}
 
-	onDebug() {
+	_debug() {
 
 		this.disconnect();
 

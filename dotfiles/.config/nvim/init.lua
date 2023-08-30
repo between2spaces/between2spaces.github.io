@@ -182,14 +182,14 @@ require("telescope").load_extension "file_browser"
 local HEIGHT_RATIO = 0.8
 local WIDTH_RATIO = 0.5
 
-require( 'nvim-tree' ).setup({
+require 'nvim-tree'.setup {
 	disable_netrw = true,
 	hijack_netrw = true,
 	respect_buf_cwd = true,
 	sync_root_with_cwd = true,
 	update_focused_file = { enable = true },
 	view = {
-		relativenumber = true,
+		--relativenumber = true,
 		float = {
 			enable = true,
 			open_win_config = function()
@@ -219,7 +219,16 @@ require( 'nvim-tree' ).setup({
 	git = {
 		ignore = false,
 	},
-})
+}
+
+
+
+--nvim-web-devicons setup
+require 'nvim-web-devicons'.setup {
+	color_icons = true,
+	default = true,
+	strict = true,
+}
 
 
 
