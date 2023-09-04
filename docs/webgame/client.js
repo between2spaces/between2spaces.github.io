@@ -1,4 +1,4 @@
-export default class Client {
+export class Client {
 
 	constructor( serverUrl ) {
 
@@ -11,9 +11,9 @@ export default class Client {
 
 		this.socketWorker = new Worker( URL.createObjectURL( new Blob( [ `
             let ws;
-            let clientHeartbeat = 1000;
             let clientTimeout = 10000;
             let serverHeartbeat = 3333;
+            let clientHeartbeat = serverHeartbeat;
             let timeout;
             
             function connect() {
@@ -35,19 +35,19 @@ export default class Client {
                     ws.close();
                 };
             
-                ws.onmessage = event => {
+                ws.onmessage = msg => {
 
-                    let messages = JSON.parse( event.data );
+                    let msgs = JSON.parse( msg.data );
 
-					messages = ( messages.constructor !== Array ) ? [ messages ] : messages;
+					msgs = ( msgs.constructor !== Array ) ? [ msgs ] : msgs;
             
-                    for ( const message of messages ) {
+                    for ( const msg of msgs ) {
             
-                        if ( 'clientTimeout' in message ) clientTimeout = message.clientTimeout;
-                        if ( 'serverHeartbeat' in message ) serverHeartbeat = message.serverHeartbeat;
-						if ( 'Reconnect' in message ) setTimeout( connect, 0 );
+                        if ( 'clientTimeout' in msg ) clientTimeout = msg.clientTimeout;
+                        if ( 'serverHeartbeat' in msg ) serverHeartbeat = clientHeartbeat = msg.serverHeartbeat;
+						if ( 'Reconnect' in msg ) setTimeout( connect, 0 );
             
-                        postMessage( message );
+                        postMessage( msg );
             
                     }
             
@@ -60,93 +60,155 @@ export default class Client {
             
             connect();
             
-            onmessage = event => {
-                sendServer( event.data );
+            onmessage = msg => {
+                sendServer( msg.data );
             };
             
-            function sendServer( message ) {
+            function sendServer( msg ) {
                 timeout && clearTimeout( timeout );
-				const string = JSON.stringify( message );
-				postMessage( { event: 'Debug', sent: '--> "' + string + '"' } );
+				const string = JSON.stringify( msg );
+				postMessage( { _: 'debug', sent: '--> "' + string + '"' } );
                 ws && ws.send( string );
                 timeout = setTimeout( sendServer, clientTimeout );
             }
             
-            setInterval( () => postMessage( { event: 'ClientHeartbeat' } ), clientHeartbeat );
+            setInterval( () => postMessage( { _: 'clientHeartbeat' } ), clientHeartbeat );
         ` ] ) ) );
 
-		this.socketWorker.onmessage = event => {
+		this.socketWorker.onmessage = msg => {
 
-			const message = event.data;
+			const _ = `_${msg.data._}`;
 
-			const fn = `_${message.fn}`;
-
-			this[ fn in this ? fn : '_undefined' ]( message );
+			this[ _ in this ? _ : '_undefined' ]( msg.data );
 
 		};
 
 	}
 
-	send( message ) {
+	send( msg ) {
 
-		this.socketWorker.postMessage( message );
-
-	}
-
-	_log( message ) {
-
-		console.log( message );
+		this.socketWorker.postMessage( msg );
 
 	}
 
-	_debug( message ) {
+	_log( msg ) {
 
-		this._log( message );
-
-	}
-
-	_warn( message ) {
-
-		this._log( message );
+		console.log( msg );
 
 	}
 
-	_error( message ) {
+	_undefined( msg ) {
 
-		this._log( message );
-
-	}
-
-	_success( message ) {
-
-		this._log( message );
+		this._log( msg );
 
 	}
 
-	_undefined( message ) {
+	_identity( msg ) {
 
-		this._log( message );
-
-	}
-
-	_identity( message ) {
-
-		this.identity = { id: message.id, secret: message.secret };
+		this.identity = { id: msg.id, secret: msg.secret };
 		localStorage.setItem( 'client.identity', JSON.stringify( this.identity ) );
 
 	}
 
-	_connect( message ) {
+	_entity( msg ) {
 
-	}
+		console.log( msg );
 
-	_update( message ) {
+		const id = msg.entity.id;
+
+		if ( ! ( id in Entity.byId ) ) new Entity( msg.entity );
+
+		const entity = Entity.byId[ id ];
+
+		for ( const property of Object.keys( msg.entity ) ) {
+
+			property !== 'id' && entity.setProperty( property, msg.entity[ property ] );
+
+		}
 
 	}
 
 }
 
 
-window.client = new Client( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://knowing-laced-tulip.glitch.me/' );
 
-//window.client = new Client( 'wss://knowing-laced-tulip.glitch.me/' );
+
+export class Entity {
+
+	constructor( args = {} ) {
+
+		Entity.byId[ this.id = args.id ] = this;
+
+	}
+
+	setProperty( property, value ) {
+
+		console.log( `setProperty( "${property}", ${value} )` );
+
+		// if no change to property value, do nothing
+		if ( this[ property ] === value ) return;
+
+		// if parentId is changing, remove entity from existing parentId list
+		if ( property === 'parentId' && this.parentId in Entity.byParentId ) {
+
+			const index = Entity.byParentId[ this.parentId ].indexOf( this );
+			if ( index > - 1 ) Entity.byParentId[ this.parentId ].splice( index, 1 );
+
+		}
+
+		// if type is changing, remove entity from existing type:id map
+		if ( property === 'type' && this.type in Entity.byType ) {
+
+			const entitiesOfType = Entity.byType[ this.type ];
+			const index = entitiesOfType.indexOf( this );
+
+			if ( index > - 1 ) entitiesOfType.splice( index, 1 );
+
+		}
+
+		// assign property value
+		this[ property ] = value;
+
+		// if parentId has changed, add entity to parentId list
+		if ( property === 'parentId' && this.parentId ) {
+
+			if ( ! ( this.parentId in Entity.byParentId ) ) Entity.byParentId[ this.parentId ] = [];
+			Entity.byParentId[ this.parentId ].push( this );
+
+		}
+
+		// if type has changed, add entity to type:id map
+		if ( property === 'type' ) {
+
+			if ( ! ( this.type in Entity.byType ) ) Entity.byType[ this.type ] = [];
+			const byType = Entity.byType[ this.type ];
+			const index = byType.indexOf( this.type );
+			if ( index === - 1 ) byType.push( this );
+
+		}
+
+	}
+
+	purge() {
+
+		delete Entity.byId[ this.id ];
+
+		if ( this.id in Entity.byParentId ) delete Entity.byParentId[ this.id ];
+
+		const entitiesOfType = Entity.byType[ this.type ];
+		const index = entitiesOfType.indexOf( this );
+		if ( index > - 1 ) entitiesOfType.splice( index, 1 );
+
+		console.log( `${this.id} purged.` );
+
+	}
+
+	update() {
+
+	}
+
+}
+
+Entity.byId = {};
+Entity.byParentId = {};
+Entity.byType = {};

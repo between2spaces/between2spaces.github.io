@@ -2,309 +2,7 @@ import { WebSocketServer } from 'ws';
 import crypto from 'crypto';
 import * as url from 'node:url';
 
-let serverInstance;
-
-export default class Server {
-
-	constructor( args ) {
-
-		this.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
-		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
-		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 10000;
-		this.clientBySecret = {};
-		this.adminClientById = {};
-		this.infoById = {};
-		this.messages = [];
-
-		serverInstance = this;
-
-		const wss = new WebSocketServer( {
-			port: process.env.PORT,
-			verifyClient: info => this.allowedOrigins.indexOf( info.req.headers.origin ) > - 1
-		} );
-
-
-		wss.on( 'connection', ( ws, req ) => {
-
-			let secret = /[?&]{1}secret=([0-9a-fA-F]{8})/.exec( req.url );
-			let client;
-
-			if ( secret && secret[ 1 ] in this.clientBySecret ) {
-
-				client = this.clientBySecret[ secret = secret[ 1 ] ];
-
-			} else {
-
-				client = new Client();
-				secret = uuid();
-
-			}
-
-			ws.on( 'message', data => {
-
-				try {
-
-					if ( ! ( client.id in this.infoById ) ) return ws.close();
-
-					this.infoById[ client.id ].lastseen = Date.now();
-
-					console.log( `${client.id} -> ${data}` );
-
-					if ( `${data}` === 'undefined' ) return;
-
-					let messages = JSON.parse( data );
-
-					messages = ( messages.constructor !== Array ) ? [ messages ] : messages;
-
-					for ( const message of messages ) {
-
-						message.from = client.id;
-
-						this.messages.push( message );
-
-					}
-
-				} catch ( e ) {
-
-					console.error( e );
-
-				}
-
-			} );
-
-			this.infoById[ client.id ] = { ws, secret, client, lastseen: Date.now() };
-
-			this.messages.push( {
-				fn: 'identity',
-				to: client.id,
-				id: client.id,
-				secret: secret,
-				clientTimeout: this.clientTimeout,
-				serverHeartbeat: this.heartbeat
-			} );
-
-			if ( secret in this.clientBySecret ) {
-
-				console.log( `${client.id} reconnected` );
-
-			} else {
-
-				console.log( `${client.id} connected` );
-				this.clientBySecret[ secret ] = client;
-
-			}
-
-			this.onConnect( client );
-
-		} );
-
-	}
-
-	run() {
-
-		console.log();
-		console.log( `Server listening on port ${process.env.PORT}` );
-		console.log();
-		console.log( `allowedOrigins: ${serverInstance.allowedOrigins}` );
-		console.log( `serverHeartbeat: ${serverInstance.heartbeat}` );
-		console.log( `clientTimeout: ${serverInstance.clientTimeout}` );
-		console.log();
-
-		this.scheduleNextUpdate();
-
-	}
-
-	scheduleNextUpdate() {
-
-		let timeout = Date.now() - this.lastUpdate;
-
-		timeout = timeout > this.heartbeat ? 0 : this.heartbeat - timeout;
-
-		console.log( `next update in ${timeout}ms...` );
-
-		setTimeout( () => {
-
-			this.lastUpdate = Date.now();
-			serverInstance.update();
-
-		}, timeout );
-
-	}
-
-	update() {
-
-		if ( ! ( 'Client' in Entity.byType ) )
-			return this.scheduleNextUpdate();
-
-		// disconnect clients we haven't heard from in awhile
-		const timeout = this.lastUpdate - this.clientTimeout;
-
-		for ( let client of Entity.byType[ 'Client' ] ) {
-
-			this.infoById[ client.id ].lastseen < timeout && client.disconnect();
-
-		}
-
-		// process messages
-		const messages = this.messages;
-
-		this.messages = [];
-
-		for ( const message of messages ) {
-
-			const fn = `_${message.fn}`;
-
-			let to = 'server';
-
-			if ( 'to' in message && message.to ) {
-
-				to = message.to;
-				delete message[ 'to' ];
-
-			}
-
-			let targets;
-
-			if ( to === 'server' ) {
-
-				targets = [ serverInstance ];
-
-			} else if ( to.startsWith( 'type=' ) ) {
-
-				const type = to.replace( 'type=', '' );
-
-				if ( ! ( type in Entity.byType ) ) {
-
-					this.messages.push( { to: message.from, fn: 'warn', value: `Message to '${to}' has no targets` } );
-					continue;
-
-				}
-
-				targets = Entity.byType[ type ];
-
-			} else {
-
-				if ( ! ( to in Entity.byId ) ) {
-
-					this.messages.push( { to: message.from, fn: 'warn', value: `Message to '${to}' has no targets` } );
-					continue;
-
-				}
-
-				targets = [ Entity.byId[ to ] ];
-
-			}
-
-
-			for ( let target of targets ) {
-
-				target[ fn in target ? fn : '_undefined' ]( message );
-
-			}
-
-		}
-
-
-		// broadcast entity deltas and call entity update
-		const dirtyById = Entity.dirtyById;
-
-		Entity.dirtyById = {};
-
-		for ( const id in dirtyById ) {
-
-			const delta = dirtyById[ id ];
-
-			if ( Object.keys( delta ).length ) {
-
-				delta.id = id;
-				delta.to = 'type=Client';
-				delta.fn = 'update';
-				this.messages.push( delta );
-
-			}
-
-			Entity.byId[ id ]._update();
-
-			if ( ! ( id in Entity.dirtyById ) ) console.log( `${id} went to sleep` );
-
-		}
-
-		this.scheduleNextUpdate();
-
-	}
-
-
-	onNewEntity( entity ) {
-
-	}
-
-
-	onConnect( client ) {
-
-		// broadcast all Entities to message.from
-		for ( let id in Entity.byId ) {
-
-			this.messages.push( Object.assign( { fn: 'update', to: client.id }, Entity.byId[ id ] ) );
-
-		}
-
-	}
-
-
-	onDisconnect( client ) {
-
-		delete this.clientBySecret[ this.infoById[ client.id ].secret ];
-		delete this.infoById[ client.id ];
-		console.log( `${client.id} disconnected.` );
-		this.messages.push( { fn: 'disconnect', to: 'type=Client', id: client.id } );
-
-	}
-
-	flagAdmin( message ) {
-
-		if ( message.from in serverInstance.adminClientById )
-			delete serverInstance.adminClientById[ message.from ];
-
-		if ( ! ( 'secret' in message ) ) {
-
-			const msg = `FlagAdmin message ${JSON.stringify( message )} does not provide 'secret'`;
-
-			this.messages.push( { fn: 'error', to: message.from, FlagAdminError: msg } );
-
-			return console.log( `Error: ${msg}` );
-
-		}
-
-		if ( message.secret !== process.env.ADMIN_SECRET ) {
-
-			const msg = `WARN: FlagAdmin message ${JSON.stringify( message )} has invalid 'secret'`;
-
-			this.messages.push( { fn: 'error', to: message.from, FlagAdminError: msg } );
-
-			return console.log( `Error: ${msg}` );
-
-		}
-
-		serverInstance.adminClientById[ message.from ] = Entity.byId[ message.from ];
-
-		this.messages.push( { fn: 'success', to: message.from, FlagAdminSuccess: true } );
-
-	}
-
-}
-
-
-
-function uuid( bytes = 4, id ) {
-
-	while ( ! id || id in uuid.usedUUIDs ) id = crypto.randomBytes( bytes ).toString( 'hex' );
-	return uuid.usedUUIDs[ id ] = id;
-
-}
-
-uuid.usedUUIDs = {};
-
-
+let server;
 
 class Entity {
 
@@ -322,9 +20,6 @@ class Entity {
 			property !== 'id' && this.setProperty( property, args[ property ] );
 
 		}
-
-		// tell the server instance about this new Entity
-		serverInstance.onNewEntity( this );
 
 	}
 
@@ -354,7 +49,7 @@ class Entity {
 		// create a dirty map if not already marked dirty
 		if ( ! ( this.id in Entity.dirtyById ) ) Entity.dirtyById[ this.id ] = {};
 
-		// assign new property value and delta
+		// assign property value and delta
 		this[ property ] = Entity.dirtyById[ this.id ][ property ] = value;
 
 		// if parentId has changed, add entity to parentId list
@@ -399,7 +94,11 @@ class Entity {
 
 		delete Entity.dirtyById[ this.id ];
 
-		serverInstance.messages.push( { fn: 'purge', to: 'type=Client', id: this.id } );
+		server.send( {
+			from: this.id,
+			to: 'type=Client',
+			_: 'purge'
+		} );
 
 		console.log( `${this.id} purged.` );
 
@@ -418,17 +117,19 @@ Entity.dirtyById = {};
 
 
 
+
+
 class Client extends Entity {
 
-	constructor() {
+	constructor( args ) {
 
-		super();
+		super( args );
 
 	}
 
 	disconnect() {
 
-		serverInstance.onDisconnect( this );
+		server.onDisconnect( this );
 		this.purge();
 
 	}
@@ -439,27 +140,63 @@ class Client extends Entity {
 
 	}
 
-	sendToWS( message ) {
+	_send( msg ) {
 
-		const string = JSON.stringify( message );
+		const string = JSON.stringify( msg );
 		console.log( `${this.id}@ws <- ${string}` );
-		serverInstance.infoById[ this.id ].ws.send( string );
+		server.infoById[ this.id ].ws.send( string );
 
 	}
 
-	_undefined( message ) {
+	_warn( msg ) {
 
-		this.sendToWS( message );
+		this._send( msg );
 
 	}
 
-	_setProperty( message ) {
+	_err( msg ) {
 
-		if ( ! ( 'id' in message ) ) return console.log( `SetProperty message missing 'id'` );
-		if ( ! ( 'property' in message ) ) return console.log( `SetProperty message missing 'property'` );
-		if ( ! ( message.id in Entity.byId ) ) return console.log( `SetProperty message unknown Entity '${message.id}'` );
+		this._send( msg );
 
-		Entity.byId[ message.id ].setProperty( message.property, 'value' in message ? message.value : null );
+	}
+
+	_undefined( msg ) {
+
+		server.send( {
+			from: this.id,
+			to: msg.from,
+			_: 'warn',
+			value: `Unhandled message on Client '${JSON.stringify( msg )}'`
+		} );
+
+	}
+
+	_identity( msg ) {
+
+		this._send( msg );
+
+	}
+
+	_entity( msg ) {
+
+		this._send( msg );
+
+	}
+
+	_setProperty( msg ) {
+
+		let err;
+
+		if ( ! ( 'property' in msg ) ) err = `${msg.to}._setProperty( ${msg} ) missing 'property'`;
+
+		if ( err ) return server.send( {
+			from: this.id,
+			to: msg.from,
+			_: 'error',
+			message: err
+		} );
+
+		this.setProperty( msg.property, 'value' in msg ? msg.value : null );
 
 	}
 
@@ -472,6 +209,370 @@ class Client extends Entity {
 }
 
 
+
+
+
+export default class Server {
+
+	constructor( args ) {
+
+		this.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
+		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
+		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 10000;
+		this.clientBySecret = {};
+		this.adminClientById = {};
+		this.infoById = {};
+		this.messages = [];
+
+		server = this;
+
+		const wss = new WebSocketServer( {
+			port: process.env.PORT,
+			verifyClient: info => this.allowedOrigins.indexOf( info.req.headers.origin ) > - 1
+		} );
+
+
+		wss.on( 'connection', ( ws, req ) => {
+
+			let secret = /[?&]{1}secret=([0-9a-fA-F]{8})/.exec( req.url );
+			let client;
+
+			if ( secret && secret[ 1 ] in this.clientBySecret ) {
+
+				client = this.clientBySecret[ secret = secret[ 1 ] ];
+
+			} else {
+
+				client = new Client();
+				secret = uuid();
+
+			}
+
+			ws.on( 'message', data => {
+
+				try {
+
+					if ( ! ( client.id in this.infoById ) ) return ws.close();
+
+					this.infoById[ client.id ].lastseen = Date.now();
+
+					if ( `${data}` === 'undefined' ) return;
+
+					let msgs = JSON.parse( data );
+
+					msgs = ( msgs.constructor !== Array ) ? [ msgs ] : msgs;
+
+					for ( const msg of msgs ) {
+
+						msg.from = client.id;
+
+						console.log( `-> ${JSON.stringify( msg )}` );
+
+						this.send( msg );
+
+					}
+
+				} catch ( e ) {
+
+					console.error( e );
+
+				}
+
+			} );
+
+			this.infoById[ client.id ] = { ws, secret, client, lastseen: Date.now() };
+
+			this.send( {
+				from: 'server',
+				to: client.id,
+				_: 'identity',
+				id: client.id,
+				secret: secret,
+				clientTimeout: this.clientTimeout,
+				serverHeartbeat: this.heartbeat
+			} );
+
+			if ( secret in this.clientBySecret ) {
+
+				console.log( `${client.id} reconnected` );
+
+			} else {
+
+				console.log( `${client.id} connected` );
+				this.clientBySecret[ secret ] = client;
+
+			}
+
+			this.onConnect( client );
+
+		} );
+
+	}
+
+	run() {
+
+		console.log();
+		console.log( `Server listening on port ${process.env.PORT}` );
+		console.log();
+		console.log( `allowedOrigins: ${server.allowedOrigins}` );
+		console.log( `serverHeartbeat: ${server.heartbeat}` );
+		console.log( `clientTimeout: ${server.clientTimeout}` );
+		console.log();
+
+		this.scheduleNextUpdate();
+
+	}
+
+	scheduleNextUpdate() {
+
+		let timeout = Date.now() - this.lastUpdate;
+
+		timeout = timeout > this.heartbeat ? 0 : this.heartbeat - timeout;
+
+		console.log( `next update in ${timeout}ms...` );
+
+		setTimeout( () => {
+
+			this.lastUpdate = Date.now();
+			server.update();
+
+		}, timeout );
+
+	}
+
+	update() {
+
+		if ( ! ( 'Client' in Entity.byType ) )
+			return this.scheduleNextUpdate();
+
+		// disconnect clients we haven't heard from in awhile
+		const timeout = this.lastUpdate - this.clientTimeout;
+
+		for ( let client of Entity.byType[ 'Client' ] ) {
+
+			this.infoById[ client.id ].lastseen < timeout && client.disconnect();
+
+		}
+
+		// process messages
+		const msgs = this.messages;
+
+		this.messages = [];
+
+		for ( const msg of msgs ) {
+
+			const _ = `_${msg._}`;
+
+			let to = 'server';
+
+			if ( 'to' in msg && msg.to ) {
+
+				to = msg.to;
+				delete msg[ 'to' ];
+
+			}
+
+			let targets;
+
+			if ( to === 'server' ) {
+
+				targets = [ server ];
+
+			} else if ( to.startsWith( 'type=' ) ) {
+
+				const type = to.replace( 'type=', '' );
+
+				if ( ! ( type in Entity.byType ) ) {
+
+					this.send( {
+						from: 'server',
+						to: msg.from,
+						_: 'warn',
+						value: `Message to '${to}' has no targets`
+					} );
+					continue;
+
+				}
+
+				targets = Entity.byType[ type ];
+
+			} else {
+
+				if ( ! ( to in Entity.byId ) ) {
+
+					this.send( {
+						from: 'server',
+						to: msg.from,
+						_: 'warn',
+						value: `Message to '${to}' has no targets`
+					} );
+					continue;
+
+				}
+
+				targets = [ Entity.byId[ to ] ];
+
+			}
+
+
+			for ( let target of targets ) {
+
+				target[ _ in target ? _ : '_undefined' ]( msg );
+
+			}
+
+		}
+
+
+		// broadcast entity deltas and call entity update
+		const dirtyById = Entity.dirtyById;
+
+		Entity.dirtyById = {};
+
+		for ( const id in dirtyById ) {
+
+			const delta = dirtyById[ id ];
+
+			if ( Object.keys( delta ).length ) {
+
+				delta.id = id;
+				this.send( { from: 'server', to: 'type=Client', _: 'entity', entity: delta } );
+
+			}
+
+			Entity.byId[ id ].update();
+
+			if ( ! ( id in Entity.dirtyById ) ) console.log( `${id} went to sleep` );
+
+		}
+
+		this.scheduleNextUpdate();
+
+	}
+
+	onConnect( client ) {
+
+		// broadcast all Entities to message.from
+		for ( let id in Entity.byId ) {
+
+			this.send( { from: 'server', to: client.id, _: 'entity', entity: Entity.byId[ id ] } );
+
+		}
+
+	}
+
+	onDisconnect( client ) {
+
+		delete this.clientBySecret[ this.infoById[ client.id ].secret ];
+		delete this.infoById[ client.id ];
+		console.log( `${client.id} disconnected.` );
+		this.send( {
+			from: 'server',
+			to: 'type=Client',
+			_: 'disconnect',
+			id: client.id
+		} );
+
+	}
+
+	send( msg ) {
+
+		if ( ! ( 'from' in msg ) ) return console.log( `Error: server.send past ${JSON.stringify( msg )} with no 'from'` );
+
+		if ( ! ( 'to' in msg ) ) {
+
+			msg.value = `server.send past ${JSON.stringify( msg )} with no 'to'`;
+			msg.to = msg.from;
+			msg._ = 'err';
+
+		}
+
+		this.messages.push( msg );
+
+	}
+
+	_undefined( msg ) {
+
+		server.send( {
+			from: 'server',
+			to: msg.from,
+			_: 'warn',
+			value: `Unhandled message '${JSON.stringify( msg )}'`
+		} );
+
+	}
+
+	_flagAdmin( msg ) {
+
+		if ( msg.from in server.adminClientById )
+			delete server.adminClientById[ msg.from ];
+
+		const argstr = JSON.stringify( msg );
+
+		if ( ! ( 'secret' in msg ) ) {
+
+			const msg = `server._flagAdmin( ${argstr} ) does not provide 'secret'`;
+
+			this.send( {
+				from: 'server',
+				to: msg.from,
+				_: 'error',
+				message: msg
+			} );
+
+			return console.log( `Error: ${msg}` );
+
+		}
+
+		if ( msg.secret !== process.env.ADMIN_SECRET ) {
+
+			const msg = `server._flagAdmin( ${argstr} ) has invalid 'secret'`;
+
+			this.send( {
+				from: 'server',
+				to: msg.from,
+				_: 'error',
+				message: msg
+			} );
+
+			return console.log( `Error: ${msg}` );
+
+		}
+
+		server.adminClientById[ msg.from ] = Entity.byId[ msg.from ];
+
+		this.send( {
+			from: 'server',
+			to: msg.from,
+			_: 'success',
+			args: argstr
+		} );
+
+	}
+
+}
+
+
+
+
+
+
+
+
+function uuid( bytes = 4, id ) {
+
+	while ( ! id || id in uuid.usedUUIDs ) id = crypto.randomBytes( bytes ).toString( 'hex' );
+	return uuid.usedUUIDs[ id ] = id;
+
+}
+
+uuid.usedUUIDs = {};
+
+
+
+
+
+
 if ( url.fileURLToPath( import.meta.url ).replace( process.argv[ 1 ], '' ).replace( '.js', '' ) === '' ) {
 
 	// path of this module matches path of module passed to node process
@@ -480,6 +581,7 @@ if ( url.fileURLToPath( import.meta.url ).replace( process.argv[ 1 ], '' ).repla
 
 	new Server( { allowedOrigins: [ 'http://localhost:8000', 'https://between2spaces.github.io' ], heartbeat: 3333 } );
 
-	serverInstance.run();
+	server.run();
 
 }
+
