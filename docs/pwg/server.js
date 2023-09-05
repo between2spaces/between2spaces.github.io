@@ -2,15 +2,15 @@ import { WebSocketServer } from 'ws';
 import crypto from 'crypto';
 import * as url from 'node:url';
 
-let server;
+export let server;
 
-class Entity {
+export class Entity {
 
 	constructor( args = {} ) {
 
 		args.type = 'type' in args ? args.type : this.constructor.name;
 
-		this.id = 'id' in args ? args.id : `${args.type}-${uuid()}`;
+		this.id = 'id' in args ? args.id : `${args.type}-${Server.uuid()}`;
 
 		Entity.byId[ this.id ] = this;
 
@@ -95,9 +95,10 @@ class Entity {
 		delete Entity.dirtyById[ this.id ];
 
 		server.send( {
-			from: this.id,
+			from: 'server',
 			to: 'type=Client',
-			_: 'purge'
+			_: 'purge',
+			id: this.id
 		} );
 
 		console.log( `${this.id} purged.` );
@@ -119,7 +120,7 @@ Entity.dirtyById = {};
 
 
 
-class Client extends Entity {
+export class Client extends Entity {
 
 	constructor( args ) {
 
@@ -129,7 +130,10 @@ class Client extends Entity {
 
 	disconnect() {
 
+		//this._send( { from: 'server', to: this.id, _: 'disconnected', id: this.id } );
+
 		server.onDisconnect( this );
+
 		this.purge();
 
 	}
@@ -148,36 +152,7 @@ class Client extends Entity {
 
 	}
 
-	_warn( msg ) {
-
-		this._send( msg );
-
-	}
-
-	_err( msg ) {
-
-		this._send( msg );
-
-	}
-
 	_undefined( msg ) {
-
-		server.send( {
-			from: this.id,
-			to: msg.from,
-			_: 'warn',
-			value: `Unhandled message on Client '${JSON.stringify( msg )}'`
-		} );
-
-	}
-
-	_identity( msg ) {
-
-		this._send( msg );
-
-	}
-
-	_entity( msg ) {
 
 		this._send( msg );
 
@@ -212,7 +187,7 @@ class Client extends Entity {
 
 
 
-export default class Server {
+export class Server {
 
 	constructor( args ) {
 
@@ -244,7 +219,7 @@ export default class Server {
 			} else {
 
 				client = new Client();
-				secret = uuid();
+				secret = Server.uuid();
 
 			}
 
@@ -285,7 +260,7 @@ export default class Server {
 			this.send( {
 				from: 'server',
 				to: client.id,
-				_: 'identity',
+				_: 'connected',
 				id: client.id,
 				secret: secret,
 				clientTimeout: this.clientTimeout,
@@ -468,9 +443,8 @@ export default class Server {
 		console.log( `${client.id} disconnected.` );
 		this.send( {
 			from: 'server',
-			to: 'type=Client',
-			_: 'disconnect',
-			id: client.id
+			to: client.id,
+			_: 'disconnected'
 		} );
 
 	}
@@ -493,81 +467,37 @@ export default class Server {
 
 	_undefined( msg ) {
 
-		server.send( {
-			from: 'server',
-			to: msg.from,
-			_: 'warn',
-			value: `Unhandled message '${JSON.stringify( msg )}'`
-		} );
+		try {
 
-	}
-
-	_flagAdmin( msg ) {
-
-		if ( msg.from in server.adminClientById )
-			delete server.adminClientById[ msg.from ];
-
-		const argstr = JSON.stringify( msg );
-
-		if ( ! ( 'secret' in msg ) ) {
-
-			const msg = `server._flagAdmin( ${argstr} ) does not provide 'secret'`;
-
-			this.send( {
+			server.send( {
 				from: 'server',
 				to: msg.from,
-				_: 'error',
-				message: msg
+				_: 'warn',
+				value: `Unhandled message '${JSON.stringify( msg )}'`
 			} );
 
-			return console.log( `Error: ${msg}` );
+		} catch ( e ) {
+
+			console.log( e.message );
+
+			console.log( msg );
 
 		}
-
-		if ( msg.secret !== process.env.ADMIN_SECRET ) {
-
-			const msg = `server._flagAdmin( ${argstr} ) has invalid 'secret'`;
-
-			this.send( {
-				from: 'server',
-				to: msg.from,
-				_: 'error',
-				message: msg
-			} );
-
-			return console.log( `Error: ${msg}` );
-
-		}
-
-		server.adminClientById[ msg.from ] = Entity.byId[ msg.from ];
-
-		this.send( {
-			from: 'server',
-			to: msg.from,
-			_: 'success',
-			args: argstr
-		} );
 
 	}
 
 }
 
 
+Server.uuid = ( bytes = 4, id ) => {
+
+	while ( ! id || id in Server.usedUUIDs ) id = crypto.randomBytes( bytes ).toString( 'hex' );
+	return Server.usedUUIDs[ id ] = id;
+
+};
 
 
-
-
-
-
-function uuid( bytes = 4, id ) {
-
-	while ( ! id || id in uuid.usedUUIDs ) id = crypto.randomBytes( bytes ).toString( 'hex' );
-	return uuid.usedUUIDs[ id ] = id;
-
-}
-
-uuid.usedUUIDs = {};
-
+Server.usedUUIDs = {};
 
 
 
@@ -575,13 +505,8 @@ uuid.usedUUIDs = {};
 
 if ( url.fileURLToPath( import.meta.url ).replace( process.argv[ 1 ], '' ).replace( '.js', '' ) === '' ) {
 
-	// path of this module matches path of module passed to node process
-	// Main ESM module
-	console.log( process.env.ADMIN_SECRET );
+	// Main ESM module - path of this module matches path of module passed to node process
 
-	new Server( { allowedOrigins: [ 'http://localhost:8000', 'https://between2spaces.github.io' ], heartbeat: 3333 } );
-
-	server.run();
+	( new Server( { allowedOrigins: [ 'http://localhost:8000', 'https://between2spaces.github.io' ], heartbeat: 3333 } ) ).run();
 
 }
-

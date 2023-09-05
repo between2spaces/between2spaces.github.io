@@ -33,6 +33,7 @@ export class Client {
                 ws.onerror = err => {
                     postMessage( { log: 'Socket error. Closing socket.' } );
                     ws.close();
+					postMessage( { _: 'disconnected' } );
                 };
             
                 ws.onmessage = msg => {
@@ -67,7 +68,6 @@ export class Client {
             function sendServer( msg ) {
                 timeout && clearTimeout( timeout );
 				const string = JSON.stringify( msg );
-				postMessage( { _: 'debug', sent: '--> "' + string + '"' } );
                 ws && ws.send( string );
                 timeout = setTimeout( sendServer, clientTimeout );
             }
@@ -91,6 +91,21 @@ export class Client {
 
 	}
 
+	onConnected() {
+	}
+
+	onDisconnected() {
+	}
+
+	onEntityUpdate( entity ) {
+	}
+
+	onEntityPurge( entity ) {
+	}
+
+	_clientHeartbeat() {
+	}
+
 	_log( msg ) {
 
 		console.log( msg );
@@ -103,16 +118,22 @@ export class Client {
 
 	}
 
-	_identity( msg ) {
+	_connected( msg ) {
 
 		this.identity = { id: msg.id, secret: msg.secret };
 		localStorage.setItem( 'client.identity', JSON.stringify( this.identity ) );
 
+		this.onConnected( this.identity );
+
+	}
+
+	_disconnected( msg ) {
+
+		this.onDisconnected();
+
 	}
 
 	_entity( msg ) {
-
-		console.log( msg );
 
 		const id = msg.entity.id;
 
@@ -125,6 +146,16 @@ export class Client {
 			property !== 'id' && entity.setProperty( property, msg.entity[ property ] );
 
 		}
+
+		this.onEntityUpdate( entity );
+
+	}
+
+	_purge( msg ) {
+
+		const entity = Entity.byId[ msg.id ];
+		entity.purge();
+		this.onEntityPurge( entity );
 
 	}
 
