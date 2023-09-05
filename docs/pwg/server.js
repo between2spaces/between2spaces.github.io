@@ -109,6 +109,10 @@ export class Entity {
 
 	}
 
+	_log( msg ) {
+
+	}
+
 }
 
 Entity.byId = {};
@@ -158,23 +162,6 @@ export class Client extends Entity {
 
 	}
 
-	_setProperty( msg ) {
-
-		let err;
-
-		if ( ! ( 'property' in msg ) ) err = `${msg.to}._setProperty( ${msg} ) missing 'property'`;
-
-		if ( err ) return server.send( {
-			from: this.id,
-			to: msg.from,
-			_: 'error',
-			message: err
-		} );
-
-		this.setProperty( msg.property, 'value' in msg ? msg.value : null );
-
-	}
-
 	_debug() {
 
 		this.disconnect();
@@ -192,7 +179,7 @@ export class Server {
 	constructor( args ) {
 
 		this.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
-		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
+		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 666;
 		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 10000;
 		this.clientBySecret = {};
 		this.adminClientById = {};
@@ -362,7 +349,8 @@ export class Server {
 					this.send( {
 						from: 'server',
 						to: msg.from,
-						_: 'warn',
+						_: 'log',
+						level: 'error',
 						value: `Message to '${to}' has no targets`
 					} );
 					continue;
@@ -378,7 +366,8 @@ export class Server {
 					this.send( {
 						from: 'server',
 						to: msg.from,
-						_: 'warn',
+						_: 'log',
+						level: 'error',
 						value: `Message to '${to}' has no targets`
 					} );
 					continue;
@@ -457,11 +446,18 @@ export class Server {
 
 			msg.value = `server.send past ${JSON.stringify( msg )} with no 'to'`;
 			msg.to = msg.from;
-			msg._ = 'err';
+			msg._ = 'log';
+			msg.level = 'error';
 
 		}
 
 		this.messages.push( msg );
+
+	}
+
+	_log( msg ) {
+
+		console.log( msg );
 
 	}
 
@@ -472,7 +468,8 @@ export class Server {
 			server.send( {
 				from: 'server',
 				to: msg.from,
-				_: 'warn',
+				_: 'log',
+				level: 'error',
 				value: `Unhandled message '${JSON.stringify( msg )}'`
 			} );
 
