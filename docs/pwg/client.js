@@ -120,6 +120,8 @@ export class Client {
 
 	_connected( msg ) {
 
+		console.log( msg );
+
 		this.identity = { id: msg.id, secret: msg.secret };
 		localStorage.setItem( 'client.identity', JSON.stringify( this.identity ) );
 
@@ -129,11 +131,15 @@ export class Client {
 
 	_disconnected( msg ) {
 
+		console.log( msg );
+
 		this.onDisconnected();
 
 	}
 
 	_entity( msg ) {
+
+		console.log( msg );
 
 		const id = msg.entity.id;
 
@@ -152,6 +158,8 @@ export class Client {
 	}
 
 	_purge( msg ) {
+
+		console.log( msg );
 
 		const entity = Entity.byId[ msg.id ];
 		entity.purge();

@@ -1,5 +1,16 @@
-import { Server, Entity, Client } from './server.js';
+import { Server, serverInstance, Entity, Client } from './server.js';
 import * as url from 'node:url';
+
+
+class GameEntity extends Entity {
+
+}
+
+
+class GameClient extends Client {
+
+}
+
 
 class GameServer extends Server {
 
@@ -21,6 +32,22 @@ class GameServer extends Server {
 
 	}
 
+	createEntity( args ) {
+
+		const entity = super.createEntity( args );
+		Object.setPrototypeOf( entity, GameEntity );
+		return entity;
+
+	}
+
+	createClient( args ) {
+
+		const client = super.createClient( args );
+		Object.setPrototypeOf( client, GameClient );
+		return client;
+
+	}
+
 	onConnect( client ) {
 
 		super.onConnect( client );
@@ -33,7 +60,7 @@ class GameServer extends Server {
 
 	}
 
-	_flagAdmin( msg ) {
+	_enableAdmin( msg ) {
 
 		if ( msg.from in server.adminClientById )
 			delete server.adminClientById[ msg.from ];
@@ -47,7 +74,8 @@ class GameServer extends Server {
 			this.send( {
 				from: 'server',
 				to: msg.from,
-				_: 'error',
+				_: 'log',
+				level: 'error',
 				message: msg
 			} );
 
@@ -62,7 +90,8 @@ class GameServer extends Server {
 			this.send( {
 				from: 'server',
 				to: msg.from,
-				_: 'error',
+				_: 'log',
+				level: 'error',
 				message: msg
 			} );
 
@@ -70,12 +99,13 @@ class GameServer extends Server {
 
 		}
 
-		server.adminClientById[ msg.from ] = Entity.byId[ msg.from ];
+		this.adminClientById[ msg.from ] = Entity.byId[ msg.from ];
 
 		this.send( {
 			from: 'server',
 			to: msg.from,
-			_: 'success',
+			_: 'log',
+			level: 'success',
 			args: argstr
 		} );
 

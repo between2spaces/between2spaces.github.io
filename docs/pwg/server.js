@@ -2,7 +2,7 @@ import { WebSocketServer } from 'ws';
 import crypto from 'crypto';
 import * as url from 'node:url';
 
-export let server;
+export let serverInstance;
 
 export class Entity {
 
@@ -94,7 +94,7 @@ export class Entity {
 
 		delete Entity.dirtyById[ this.id ];
 
-		server.send( {
+		serverInstance.send( {
 			from: 'server',
 			to: 'type=Client',
 			_: 'purge',
@@ -106,10 +106,6 @@ export class Entity {
 	}
 
 	update() {
-
-	}
-
-	_log( msg ) {
 
 	}
 
@@ -126,7 +122,7 @@ Entity.dirtyById = {};
 
 export class Client extends Entity {
 
-	constructor( args ) {
+	constructor( args = {} ) {
 
 		super( args );
 
@@ -134,9 +130,7 @@ export class Client extends Entity {
 
 	disconnect() {
 
-		//this._send( { from: 'server', to: this.id, _: 'disconnected', id: this.id } );
-
-		server.onDisconnect( this );
+		serverInstance.onDisconnect( this );
 
 		this.purge();
 
@@ -152,7 +146,7 @@ export class Client extends Entity {
 
 		const string = JSON.stringify( msg );
 		console.log( `${this.id}@ws <- ${string}` );
-		server.infoById[ this.id ].ws.send( string );
+		serverInstance.infoById[ this.id ].ws.send( string );
 
 	}
 
@@ -186,7 +180,7 @@ export class Server {
 		this.infoById = {};
 		this.messages = [];
 
-		server = this;
+		serverInstance = this;
 
 		const wss = new WebSocketServer( {
 			port: process.env.PORT,
@@ -205,7 +199,7 @@ export class Server {
 
 			} else {
 
-				client = new Client();
+				client = this.createClient();
 				secret = Server.uuid();
 
 			}
@@ -276,9 +270,9 @@ export class Server {
 		console.log();
 		console.log( `Server listening on port ${process.env.PORT}` );
 		console.log();
-		console.log( `allowedOrigins: ${server.allowedOrigins}` );
-		console.log( `serverHeartbeat: ${server.heartbeat}` );
-		console.log( `clientTimeout: ${server.clientTimeout}` );
+		console.log( `allowedOrigins: ${serverInstance.allowedOrigins}` );
+		console.log( `serverHeartbeat: ${serverInstance.heartbeat}` );
+		console.log( `clientTimeout: ${serverInstance.clientTimeout}` );
 		console.log();
 
 		this.scheduleNextUpdate();
@@ -296,7 +290,7 @@ export class Server {
 		setTimeout( () => {
 
 			this.lastUpdate = Date.now();
-			server.update();
+			serverInstance.update();
 
 		}, timeout );
 
@@ -338,7 +332,7 @@ export class Server {
 
 			if ( to === 'server' ) {
 
-				targets = [ server ];
+				targets = [ serverInstance ];
 
 			} else if ( to.startsWith( 'type=' ) ) {
 
@@ -414,9 +408,21 @@ export class Server {
 
 	}
 
+	createEntity( args ) {
+
+		return new Entity( args );
+
+	}
+
+	createClient( args ) {
+
+		return new Client( args );
+
+	}
+
 	onConnect( client ) {
 
-		// broadcast all Entities to message.from
+		// tell the connected client about all Entities
 		for ( let id in Entity.byId ) {
 
 			this.send( { from: 'server', to: client.id, _: 'entity', entity: Entity.byId[ id ] } );
@@ -465,7 +471,7 @@ export class Server {
 
 		try {
 
-			server.send( {
+			serverInstance.send( {
 				from: 'server',
 				to: msg.from,
 				_: 'log',
