@@ -5,35 +5,36 @@ export class Client {
 		this.serverURL = new URL( serverUrl );
 		this.identity = JSON.parse( localStorage.getItem( 'client.identity' ) ) || {};
 
-		console.log( this.identity );
+		this.listener = {};
 
 		if ( this.identity.secret ) this.serverURL.search = `secret=${this.identity.secret}`;
 
 		this.socketWorker = new Worker( URL.createObjectURL( new Blob( [ `
             let ws;
             let clientTimeout = 10000;
-            let serverHeartbeat = 3333;
-            let clientHeartbeat = serverHeartbeat;
+            let heartbeat = 3333;
             let timeout;
+
+			const callbacks = {};
             
             function connect() {
             
-                postMessage( { log: 'Connecting to ${this.serverURL}...' } );
+                clientMessage( 'info', 'Connecting to ${this.serverURL}...' );
             
                 ws = new WebSocket( '${this.serverURL}' );
             
-                ws.onopen = () => postMessage( { log: 'Connected.' } );
+                ws.onopen = () => clientMessage( 'info', 'Connected.' );
             
                 ws.onclose = () => {
                     ws = null;
-                    postMessage( { log: 'Socket closed. Reconnect attempt in 5 second.' } );
+                    clientMessage( 'info', 'Socket closed. Reconnect attempt in 5 second.' );
                     setTimeout( connect, 5000 );
                 };
             
                 ws.onerror = err => {
-                    postMessage( { log: 'Socket error. Closing socket.' } );
+                    clientMessage( 'info', 'Socket error. Closing socket.' );
                     ws.close();
-					postMessage( { _: 'disconnected' } );
+					clientMessage( 'disconnected' );
                 };
             
                 ws.onmessage = msg => {
@@ -42,132 +43,182 @@ export class Client {
 
 					msgs = ( msgs.constructor !== Array ) ? [ msgs ] : msgs;
             
-                    for ( const msg of msgs ) {
-            
-                        if ( 'clientTimeout' in msg ) clientTimeout = msg.clientTimeout;
-                        if ( 'serverHeartbeat' in msg ) serverHeartbeat = clientHeartbeat = msg.serverHeartbeat;
-						if ( 'Reconnect' in msg ) setTimeout( connect, 0 );
-            
-                        postMessage( msg );
-            
-                    }
+                    for ( const msg of msgs ) postMessage( msg );
             
                 };
             
                 timeout && clearTimeout( timeout );
-                timeout = setTimeout( sendServer, clientTimeout );
+                timeout = setTimeout( serverMessage, clientTimeout );
             
             }
             
             connect();
             
-            onmessage = msg => {
-                sendServer( msg.data );
+            onmessage = message => {
+                serverMessage( message.data );
             };
             
-            function sendServer( msg ) {
+            function serverMessage( message ) {
                 timeout && clearTimeout( timeout );
-				const string = JSON.stringify( msg );
-                ws && ws.send( string );
-                timeout = setTimeout( sendServer, clientTimeout );
+
+				if ( typeof message === 'object' && 'callback' in message ) {
+					callbacks[ message.callback ] = {
+						timestamp: Date.now(),
+						callback
+					};
+				}
+				 
+				message = JSON.stringify( message );
+
+				console.log( '-> ' + message );
+
+                ws && ws.send( message );
+                timeout = setTimeout( serverMessage, clientTimeout );
             }
-            
-            setInterval( () => postMessage( { _: 'clientHeartbeat' } ), clientHeartbeat );
+
+			function clientMessage( type, data ) {
+				const message = { type };
+				if ( data ) message.data = data;
+				postMessage( message );
+			}
+
+            setInterval( () => clientMessage( 'heartbeat' ), heartbeat );
         ` ] ) ) );
 
-		this.socketWorker.onmessage = msg => {
 
-			const _ = `_${msg.data._}`;
+		this.socketWorker.onmessage = message => {
 
-			this[ _ in this ? _ : '_undefined' ]( msg.data );
+			message = message.data;
+
+			if ( ! message )
+				return this.perform( { type: 'error', message: `Invalid message '${message}'` } );
+
+			if ( ! ( 'type' in message ) )
+				return this.perform( { type: 'error', message: `Undefined message type ${JSON.stringify( message )}'` } );
+
+			this.perform( message );
 
 		};
 
+
+
+
+		this.listen( 'undefined', message => {
+
+			console.log( message );
+
+		} );
+
+
+		this.listen( 'connected', message => {
+
+			console.log( message );
+
+			//this.identity = { id: message.id, secret: msg.secret };
+			//localStorage.setItem( 'client.identity', JSON.stringify( this.identity ) );
+
+			//this.onConnected( this.identity );
+
+		} );
+
+
+		this.listen( 'disconnected', message => {
+
+			console.log( message );
+
+		} );
+
+
+		this.listen( 'entity', message => {
+
+			console.log( message );
+			/*
+			const id = message.body.id;
+
+			if ( ! ( id in Entity.byId ) ) new Entity( message.body );
+
+			const entity = Entity.byId[ id ];
+
+			for ( const property of Object.keys( message.body ) ) {
+
+				property !== 'id' && entity.setProperty( property, message.body[ property ] );
+
+			}
+*/
+
+		} );
+
+
+		this.listen( 'purge', message => {
+
+			console.log( message );
+
+			//const entity = Entity.byId[ message.id ];
+			//entity.purge();
+
+		} );
+
 	}
 
-	send( msg ) {
+	/**
+	 * Registers a handler for the specifed message type.
+	 *
+	 * @param type The message type
+	 * @param handler The handler to call
+	 */
+	listen( type, handler ) {
 
-		this.socketWorker.postMessage( msg );
+		if ( ! ( type in this.listener ) ) this.listener[ type ] = {};
 
-	}
-
-	onConnected() {
-	}
-
-	onDisconnected() {
-	}
-
-	onEntityUpdate( entity ) {
-	}
-
-	onEntityPurge( entity ) {
-	}
-
-	_clientHeartbeat() {
-	}
-
-	_log( msg ) {
-
-		console.log( msg );
+		this.listener[ type ] = handler;
 
 	}
 
-	_undefined( msg ) {
+	/**
+	 * Calls the matching listeners.
+	 *
+	 * @param message A message object
+	 */
+	perform( message ) {
 
-		this._log( msg );
+		if ( ! ( message.type in this.listener ) ) return this.listener[ 'undefined' ]( message );
 
-	}
-
-	_connected( msg ) {
-
-		console.log( msg );
-
-		this.identity = { id: msg.id, secret: msg.secret };
-		localStorage.setItem( 'client.identity', JSON.stringify( this.identity ) );
-
-		this.onConnected( this.identity );
+		return this.listener[ message.type ]( message );
 
 	}
 
-	_disconnected( msg ) {
+	/**
+	 * Queues the specified message for delivery.
+	 */
+	message( type, to, message = {}, callback ) {
 
-		console.log( msg );
+		message.type = type;
 
-		this.onDisconnected();
+		if ( to ) message.to = to;
 
-	}
+		if ( callback ) {
 
-	_entity( msg ) {
-
-		console.log( msg );
-
-		const id = msg.entity.id;
-
-		if ( ! ( id in Entity.byId ) ) new Entity( msg.entity );
-
-		const entity = Entity.byId[ id ];
-
-		for ( const property of Object.keys( msg.entity ) ) {
-
-			property !== 'id' && entity.setProperty( property, msg.entity[ property ] );
+			message.callbackId = crypto.randomUUID().split( '-' )[ 0 ];
 
 		}
 
-		this.onEntityUpdate( entity );
-
-	}
-
-	_purge( msg ) {
-
-		console.log( msg );
-
-		const entity = Entity.byId[ msg.id ];
-		entity.purge();
-		this.onEntityPurge( entity );
+		this.socketWorker.postMessage( message );
 
 	}
 
 }
+
+
+Client.uuid = ( bytes = 4, id ) => {
+
+	while ( ! id || id in Client.usedUUIDs ) id = crypto.randomBytes( bytes ).toString( 'hex' );
+	return Server.usedUUIDs[ id ] = id;
+
+};
+
+
+Client.usedUUIDs = {};
+
 
 
 

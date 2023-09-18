@@ -1,15 +1,5 @@
-import { Server, serverInstance, Entity, Client } from './server.js';
+import Server from './server.js';
 import * as url from 'node:url';
-
-
-class GameEntity extends Entity {
-
-}
-
-
-class GameClient extends Client {
-
-}
 
 
 class GameServer extends Server {
@@ -35,7 +25,6 @@ class GameServer extends Server {
 	createEntity( args ) {
 
 		const entity = super.createEntity( args );
-		Object.setPrototypeOf( entity, GameEntity );
 		return entity;
 
 	}
@@ -99,7 +88,7 @@ class GameServer extends Server {
 
 		}
 
-		this.adminClientById[ msg.from ] = Entity.byId[ msg.from ];
+		this.adminClientById[ msg.from ] = this.entityById[ msg.from ];
 
 		this.send( {
 			from: 'server',

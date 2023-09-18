@@ -3,16 +3,18 @@ import crypto from 'crypto';
 import * as url from 'node:url';
 
 
-
-export class Server {
+export default class Server {
 
 	constructor( args ) {
 
+		this.type = 'server';
+
 		this.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
-		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 666;
+		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
 		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 10000;
 
-		this.entityById = {}; // { entity, children }
+		this.entityById = {};
+		this.entitiesByParentId = {};
 		this.entitiesByType = {};
 		this.dirtyEntityById = {};
 
@@ -21,15 +23,22 @@ export class Server {
 
 		this.messages = [];
 
-		this.listenersByType = {};
+		this.listenersByEntityType = {};
 
-		this.listen( 'Entity', 'update', entity => {} );
-		this.listen( 'Client', 'update', client => this.call( 'server', 'Entity', client, 'update' ) );
-		this.listen( 'Client', 'message', ( client, message ) => {
+		this.listen( 'server', 'error', ( server, message ) => console.log( message.data ) );
+		this.listen( 'entity', 'connected', ( entity ) => {} );
+		this.listen( 'entity', 'update', ( entity ) => {} );
+		this.listen( 'client', 'update', ( client ) => this.call( 'server', 'entity', client, 'update' ) );
+		this.listen( 'client', 'message', ( client, message ) => {
 
 			const string = JSON.stringify( message );
-			console.log( `${this.id}@ws <- ${string}` );
+			console.log( `${client.id}@ws <- ${string}` );
 			serverInstance.clientById[ client.id ].ws.send( string );
+
+		} );
+		this.listen( 'client', 'undefined', ( client, message ) => {
+
+			this.listenersByEntityType[ 'client' ][ 'message' ]( client, message );
 
 		} );
 
@@ -55,22 +64,14 @@ export class Server {
 
 			} else {
 
-				client = this.createEntity( { type: 'Client' } );
+				client = this.createEntity( { type: 'client' } );
 				secret = Server.uuid();
 
 			}
 
 			this.clientById[ client.id ] = { ws, secret, client, lastseen: Date.now() };
 
-			this.send( {
-				from: 'server',
-				to: client.id,
-				_: 'connected',
-				id: client.id,
-				secret: secret,
-				clientTimeout: this.clientTimeout,
-				serverHeartbeat: this.heartbeat
-			} );
+			this.message( 'connected', 'server', client.id, { id: client.id, secret, clientTimeout: this.clientTimeout, serverHeartbeat: this.heartbeat } );
 
 			if ( secret in this.clientBySecret ) {
 
@@ -83,12 +84,10 @@ export class Server {
 
 			}
 
-			this.onConnected( client );
-
 			// tell the connected Client about all Entities
 			for ( let id in this.entityById ) {
 
-				this.send( { from: 'server', to: client.id, _: 'entity', entity: this.entityById[ id ] } );
+				this.message( 'entity', 'server', client.id, this.entityById[ id ] );
 
 			}
 
@@ -101,23 +100,19 @@ export class Server {
 
 					this.clientById[ client.id ].lastseen = Date.now();
 
-					if ( `${data}` === 'undefined' ) {
+					if ( `${data}` === 'undefined' ) return console.log( "ws.on( 'message', undefined ) received" );
 
-						return console.log( "ws.on( 'message', undefined ) received" );
+					let messages = JSON.parse( data );
 
-					}
+					messages = ( messages.constructor !== Array ) ? [ messages ] : messages;
 
-					let msgs = JSON.parse( data );
+					for ( let message of messages ) {
 
-					msgs = ( msgs.constructor !== Array ) ? [ msgs ] : msgs;
+						message.from = client.id;
 
-					for ( const msg of msgs ) {
+						console.log( `-> ${JSON.stringify( message )}` );
 
-						msg.from = client.id;
-
-						console.log( `-> ${JSON.stringify( msg )}` );
-
-						this.send( msg );
+						this.messages.push( message );
 
 					}
 
@@ -162,105 +157,37 @@ export class Server {
 	 */
 	update( timestamp ) {
 
+		//
 		// disconnect clients we haven't heard from in awhile
+		//
 		const timeout = timestamp - this.clientTimeout;
 
-		let client;
+		for ( let id in this.clientById ) {
 
-		for ( let id of this.clientById ) {
-
-			client = this.clientById[ id ];
+			let client = this.clientById[ id ];
 
 			if ( client.lastseen < timeout ) {
 
 				delete this.clientBySecret[ client.secret ];
 				delete this.clientById[ id ];
 				console.log( `${client.id} disconnected.` );
-				this.send( {
-					from: 'server',
-					to: id,
-					_: 'disconnected'
-				} );
-				this.onDisconnected( client );
+				this.message( 'disconnected', 'server', id );
 
 			}
 
 		}
 
+		//
 		// process messages
-		const msgs = this.messages;
-
+		//
+		const messages = this.messages;
 		this.messages = [];
-
-		for ( const msg of msgs ) {
-
-			const fn = `_${msg.fn}`;
-
-			let to = 'server';
-
-			if ( 'to' in msg && msg.to ) {
-
-				to = msg.to;
-				delete msg[ 'to' ];
-
-			}
-
-			let targets;
-
-			if ( to === 'server' ) {
-
-				targets = [ serverInstance ];
-
-			} else if ( to.startsWith( 'type=' ) ) {
-
-				const type = to.replace( 'type=', '' );
-
-				if ( ! ( type in this.entitiesByType ) ) {
-
-					this.send( {
-						from: 'server',
-						to: msg.from,
-						_: 'log',
-						level: 'error',
-						value: `Message to '${to}' has no targets`
-					} );
-					continue;
-
-				}
-
-				targets = this.entitiesByType[ type ];
-
-			} else {
-
-				if ( ! ( to in this.entityById ) ) {
-
-					this.send( {
-						from: 'server',
-						to: msg.from,
-						_: 'log',
-						level: 'error',
-						value: `Message to '${to}' has no targets`
-					} );
-					continue;
-
-				}
-
-				targets = [ Entity.byId[ to ] ];
-
-			}
+		for ( const message of messages ) this.perform( message );
 
 
-			for ( let target of targets ) {
-
-				target[ _ in target ? _ : '_undefined' ]( msg );
-
-				this.call( 'server', target.type, target, 'update' );
-
-			}
-
-		}
-
+		//
 		// broadcast entity deltas and call entity update
+		//
 		const dirtyById = this.dirtyEntityById;
 
 		this.dirtyEntityById = {};
@@ -272,7 +199,7 @@ export class Server {
 			if ( Object.keys( delta ).length ) {
 
 				delta.id = id;
-				this.send( { from: 'server', to: 'type=Client', _: 'entity', entity: delta } );
+				this.message( 'entity', 'server', 'type=client', delta );
 
 			}
 
@@ -297,10 +224,10 @@ export class Server {
 
 		const entity = {};
 
-		entity.type = 'type' in properties ? properties.type : 'Entity';
+		entity.type = 'type' in properties ? properties.type : 'entity';
 		entity.id = 'id' in properties ? properties.id : `${entity.type}-${Server.uuid()}`;
 
-		this.entityById[ entity.id ] = { entity, children: [] };
+		this.entityById[ entity.id ] = entity;
 
 		for ( const property of Object.keys( properties ) ) {
 
@@ -331,9 +258,9 @@ export class Server {
 		//
 
 		// if parentId is changing, remove entity from existing parents list of children
-		if ( property === 'parentId' && entity.parentId in this.entityById ) {
+		if ( property === 'parentId' && entity.parentId in this.entitiesByParentId ) {
 
-			const siblings = this.entityById[ entity.parentId ].children;
+			const siblings = this.entitiesByParentId[ entity.parentId ];
 			const index = siblings.indexOf( entity );
 			if ( index > - 1 ) siblings.splice( index, 1 );
 
@@ -363,9 +290,12 @@ export class Server {
 		//
 
 		// if parentId has changed, add entity to parents list of children
-		if ( property === 'parentId' && entity.parentId in this.entityById ) {
+		if ( property === 'parentId' ) {
 
-			this.entityById[ entity.parentId ].children.push( entity );
+			if ( ! ( entity.parentId in this.entitiesByParentId ) )
+				this.entitiesByParentId[ entity.parentId ] = [];
+
+			this.entitiesByParentId[ entity.parentId ].push( entity );
 
 		}
 
@@ -386,7 +316,7 @@ export class Server {
 	 *
 	 * @param entity The Entity to delete
 	 */
-	purge( entity ) {
+	destroy( entity ) {
 
 		delete this.entitybyId[ entity.id ];
 
@@ -409,37 +339,21 @@ export class Server {
 
 		delete this.dirtyEntityById[ entity.id ];
 
-		this.send( {
-			from: 'server',
-			to: 'type=Client',
-			_: 'purge',
-			id: this.id
-		} );
+		console.log( `${this.id} destroyed.` );
 
-		console.log( `${this.id} purged.` );
-
-		this.call( 'server', entity, 'onPurged' );
+		this.message( 'destroy', 'server', 'type=client', { id: this.id } );
+		this.message( 'destroy', 'server', entity.id );
 
 	}
 
 	/**
 	 * Queues the specified message for delivery.
-	 *
-	 * @param message A message object
 	 */
-	send( message ) {
+	message( type, from, to, data ) {
 
-		if ( ! ( 'from' in message ) )
-			return console.log( `Error: server.send past ${JSON.stringify( message )} with no 'from'` );
+		const message = { type, from, to };
 
-		if ( ! ( 'to' in message ) ) {
-
-			message.value = `server.send past ${JSON.stringify( message )} with no 'to'`;
-			message.to = message.from;
-			message._ = 'log';
-			message.level = 'error';
-
-		}
+		if ( data ) message.data = data;
 
 		this.messages.push( message );
 
@@ -449,68 +363,73 @@ export class Server {
 	 * Registers a handler for the specifed Entity type and function name.
 	 *
 	 * @param entityType The Entity Type to associate the handler with
-	 * @param functionName The function name
-	 * @param fucntionHandler The handler to call
+	 * @param messageType The message type
+	 * @param handler The handler to call
 	 */
-	listen( entityType, functionName, functionHandler ) {
+	listen( entityType, messageType, handler ) {
 
-		if ( ! ( entityType in this.listenersByType ) ) this.listenersByType[ entityType ] = {};
+		if ( ! ( entityType in this.listenersByEntityType ) ) this.listenersByEntityType[ entityType ] = {};
 
-		this.listenersByType[ entityType ][ functionName ] = functionHandler;
+		this.listenersByEntityType[ entityType ][ messageType ] = handler;
 
 	}
 
 	/**
-	 * Calls the specified function on the specified target if defined, otherwise report an error.
+	 * Calls the matching listeners.
 	 *
-	 * @param from The identity of the sender
-	 * @param targetObj The target object
-	 * @param functionName The name of the function on the object to call
-	 * @param arg The argument object to pass to the function
-	 *
-	 * @returns Return value of function
+	 * @param message A message object
 	 */
-	call( from, targetObj, functionName, arg ) {
+	perform( message ) {
 
-		if ( ! ( targetObj.type in this.listenersByType ) || ! ( functionName in this.listenersByType[ targetObj.type ] ) ) {
+		const to = ( 'to' in message && message ) ? message.to : 'server';
 
-			this.send( {
-				from: 'server',
-				to: from,
-				_: 'log',
-				level: 'error',
-				value: `Unhandled call <${targetObj.type}>.${functionName}(...)`
-			} );
+		let targets;
+
+		if ( to === 'server' ) {
+
+			targets = [ serverInstance ];
+
+		} else if ( to.startsWith( 'type=' ) ) {
+
+			const type = to.replace( 'type=', '' );
+
+			if ( ! ( type in this.entitiesByType ) )
+				return this.perform( { type: 'error', from: 'server', to: message.from, data: { error: `Message to '${to}' has no targets`, message } } );
+
+			targets = this.entitiesByType[ type ];
 
 		} else {
 
-			return this.listenersByType[ targetObj.type ][ functionName ]( arg );
+			if ( ! ( to in this.entityById ) )
+				return this.perform( { type: 'error', from: 'server', to: message.from, data: { error: `Message to '${to}' has no targets`, message } } );
+
+			targets = [ this.entityById[ to ] ];
 
 		}
 
-	}
 
-	/**
-	 * Called when a Client connects to the server.
-	 *
-	 * @param client The connected Client
-	 */
-	onConnected( client ) {
+		for ( let target of targets ) {
 
-	}
+			let targetType = target.type;
 
-	/**
-	 * Called when a Client disconnects from the server.
-	 *
-	 * @param client The disconnected Client
-	 */
-	onDisconnected( client ) {
+			if ( ! ( targetType in this.listenersByEntityType ) && 'undefined' in this.listenersByEntityType )
+				targetType = 'entity';
 
-	}
+			if ( ! ( targetType in this.listenersByEntityType ) )
+				return this.perform( { type: 'error', from: 'server', to: message.from, data: { error: `Unhandled target type '${target.type}' in message`, message } } );
 
-	_log( msg ) {
+			if ( ! ( message.type in this.listenersByEntityType[ targetType ] ) ) {
 
-		console.log( msg );
+				if ( 'undefined' in this.listenersByEntityType[ targetType ] )
+					return this.listenersByEntityType[ targetType ][ 'undefined' ]( target, message );
+
+				return this.perform( { type: 'error', from: 'server', to: message.from, data: { error: `Unhandled message type '${message.type}' in message`, message } } );
+
+			}
+
+			this.listenersByEntityType[ targetType ][ message.type ]( target, message );
+
+		}
 
 	}
 
@@ -543,4 +462,3 @@ if ( url.fileURLToPath( import.meta.url ).replace( process.argv[ 1 ], '' ).repla
 	} ) ).run();
 
 }
-
