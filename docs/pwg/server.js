@@ -152,26 +152,27 @@ export default class Server {
 	 *
 	 * Stale Clients will be disconnected, queued messages will be delivered,
 	 * Entity delta's will be broadcast, dirty Entities will be updated.
-	 *
-	 * @param timestamp <milliseconds elapsed since the epoch>
 	 */
-	update( timestamp ) {
+	update() {
 
 		//
 		// disconnect clients we haven't heard from in awhile
 		//
+		const timestamp = Date.now();
 		const timeout = timestamp - this.clientTimeout;
 
 		for ( let id in this.clientById ) {
 
 			let client = this.clientById[ id ];
 
+			console.log( id, client.lastseen, timeout, client.lastseen - timeout );
+
 			if ( client.lastseen < timeout ) {
 
+				this.message( 'disconnected', 'server', id );
 				delete this.clientBySecret[ client.secret ];
 				delete this.clientById[ id ];
 				console.log( `${client.id} disconnected.` );
-				this.message( 'disconnected', 'server', id );
 
 			}
 
@@ -182,7 +183,8 @@ export default class Server {
 		//
 		const messages = this.messages;
 		this.messages = [];
-		for ( const message of messages ) this.perform( message );
+		for ( const message of messages )
+			this.message( message.type, message.from, message.to, message.data );
 
 
 		//
@@ -203,7 +205,7 @@ export default class Server {
 
 			}
 
-			this.entityById[ id ].entity.update();
+			//this.entityById[ id ].entity.update();
 
 			if ( ! ( id in this.dirtyEntityById ) ) console.log( `${id} went to sleep` );
 
@@ -347,19 +349,6 @@ export default class Server {
 	}
 
 	/**
-	 * Queues the specified message for delivery.
-	 */
-	message( type, from, to, data ) {
-
-		const message = { type, from, to };
-
-		if ( data ) message.data = data;
-
-		this.messages.push( message );
-
-	}
-
-	/**
 	 * Registers a handler for the specifed Entity type and function name.
 	 *
 	 * @param entityType The Entity Type to associate the handler with
@@ -379,9 +368,14 @@ export default class Server {
 	 *
 	 * @param message A message object
 	 */
-	perform( message ) {
+	message( type, from, to, data ) {
 
-		const to = ( 'to' in message && message ) ? message.to : 'server';
+		const message = { type, from };
+
+		if ( to ) message.to = to;
+		if ( data ) message.data = data;
+
+		to = to ? to : 'server';
 
 		let targets;
 
@@ -391,17 +385,17 @@ export default class Server {
 
 		} else if ( to.startsWith( 'type=' ) ) {
 
-			const type = to.replace( 'type=', '' );
+			const targetType = to.replace( 'type=', '' );
 
-			if ( ! ( type in this.entitiesByType ) )
-				return this.perform( { type: 'error', from: 'server', to: message.from, data: { error: `Message to '${to}' has no targets`, message } } );
+			if ( ! ( targetType in this.entitiesByType ) )
+				return this.message( 'error', 'server', from, { error: `Message to '${to}' has no targets`, message } );
 
-			targets = this.entitiesByType[ type ];
+			targets = this.entitiesByType[ targetType ];
 
 		} else {
 
 			if ( ! ( to in this.entityById ) )
-				return this.perform( { type: 'error', from: 'server', to: message.from, data: { error: `Message to '${to}' has no targets`, message } } );
+				return this.message( 'error', 'server', from, { error: `Message to '${to}' has no targets`, message } );
 
 			targets = [ this.entityById[ to ] ];
 
@@ -416,18 +410,18 @@ export default class Server {
 				targetType = 'entity';
 
 			if ( ! ( targetType in this.listenersByEntityType ) )
-				return this.perform( { type: 'error', from: 'server', to: message.from, data: { error: `Unhandled target type '${target.type}' in message`, message } } );
+				return this.message( 'error', 'server', from, { error: `Unhandled target type '${target.type}' in message`, message } );
 
-			if ( ! ( message.type in this.listenersByEntityType[ targetType ] ) ) {
+			if ( ! ( type in this.listenersByEntityType[ targetType ] ) ) {
 
 				if ( 'undefined' in this.listenersByEntityType[ targetType ] )
 					return this.listenersByEntityType[ targetType ][ 'undefined' ]( target, message );
 
-				return this.perform( { type: 'error', from: 'server', to: message.from, data: { error: `Unhandled message type '${message.type}' in message`, message } } );
+				return this.message( 'error', 'server', from, { error: `Unhandled message type '${type}' in message`, message } );
 
 			}
 
-			this.listenersByEntityType[ targetType ][ message.type ]( target, message );
+			this.listenersByEntityType[ targetType ][ type ]( target, message );
 
 		}
 
