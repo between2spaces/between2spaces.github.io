@@ -1,4 +1,4 @@
-import { Client, Entity } from './client.js';
+import Client from './client.js';
 
 
 class Table {
@@ -123,66 +123,15 @@ EntityTableEntry.updateOrCreate = ( entity, entityTableInstance ) => {
 
 
 
+const client = window.client = new Client( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://knowing-laced-tulip.glitch.me/' );
 
+client.listen( 'connected', message => {
 
-class Game extends Client {
+} );
 
-	constructor() {
+client.listen( 'entity', message => {
 
-		super( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://knowing-laced-tulip.glitch.me/' );
+	console.log( message.data );
 
-		this.entityTable = new Table();
+} );
 
-		document.body.append( this.entityTable.dom );
-
-	}
-
-	onConnected() {
-
-		super.onConnected();
-
-		console.log( 'connected' );
-
-		EntityUI.purgeAll();
-
-	}
-
-	onDisconnected() {
-
-		super.onDisconnected();
-
-		console.log( 'disconnected' );
-
-		EntityUI.purgeAll();
-
-	}
-
-
-	onEntityUpdate( entity ) {
-
-		super.onEntityUpdate( entity );
-
-		EntityTableEntry.updateOrCreate( entity, this.entityTable );
-
-	}
-
-	onEntityPurge( entity ) {
-
-		EntityUI.purgeEntity( entity.id );
-
-	}
-
-	_send( msg ) {
-
-		console.log( msg );
-
-	}
-
-}
-
-
-
-
-
-window.client = new Game();
-window.Entity = Entity;
