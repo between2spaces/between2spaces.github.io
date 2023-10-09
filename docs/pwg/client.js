@@ -6,6 +6,11 @@ export default class Client {
 		this.identity = JSON.parse( localStorage.getItem( 'client.identity' ) ) || {};
 
 		this.listeners = {};
+		this.callbacks = {};
+
+		this.entityById = {};
+		this.entitiesByParentId = {};
+		this.entitiesByType = {};
 
 		if ( this.identity.secret ) this.serverURL.search = `secret=${this.identity.secret}`;
 
@@ -15,24 +20,20 @@ export default class Client {
             let heartbeat = 3333;
             let timeout;
 
-			const callbacks = {};
-            
             function connect() {
             
-                clientMessage( 'info', 'Connecting to ${this.serverURL}...' );
+                clientMessage( 'connecting', { message: 'Connecting to ${this.serverURL}...' } );
             
                 ws = new WebSocket( '${this.serverURL}' );
             
-                ws.onopen = () => clientMessage( 'info', 'Connected.' );
-            
                 ws.onclose = () => {
                     ws = null;
-                    clientMessage( 'info', 'Socket closed. Reconnect attempt in 5 second.' );
+                    clientMessage( 'closed', { message: 'Socket closed. Reconnect attempt in 5 second.' } );
                     setTimeout( connect, 5000 );
                 };
             
                 ws.onerror = err => {
-                    clientMessage( 'info', 'Socket error. Closing socket.' );
+                    clientMessage( 'err', { error: 'Socket error. Closing socket.' } );
                     ws.close();
 					clientMessage( 'disconnected' );
                 };
@@ -61,16 +62,7 @@ export default class Client {
             function serverMessage( message ) {
                 timeout && clearTimeout( timeout );
 
-				if ( typeof message === 'object' && 'callback' in message ) {
-					callbacks[ message.callback ] = {
-						timestamp: Date.now(),
-						callback: message.callback
-					};
-				}
-				 
 				message = JSON.stringify( message );
-
-				console.log( '-> ' + message );
 
                 ws && ws.send( message );
                 timeout = setTimeout( serverMessage, clientTimeout );
@@ -98,6 +90,8 @@ export default class Client {
 
 			let type = message.type;
 
+			if ( type === 'heartbeat' ) return;
+
 			if ( ! ( message.type in this.listeners ) ) type = 'undefined';
 
 			for ( let handler of this.listeners[ type ] ) handler( message );
@@ -108,6 +102,14 @@ export default class Client {
 		this.listen( 'undefined', message => {
 
 			console.log( message );
+
+		} );
+
+		this.listen( 'connecting', () => {
+
+			this.entityById = {};
+			this.entitiesByParentId = {};
+			this.entitiesByType = {};
 
 		} );
 
@@ -130,34 +132,115 @@ export default class Client {
 
 		this.listen( 'entity', message => {
 
-			console.log( message );
-			/*
-			const id = message.body.id;
+			const id = message.data.id;
 
-			if ( ! ( id in Entity.byId ) ) new Entity( message.body );
+			if ( ! ( id in this.entityById ) ) this.entityById[ id ] = { id };
 
-			const entity = Entity.byId[ id ];
+			const entity = this.entityById[ id ];
 
-			for ( const property of Object.keys( message.body ) ) {
+			for ( const property of Object.keys( message.data ) ) {
 
-				property !== 'id' && entity.setProperty( property, message.body[ property ] );
+				if ( property === 'id' ) continue;
+
+				// if no change to property value, do nothing
+				if ( message.data[ property ] === entity[ property ] ) continue;
+
+				//
+				// previous value cleanup steps....
+				//
+
+				// if parentId is changing, remove entity from existing parents list of children
+				if ( property === 'parentId' && entity.parentId in this.entitiesByParentId ) {
+
+					const siblings = this.entitiesByParentId[ entity.parentId ];
+					const index = siblings.indexOf( entity );
+					if ( index > - 1 ) siblings.splice( index, 1 );
+
+				}
+
+				// if type is changing, remove entity from types map
+				if ( property === 'type' && entity.type in this.entitiesByType ) {
+
+					const entitiesOfType = this.entitiesByType[ entity.type ];
+					const index = entitiesOfType.indexOf( entity );
+					if ( index > - 1 ) entitiesOfType.splice( index, 1 );
+
+				}
+
+				//
+				// new value asignment
+				//
+
+				entity[ property ] = message.data[ property ];
+
+				//
+				// new value implications...
+				//
+
+				// if parentId has changed, add entity to parents list of children
+				if ( property === 'parentId' ) {
+
+					if ( ! ( entity.parentId in this.entitiesByParentId ) )
+						this.entitiesByParentId[ entity.parentId ] = [];
+
+					this.entitiesByParentId[ entity.parentId ].push( entity );
+
+				}
+
+				// if type has changed, add entity to types map
+				if ( property === 'type' ) {
+
+					if ( ! ( entity.type in this.entitiesByType ) ) this.entitiesByType[ entity.type ] = [];
+					this.entitiesByType[ entity.type ].push( entity );
+
+				}
 
 			}
-*/
 
 		} );
 
 
-		this.listen( 'purge', message => {
+		this.listen( 'destroy', message => {
 
-			console.log( message );
+			const id = message.data.id;
 
-			//const entity = Entity.byId[ message.id ];
-			//entity.purge();
+			const entity = this.entityById[ id ];
+
+			delete this.entityById[ id ];
+
+			if ( id in this.entitiesByParentId ) {
+
+				for ( let child in this.entitiesByParentId[ id ] ) {
+
+					if ( entity.parentId in this.entitiesByParentId )
+						this.entitiesByParentId[ entity.parentId ].push( child );
+
+					child.parentId = entity.parentId;
+
+				}
+
+				delete this.entitiesByParentId[ id ];
+
+			}
+
+			const entitiesOfType = this.entitiesByType[ entity.type ];
+			const index = entitiesOfType.indexOf( entity );
+			if ( index > - 1 ) entitiesOfType.splice( index, 1 );
+
+		} );
+
+
+		this.listen( 'response', message => {
+
+			if ( ! ( message.data.callback in this.callbacks ) )
+				return console.log( `Response ${JSON.stringify( message )} recieved, but no matching callback '${message.data.callback}'` );
+
+			this.callbacks[ message.data.callback ]( message.data.returnvalue );
 
 		} );
 
 	}
+
 
 	/**
 	 * Registers a handler for the specifed message type.
@@ -183,9 +266,20 @@ export default class Client {
 		if ( to ) message.to = to;
 		if ( data ) message.data = data;
 
-		if ( callback ) message.callback = Client.uuid();
+		if ( callback ) {
+
+			this.callbacks[ message.callback = Client.uuid() ] = callback;
+
+		}
 
 		this.socketWorker.postMessage( message );
+
+	}
+
+	response( message, returnvalue ) {
+
+		if ( message.callback )
+			this.message( message.from, 'response', { callback: message.callback, returnvalue } );
 
 	}
 
@@ -202,6 +296,3 @@ Client.uuid = () => {
 
 
 Client.usedUUIDs = {};
-
-
-

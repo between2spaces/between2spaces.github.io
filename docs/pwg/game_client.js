@@ -1,137 +1,100 @@
 import Client from './client.js';
 
 
-class Table {
+class EntityList {
 
-	constructor() {
+	constructor( properties ) {
 
-		this.dom = document.createElement( 'table' );
+		this.id = Client.uuid();
 
-		this.dom.append( this.thead = document.createElement( 'thead' ) );
-		this.dom.append( this.tbody = document.createElement( 'tbody' ) );
+		this.fields = ( properties && 'fields' in properties ) ? properties.fields : [ 'id' ];
+		this.dom = document.createElement( 'div' );
+		this.table = document.createElement( 'table' );
+		this.thead = document.createElement( 'thead' );
+		this.tbody = document.createElement( 'tbody' );
 
-	}
+		this.table.append( this.thead );
+		this.table.append( this.tbody );
+		this.dom.append( this.table );
 
-	add( entityTableEntry ) {
+		this.th = [];
 
-		this.tbody.append( entityTableEntry.dom );
+		for ( let field of this.fields ) {
 
-	}
-
-}
-
-
-
-class EntityUI {
-
-	constructor( entity, UIid ) {
-
-		this.entity = entity;
-		this.UIid = UIid;
-
-		EntityUI.byUIid[ UIid ] = entity;
-
-		if ( ! ( entity.id in EntityUI.byEntityId ) ) EntityUI.byEntityId[ entity.id ] = [];
-
-		EntityUI.byEntityId[ entity.id ].push( this );
-
-	}
-
-	purge() {
-
-		this.dom.remove();
-		delete EntityUI.byUIid[ this.UIid ];
-		delete EntityUI.byEntityId[ this.entity.id ];
-
-	}
-
-	update() {
-	}
-
-}
-
-EntityUI.byUIid = {};
-EntityUI.byEntityId = {};
-
-
-EntityUI.purgeAll = () => {
-
-	for ( let entityId in EntityUI.byEntityId ) {
-
-		for ( let entityUI of EntityUI.byEntityId[ entityId ] ) {
-
-			entityUI.purge();
+			const th = document.createElement( 'th' );
+			th.textContent = field;
+			this.thead.append( th );
 
 		}
 
-	}
-
-};
-
-EntityUI.purgeEntity = ( entityId ) => {
-
-	if ( ! ( entityId in EntityUI.byEntityId ) ) return;
-
-	for ( let entityUI of EntityUI.byEntityId[ entityId ] ) {
-
-		entityUI.purge();
+		this.tr = [];
+		this.trById = {};
 
 	}
 
-};
+	add( entity ) {
 
+		const id = `${this.id}-${entity.id}`;
 
+		if ( id in this.trById ) return;
 
+		const tr = document.createElement( 'tr' );
 
-class EntityTableEntry extends EntityUI {
+		tr.id = id;
 
-	constructor( entity ) {
+		for ( let field of this.fields ) {
 
-		super( entity, `EntityTableEntry-${entity.id}` );
+			const td = document.createElement( 'td' );
+			td.textContent = entity[ field ];
+			tr.append( td );
 
-		this.dom = document.createElement( 'tr' );
+		}
 
-		this.update();
+		this.tr.push( tr );
+		this.trById[ tr.id ] = tr;
+
+		this.tbody.append( tr );
 
 	}
 
-	update() {
+	remove( entity ) {
 
-		super.update();
+		const id = `${this.id}-${entity.id}`;
+		const tr = this.trById[ id ];
+		tr.parentNode.removeChild( tr );
+		delete this.trById[ id ];
 
-		this.dom.innerHTML = `<td>${this.entity.id}</td><td>${this.entity.type}</td>`;
+	}
+
+	clear() {
+
+		this.tbody.innerHTML = '';
+		this.tr = [];
+		this.trById = {};
 
 	}
 
 }
 
-EntityTableEntry.updateOrCreate = ( entity, entityTableInstance ) => {
+function main() {
 
-	const UIid = `EntityTableEntry-${entity.id}`;
+	const entities = new EntityList( { fields: [ 'type', 'id' ] } );
+	document.body.append( entities.dom );
 
-	if ( ! ( UIid in EntityUI.byUIid ) ) {
+	const client = window.client = new Client( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://knowing-laced-tulip.glitch.me/' );
 
-		entityTableInstance.add( new EntityTableEntry( entity ) );
+	client.listen( 'connecting', message => {
 
-	} else {
+		entities.clear();
 
-		EntityUI.byUIid[ UIid ].update();
+	} );
 
-	}
+	client.listen( 'entity', message => {
 
-};
+		entities.add( client.entityById[ message.data.id ] );
 
+	} );
 
+}
 
-const client = window.client = new Client( document.location.host === 'localhost:8000' ? 'ws://localhost:6500/' : 'wss://knowing-laced-tulip.glitch.me/' );
-
-client.listen( 'connected', message => {
-
-} );
-
-client.listen( 'entity', message => {
-
-	console.log( message.data );
-
-} );
-
+setTimeout( main, 0 );

@@ -17,6 +17,8 @@ fi
 
 set -e
 
+
+
 # Git
 
 echo "Configuring Git"
@@ -30,9 +32,10 @@ git config pull.rebase true
 
 
 
-# WSL set WSLENV USERPROFILE
 
-if [ -z "$(grep -i micrxosoft /proc/version)" ]; then
+# WSL set WSLENV USERPROFile
+
+if [ -z "$(grep -i microsoft /proc/version)" ]; then
 	echo "Running on WSL"
 	echo "Setting USERPROFILE environment variable"
 	cmd.exe /c setx WSLENV USERPROFILE/up 2>/dev/null
@@ -98,37 +101,6 @@ $HOME/between2spaces.github.io/terminal/update.sh
 
 
 
-# Tmux
-
-if [[ "$(tmux -V)" != "tmux 3.2a" ]];
-then
-
-	# Prerequisites
-	sudo apt install autotools-dev automake pkg-config libevent-dev yacc libncurses5-dev libncursesw5-dev
-
-	# Tmp working directory
-	TMP_DIR="$(mktemp -d)"
-	cd $TMP_DIR
-	echo "Installing Tmux using working directory $TMP_DIR..."
-
-	git clone https://github.com/tmux/tmux.git
-	cd tmux
-	sh autogen.sh
-	./configure && make
-
-	# Clean tmp working directory
-	rm -rf $TMP_DIR
-
-	# Tmux TPM
-	rm -rf $HOME/.tmux/plugins/tpm
-	mkdir -p $HOME/.tmux/plugins
-	cd $HOME/.tmux/plugins
-	git clone https://github.com/tmux-plugins/tpm
-
-fi
-
-
-
 # Node Version Manager
 
 echo "Node Version Manager"
@@ -153,40 +125,35 @@ source ~/.profile
 
 # Neovim
 
-if [[ "$(nvim --version | head -n 1)" != "NVIM v0.9.1-dev-57+ge81b2eb94" ]];
-then
+# Prerequisites
+sudo apt install ninja-build gettext cmake unzip curl
 
-	# Prerequisites
-	sudo apt install ninja-build gettext cmake unzip curl
+# Tmp working directory
+TMP_DIR="$(mktemp -d)"
+cd $TMP_DIR
+echo "Installing Neovim 0.9 using working directory $TMP_DIR..."
 
-	# Tmp working directory
-	TMP_DIR="$(mktemp -d)"
-	cd $TMP_DIR
-	echo "Installing Neovim 0.9 using working directory $TMP_DIR..."
+# Install Neovim
+git clone https://github.com/neovim/neovim.git
+cd neovim
+git checkout HEAD 
+make CMAKE_BUILD_TYPE=Release
+sudo make install
 
-	# Install Neovim 0.9
-	git clone https://github.com/neovim/neovim.git
-	cd neovim
-	git checkout release-0.9
-	make CMAKE_BUILD_TYPE=Release
-	sudo make install
+# Clean tmp working directory
+rm -rf $TMP_DIR
 
-	# Clean tmp working directory
-	rm -rf $TMP_DIR
-
-fi
-
-
-# Neovim health support
-
-sudo apt install ripgrep 	# for Telescope
-sudo apt install fd-find    # for Telescope
-pip install pynvim			# Python support
+# Python support
+pip install pynvim
 
 if [ ! -f ~/.local/bin/fd ];
 then
 	ln -s $(which fdfind) ~/.local/bin/fd 
 fi
+
+# Telescope requirements
+sudo apt install ripgrep fd-find
+
 
 
 

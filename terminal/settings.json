@@ -13,8 +13,8 @@
 			"bellStyle": "taskbar",
 			"closeOnExit": "always",
 			"font": {
-				"face": "Delugia PL",
-				"size": 18,
+				"face": "Hack Nerd Font",
+				"size": 16,
 				"weight": "normal"
 			},
 			"padding": "0",
@@ -79,7 +79,7 @@
 		},
 		{
            "name": "Sonokai Shusia",
-           "background": "#2D2A2E",
+           "background": "#20262e",
            "black": "#1A181A",
            "blue": "#1080D0",
            "brightBlack": "#707070",

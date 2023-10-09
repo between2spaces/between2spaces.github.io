@@ -1,30 +1,32 @@
 {
-	"root": true,
-    "env": {
-        "es6": true,
-        "node": true,
-        "browser": true,
-        "es2022": true
-    },
-    "plugins": [
-        "html"
-    ],
-    "extends": [
-        "mdcs"
-    ],
-    "parserOptions": {
-        "ecmaVersion": "latest",
-        "sourceType": "module"
-    },
-    "rules": {
-        "indent": [
-            "error",
-            "tab",
-            {
-                "ignoredNodes": [
-                    "TemplateLiteral"
-                ]
-            }
+  "root": true,
+  "env": {
+    "es6": true,
+    "node": true,
+    "browser": true,
+    "es2022": true
+  },
+  "extends": [
+    "mdcs",
+    "eslint:recommended"
+  ],
+  "plugins": [
+    "import-newlines"
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "rules": {
+    "indent": [
+      "error",
+      "tab",
+      {
+        "ignoredNodes": [
+          "TemplateLiteral"
         ]
-    }
+      }
+    ],
+    "max-statements-per-line": ["error", { "max": 1 }]
+  }
 }

@@ -11,9 +11,10 @@ export default class Server {
 
 		this.allowedOrigins = args.allowedOrigins ? args.allowedOrigins : [ 'http://localhost:8000' ];
 		this.heartbeat = 'heartbeat' in args ? args.heartbeat : 3333;
-		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 10000;
+		this.clientTimeout = 'clientTimeout' in args ? args.clientTimeout : 15000;
 
 		this.entityById = {};
+		this.entityMetadataById = {};
 		this.entitiesByParentId = {};
 		this.entitiesByType = {};
 		this.dirtyEntityById = {};
@@ -22,22 +23,54 @@ export default class Server {
 		this.clientBySecret = {};
 
 		this.messages = [];
-
+		this.entityUpdateSchedule = [];
 		this.listeners = {};
+		this.callbacks = {};
 
-		this.listen( 'server', 'error', ( entity, message ) => console.log( message.data ) );
+		this.listen( 'server', 'error', ( server, message ) => console.log( message.data ) );
+
+		this.listen( 'server', 'create', ( server, message ) => {
+
+			const properties = message.data;
+			const type = 'type' in properties ? properties.type : 'entity';
+			const id = 'id' in properties ? properties.id : `${type}-${Server.uuid()}`;
+
+			if ( id in serverInstance.entityById ) return serverInstance.message( { type: 'error', data: { error: `Error creating new Entity; id '${id}' already exists.` } } );
+
+			const entity = serverInstance.entityById[ id ] = { id };
+
+			serverInstance.entityMetadataById[ id ] = { lastupdate: Date.now() };
+
+			serverInstance.setProperty( entity, 'type', type );
+
+			for ( const property of Object.keys( properties ) ) {
+
+				property !== 'id' && property !== 'type' && serverInstance.setProperty( entity, property, properties[ property ] );
+
+			}
+
+			serverInstance.scheduleEntityUpdate( entity, 0 );
+
+			serverInstance.response( message, entity );
+
+		} );
+
+		this.listen( 'server', 'response', ( server, message ) => {
+
+			if ( ! ( message.data.callback in this.callbacks ) )
+				return console.log( `Response ${JSON.stringify( message )} recieved, but no matching callback '${message.data.callback}'` );
+
+			this.callbacks[ message.data.callback ]( message.data.returnvalue );
+
+		} );
+
 		this.listen( 'entity', 'update', ( entity, message ) => {} );
 		this.listen( 'client', 'connected', ( client, message ) => {
 
-			this.message( message.from, message.to, 'message', message, true );
+			this.call( 'client', 'message', client, message );
 
 		} );
 		this.listen( 'client', 'disconnected', ( entity ) => {} );
-		this.listen( 'client', 'update', ( client ) => {
-
-			this.handle( 'server', 'entity', client, 'update' );
-
-		} );
 		this.listen( 'client', 'message', ( client, message ) => {
 
 			const string = JSON.stringify( message );
@@ -47,13 +80,14 @@ export default class Server {
 		} );
 		this.listen( 'client', 'undefined', ( client, message ) => {
 
-			this.message( message.from, message.to, 'message', message, true );
+			this.call( 'client', 'message', client, message );
 
 		} );
 
 		serverInstance = this;
 
 	}
+
 
 	run() {
 
@@ -62,7 +96,7 @@ export default class Server {
 			verifyClient: info => this.allowedOrigins.indexOf( info.req.headers.origin ) > - 1
 		} );
 
-		wss.on( 'connection', ( ws, req ) => {
+		wss.on( 'connection', async ( ws, req ) => {
 
 			let secret = /[?&]{1}secret=([0-9a-fA-F]{8})/.exec( req.url );
 			let client;
@@ -74,13 +108,14 @@ export default class Server {
 			} else {
 
 				client = this.createEntity( { type: 'client' } );
+				//client = await this.message( { fn: 'create', params: { type: 'tree' } } );
 				secret = Server.uuid();
 
 			}
 
 			this.clientMetadataById[ client.id ] = { ws, secret, client, lastseen: Date.now() };
 
-			this.message( 'server', client.id, 'connected', { id: client.id, secret, clientTimeout: this.clientTimeout, serverHeartbeat: this.heartbeat } );
+			this.message( { to: client.id, type: 'connected', data: { id: client.id, secret, clientTimeout: this.clientTimeout, serverHeartbeat: this.heartbeat } } );
 
 			if ( secret in this.clientBySecret ) {
 
@@ -96,7 +131,7 @@ export default class Server {
 			// tell the connected Client about all Entities
 			for ( let id in this.entityById ) {
 
-				this.message( 'server', client.id, 'entity', this.entityById[ id ] );
+				this.message( { to: client.id, type: 'entity', data: this.entityById[ id ] } );
 
 			}
 
@@ -137,7 +172,10 @@ export default class Server {
 
 		this.requestUpdate();
 
+		this.message( { type: 'run' } );
+
 	}
+
 
 	/**
 	 * Tells the server to schedule another update.
@@ -155,6 +193,7 @@ export default class Server {
 		setTimeout( () => serverInstance.update( Date.now() ), timeout );
 
 	}
+
 
 	/**
 	 * Updates the state of server.
@@ -176,7 +215,7 @@ export default class Server {
 
 			if ( clientMetadata.lastseen < timeout ) {
 
-				this.message( 'disconnected', 'server', id );
+				this.message( { type: 'disconnected', data: { id } } );
 				this.destroy( clientMetadata.client );
 				console.log( `${id} disconnected.` );
 
@@ -189,8 +228,7 @@ export default class Server {
 		//
 		const messages = this.messages;
 		this.messages = [];
-		for ( const message of messages )
-			this.message( message.from, message.to, message.type, message.data );
+		for ( const message of messages ) this.message( message );
 
 
 		//
@@ -207,13 +245,23 @@ export default class Server {
 			if ( Object.keys( delta ).length ) {
 
 				delta.id = id;
-				this.message( 'server', 'type=client', 'entity', delta );
+				this.message( { to: 'type=client', type: 'entity', data: delta } );
 
 			}
 
-			//this.entityById[ id ].entity.update();
+		}
 
-			if ( ! ( id in this.dirtyEntityById ) ) console.log( `${id} went to sleep` );
+		if ( this.entityUpdateSchedule.length ) {
+
+			const dirtyEntityIds = this.entityUpdateSchedule.shift();
+
+			for ( const id in dirtyEntityIds ) {
+
+				this.message( { to: id, type: 'update', data: { timestamp } } );
+
+				this.entityMetadataById[ id ].lastupdate = timestamp;
+
+			}
 
 		}
 
@@ -221,33 +269,18 @@ export default class Server {
 
 	}
 
-	/**
-	 * Creates a new Entity with the provided properties.
-	 *
-	 * @params properties object containing the properties you want to apply
-	 *
-	 * @returns The new Entity
-	 */
-	createEntity( properties = {} ) {
 
-		const type = 'type' in properties ? properties.type : 'entity';
-		const id = 'id' in properties ? properties.id : `${type}-${Server.uuid()}`;
+	scheduleEntityUpdate( entity, seconds = 0 ) {
 
-		if ( id in this.entityById ) return this.message( 'server', 'server', 'error', { error: `Error creating new Entity; id '${id}' already exists.` } );
+		const interval = Math.ceil( ( seconds * 1000 ) / this.heartbeat );
 
-		const entity = this.entityById[ id ] = { id };
+		while ( interval >= this.entityUpdateSchedule.length ) this.entityUpdateSchedule.push( [] );
 
-		this.setProperty( entity, 'type', type );
-
-		for ( const property of Object.keys( properties ) ) {
-
-			property !== 'id' && property !== 'type' && this.setProperty( entity, property, properties[ property ] );
-
-		}
-
-		return entity;
+		this.entityUpdateSchedule[ interval ][ entity.id ] = {};
 
 	}
+
+
 
 	/**
 	 * Assigns a property and value to an Entity.
@@ -329,6 +362,7 @@ export default class Server {
 	destroy( entity ) {
 
 		delete this.entityById[ entity.id ];
+		delete this.entityMetadataById[ entity.id ];
 
 		if ( entity.id in this.entitiesByParentId ) {
 
@@ -341,9 +375,6 @@ export default class Server {
 			delete this.entitiesByParentId[ entity.id ];
 
 		}
-
-		console.log( 'entity.type =', entity.type );
-		console.log( this.entitiesByType );
 
 		const entitiesOfType = this.entitiesByType[ entity.type ];
 		const index = entitiesOfType.indexOf( entity );
@@ -360,7 +391,7 @@ export default class Server {
 
 		console.log( `${entity.id} destroyed.` );
 
-		this.message( 'server', 'type=client', 'destroy', { id: entity.id } );
+		this.message( { to: 'type=client', type: 'destroy', data: { id: entity.id } } );
 
 	}
 
@@ -381,45 +412,52 @@ export default class Server {
 
 	}
 
+
+	async call( entityType, messageType, entity, message ) {
+
+		const results = [];
+
+		for ( let handler of this.listeners[ entityType ][ messageType ] ) {
+
+			results.push( await handler( entity, message ) );
+
+		}
+		
+		return results;
+
+	}
+
+
 	/**
 	 * Calls the matching listeners.
 	 *
 	 * @param message A message object
 	 */
-	message( from, to, type, data, dataIsMessage = false ) {
+	message( message ) {
 
-		console.log( 'message', from, to, type, data, dataIsMessage );
+		return new Promise((resolve, reject) => {
 
-		const message = dataIsMessage ? data : { type, from };
-
-		if ( ! dataIsMessage ) {
-
-			if ( to ) message.to = to;
-			if ( data ) message.data = data;
-
-		}
-
-		to = to ? to : 'server';
+		if ( ! ( 'to' in message ) ) message.to = 'server';
 
 		let targets;
 
-		if ( to === 'server' ) {
+		if ( message.to === 'server' ) {
 
 			targets = [ serverInstance ];
 
-		} else if ( to.startsWith( 'type=' ) ) {
+		} else if ( message.to.startsWith( 'type=' ) ) {
 
-			const targetType = to.replace( 'type=', '' );
+			const targetType = message.to.replace( 'type=', '' );
 
 			if ( ! ( targetType in this.entitiesByType ) )
-				return this.message( from, 'server', 'error', { error: `Message to '${to}' has no targets`, message } );
+				return this.message( 'server', from, 'error', { error: `Message to '${to}' has no targets`, message } );
 
 			targets = this.entitiesByType[ targetType ];
 
 		} else {
 
 			if ( ! ( to in this.entityById ) )
-				return this.message( from, 'server', 'error', { error: `Message to '${to}' has no targets`, message } );
+				return this.message( 'server', from, 'error', { error: `Message to '${to}' has no targets`, message } );
 
 			targets = [ this.entityById[ to ] ];
 
@@ -434,21 +472,27 @@ export default class Server {
 				targetType = 'undefined';
 
 			if ( ! ( targetType in this.listeners ) )
-				return this.message( from, 'server', 'error', { error: `Unhandled target type '${target.type}' in message`, message } );
+				return this.message( 'server', from, 'error', { error: `Unhandled target type '${target.type}' in message`, message } );
 
 			if ( ! ( type in this.listeners[ targetType ] ) ) {
 
 				if ( 'undefined' in this.listeners[ targetType ] )
 					return this.message( from, target.id, 'undefined', message, true );
 
-				return this.message( from, 'server', 'error', { error: `Unhandled message type '${type}' in message`, message } );
+				return this.message( 'server', from, 'error', { error: `Unhandled message type '${type}' in message`, message } );
 
 			}
 
-			for ( let handler of this.listeners[ targetType ][ type ] )
-				handler( target, message );
+			this.call( targetType, type, target, message );
 
 		}
+
+	}
+
+	response( message, returnvalue ) {
+
+		if ( message.callback )
+			this.message( message.to, message.from, 'response', { callback: message.callback, returnvalue } );
 
 	}
 
