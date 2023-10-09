@@ -27,6 +27,9 @@ wss.on( "connection", ( ws, req ) => {
 	ws.on( "close", () => console.log( "WebSocket connection closed." ) );
 
 } );
+function split() {
+
+}
 
 function onMessage( ws, message ) {
 
