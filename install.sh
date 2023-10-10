@@ -125,7 +125,14 @@ source ~/.profile
 
 # Neovim
 
-if [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "999" ]; then
+if [ "$(which nvim)" == "" ]; then
+
+	echo "ZZZZZZZZZZZZZZZZZZZZZZ"
+
+fi
+
+# Only install
+if [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
 
 	echo "HERE!!!!!"
 
