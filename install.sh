@@ -125,7 +125,7 @@ source ~/.profile
 
 # Neovim
 
-if [ "$(which nvim)" == "" ]; then
+if [ "$(which zz)" == "" ]; then
 
 	echo "ZZZZZZZZZZZZZZZZZZZZZZ"
 
