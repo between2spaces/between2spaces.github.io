@@ -9,8 +9,8 @@
         "node": "16.x"
     },
 	"scripts": {
-		"update": "npx -y npm-check-updates -u; npm install",
-		"start": "if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; export $(sed -e '/^[ ]*#/d' .env | xargs) && node server"
+		"update": "npx -y npm-check-updates -u",
+		"start": "npm install; if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; export $(sed -e '/^[ ]*#/d' .env | xargs) && node server"
 	},
 	"dependencies": {
 		"ws": "^8.14.2"

@@ -4,19 +4,20 @@ import crypto from "crypto";
 
 const wss = new WebSocketServer( {
 	port: process.env.PORT,
-	verifyClient: ( info ) =>
-		[ undefined, "http://localhost:8000" ].indexOf( info.req.headers.origin ) > - 1,
+	verifyClient: ( info ) => [ undefined, "http://localhost:8000" ].indexOf( info.req.headers.origin ) > - 1,
 } );
 
 wss.on( "connection", ( ws, req ) => {
 
 	const swp = req.headers[ "sec-websocket-protocol" ],
-		index = swp.indexOf( "_" );
+	index = swp.indexOf( "_" );
 
 	if ( swp.substring( 0, index ) === "ID" ) {
 
 		ws.id = swp.substring( index + 1 );
-		if ( ! ws.id || ws.id in clients ) return console.error( `ERROR: Connection passed an invalid sec-websocket-protocol "${swp}"` );
+		if ( ! ws.id || ws.id in clients ){
+			return console.error( `ERROR: Connection passed an invalid sec-websocket-protocol "${swp}"` );
+		}
 
 	}
 
@@ -27,9 +28,7 @@ wss.on( "connection", ( ws, req ) => {
 	ws.on( "close", () => console.log( "WebSocket connection closed." ) );
 
 } );
-function split() {
 
-}
 
 function onMessage( ws, message ) {
 
@@ -40,8 +39,8 @@ function onMessage( ws, message ) {
 	for ( const requestIndex in requests ) {
 
 		const request = requests[ requestIndex ],
-			index = request.indexOf( "_" ),
-			id = request.substring( 0, index );
+		index = request.indexOf( "_" ),
+		id = request.substring( 0, index );
 
 		if ( id in clients ) clients[ id ].ws.send( `${ws.id}_${request.substring( index + 1 )}` );
 
@@ -65,7 +64,7 @@ export function connect( client ) {
 		if ( fn in callbacks ) {
 
 			returnValue = callbacks[ fn ]( args );
-			delete callbacks[ fn ];
+		delete callbacks[ fn ];
 
 		} else {
 
@@ -91,10 +90,11 @@ export function uuid() {
 
 }
 
+
 export function call( client, targetId, fn, args = undefined, callback = undefined ) {
 
 	let message = targetId,
-		callbackId = "";
+	callbackId = "";
 	if ( callback ) callbacks[ callbackId = uuid() ] = callback;
 	message += `_${callbackId}_${fn}`;
 	if ( args ) message += args.constructor === Array ? `_${args.join( "_" )}` : `_${args}`;
@@ -109,6 +109,9 @@ const usedUUIDs = {};
 
 fs.readdir( "./servernodes/", ( err, files = [] ) => {
 
+	if ( err ) return console.log( err.message );
+
 	for ( const file of files ) file.endsWith( ".js" ) && import( `./servernodes/${file}` );
 
 } );
+
