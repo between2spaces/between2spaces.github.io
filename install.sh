@@ -136,7 +136,7 @@ echo "Installing Neovim 0.9 using working directory $TMP_DIR..."
 # Install Neovim
 git clone https://github.com/neovim/neovim.git
 cd neovim
-git checkout HEAD 
+git checkout release-0.9
 make CMAKE_BUILD_TYPE=Release
 sudo make install
 
