@@ -125,64 +125,54 @@ source ~/.profile
 
 # Neovim
 
-if [ "$(which zz)" == "" ]; then
+if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
 
-	echo "ZZZZZZZZZZZZZZZZZZZZZZ"
+	# When nvim not found or timestamp on binary is older than a week
+
+	# Build prerequisites
+	sudo apt install ninja-build gettext cmake unzip curl
+
+	# Create tmp working directory
+	TMP_DIR="$(mktemp -d)"
+	cd $TMP_DIR
+	echo "Installing Neovim 0.9 using working directory $TMP_DIR..."
+
+	# Clone git repo; build and install
+	git clone https://github.com/neovim/neovim.git
+	cd neovim
+	git checkout release-0.9
+	make CMAKE_BUILD_TYPE=Release
+	sudo make install
+
+	# Removed tmp working directory
+	rm -rf $TMP_DIR
+
+	# Telescope requirements
+	sudo apt install ripgrep fd-find
+
+	if [ ! -f ~/.local/bin/fd ]; then
+		ln -s $(which fdfind) ~/.local/bin/fd 
+	fi
 
 fi
-
-# Only install
-if [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
-
-	echo "HERE!!!!!"
-
-fi
-
-# Prerequisites
-#sudo apt install ninja-build gettext cmake unzip curl
-
-# Tmp working directory
-#TMP_DIR="$(mktemp -d)"
-#cd $TMP_DIR
-#echo "Installing Neovim 0.9 using working directory $TMP_DIR..."
-
-# Install Neovim
-#git clone https://github.com/neovim/neovim.git
-#cd neovim
-#git checkout release-0.9
-#make CMAKE_BUILD_TYPE=Release
-#sudo make install
-
-# Clean tmp working directory
-#rm -rf $TMP_DIR
-
-# Telescope requirements
-#sudo apt install ripgrep fd-find
-
-#if [ ! -f ~/.local/bin/fd ];
-#then
-#	ln -s $(which fdfind) ~/.local/bin/fd 
-#fi
-
-
 
 
 
 # Docker
 
-#sudo apt install -y docker-ce docker-ce-cli containerd.io
-#sudo pip3 install docker-compose
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+sudo pip3 install docker-compose
 
 
 
 # Symlink package.json and .eslintrc.json to ~ and npm install
 
-#rm -rf $HOME/package.json && ln -s $PWD/package.json $HOME/package.json
-#rm -rf $HOME/.eslintrc.json && ln -s $PWD/.eslintrc.json $HOME/.eslintrc.json
-#CWD=$PWD
-#cd $HOME
-#npm install
-#cd $CWD
+rm -rf $HOME/package.json && ln -s $PWD/package.json $HOME/package.json
+rm -rf $HOME/.eslintrc.json && ln -s $PWD/.eslintrc.json $HOME/.eslintrc.json
+CWD=$PWD
+cd $HOME
+npm install
+cd $CWD
 
 
 
