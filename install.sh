@@ -125,7 +125,7 @@ source ~/.profile
 
 # Neovim
 
-if [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "600" ]; then
+if [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "999" ]; then
 
 	echo "HERE!!!!!"
 
