@@ -40,7 +40,15 @@ vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
 
 require("lazy").setup({
 
-	--------------------------------------------------------
+	------------------------------------------------------------------------------
+	-- Colorschemes with tree-sitter support
+	-- https://github.com/rockerBOO/awesome-neovim#tree-sitter-supported-colorscheme
+	--
+	--{ "rebelot/kanagawa.nvim" },
+	{ "rafamadriz/neon" },
+
+
+	------------------------------------------------------------------------------
 	-- Telescope - Fizzy finder over lists
 	--
 	{
@@ -59,7 +67,8 @@ require("lazy").setup({
 		}
 	},
 
-	--------------------------------------------------------
+
+	------------------------------------------------------------------------------
 	-- Treesitter - Parsing system for programming languages
 	--
 	{
@@ -78,7 +87,8 @@ require("lazy").setup({
 		end
 	},
 
-	--------------------------------------------------------
+
+	------------------------------------------------------------------------------
 	-- Language services
 	--
 	{
@@ -108,7 +118,8 @@ require("lazy").setup({
 		end,
 	},
 
-	--------------------------------------------------------
+
+	------------------------------------------------------------------------------
 	-- Completions 
 	--
 	{
@@ -166,6 +177,7 @@ require("lazy").setup({
 			}
 		end,
 	},
+
 
 })
 
