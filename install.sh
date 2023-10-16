@@ -147,6 +147,9 @@ if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))
 	# Removed tmp working directory
 	rm -rf $TMP_DIR
 
+	# Neovim Python support
+	pip install pynvim
+
 	# Telescope requirements
 	sudo apt install ripgrep fd-find
 

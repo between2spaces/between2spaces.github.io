@@ -1,34 +1,29 @@
-import { connect, uuid, call } from '../server.js';
+import { connect, call } from '../servernode.js';
 
-let Tree;
+connect( {
+	name: 'Tree',
+	properties: [ 'age', 'weight' ],
+	default_values: [ 0, 1 ],
+	config: () => {
 
-connect( Tree = {
-	id: 'Tree',
-	connected: connected,
+		call( 'Entity', 'create', 'Tree' );
+
+	},
+	update: () => {
+
+		for ( let id in trees ) {
+
+			console.log( 'update...', trees[ id ] );
+
+		}
+
+	},
+	entity: ( entity ) => {
+
+		if ( 'Tree' === entity[ 1 ] ) trees[ entity[ 0 ] ] = entity;
+
+	},
 } );
 
-function connected( args ) {
 
-	call( Tree, 'Entity', 'create', [ 'Tree', 'age', '0', 'weight', '100' ], res => {
-
-		const entityId = res[ 0 ];
-
-		call( Tree, 'Entity', 'properties', entityId, res => {
-
-			if ( 'error' === res[ 0 ] ) return console.error( res[ 1 ] );
-
-			console.log( res );
-
-		} );
-
-		call( Tree, 'Entity', 'values', entityId, res => {
-
-			if ( 'error' === res[ 0 ] ) return console.error( res[ 1 ] );
-
-			console.log( res );
-
-		} );
-
-	} );
-
-}
+const trees = {};

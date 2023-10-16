@@ -6,7 +6,7 @@
 		"defaultProfile": "{e381fe40-9d15-58b7-99ea-5908cd6561e5}",
 		"initialRows": 25,
 		"initialCols": 100,
-		"startOnUserLogin": true,
+		"startOnUserLogin": false,
 		"showTabsInTitlebar": true,
 		"alwaysShowTabs": false,
 		"profiles": {
@@ -23,8 +23,6 @@
 				"cursorShape": "vintage",
 				"cursorColor": "#39ff14",
 				"colorScheme": "Sonokai Shusia",
-				"backgroundImage": "%USERPROFILE%/Pictures/TerminalBackground.jpg",
-				"backgroundImageOpacity": 0.1
 			},
 			"list": [
 				{

@@ -7,11 +7,7 @@
     "es2022": true
   },
   "extends": [
-    "mdcs",
-    "eslint:recommended"
-  ],
-  "plugins": [
-    "import-newlines"
+    "mdcs"
   ],
   "parserOptions": {
     "ecmaVersion": "latest",
@@ -26,7 +22,6 @@
           "TemplateLiteral"
         ]
       }
-    ],
-    "max-statements-per-line": ["error", { "max": 1 }]
+    ]
   }
 }

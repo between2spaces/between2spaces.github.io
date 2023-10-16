@@ -1,28 +1,51 @@
----------------------------------------------
--- keymap
+--------------------------------------------------------------------------------------
+-- Leader key is <space>
 --
 
 vim.g.mapleader = " "
 
-vim.keymap.set("n", "<leader>e", vim.cmd.Ex)
+
+vim.g.clipboard = {
+	name = 'WslClipboard',
+	copy = {
+		['+'] = 'clip.exe',
+		['*'] = 'clip.exe',
+	},
+	paste = {
+		['+'] = 'powershell.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))',
+		['*'] = 'powershell.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))',
+	},
+	cache_enabled = true,
+}
+
+vim.cmd "tnoremap <C-w> <C-\\><C-n><C-w>"
 
 
----------------------------------------------
+
+
+--------------------------------------------------------------------------------------
 -- options
 --
 
-local opt = vim.opt
+vim.opt.mouse = 'a'
+vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.signcolumn = "number"
+vim.opt.scrolloff = 5
 
-opt.number = true
-opt.relativenumber = true
-opt.signcolumn = "number"
+-- hide the statusline
+vim.opt.laststatus = 0
+vim.opt.cmdheight = 0
+vim.opt.showmode = false
+vim.opt.ruler = false
 
+vim.g.netrw_liststyle = 3
+vim.g.netrw_banner = false
 
----------------------------------------------
+--------------------------------------------------------------------------------------
 -- plugins
 --
 
--- bootstrap plugin manager
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
 	vim.fn.system({
@@ -45,7 +68,9 @@ require("lazy").setup({
 	-- https://github.com/rockerBOO/awesome-neovim#tree-sitter-supported-colorscheme
 	--
 	--{ "rebelot/kanagawa.nvim" },
-	{ "rafamadriz/neon" },
+	--{ "rafamadriz/neon" },
+	--{ "Mofiqul/vscode.nvim" },
+	{ "tomasiser/vim-code-dark", config = function() vim.cmd "colorscheme codedark" end },
 
 
 	------------------------------------------------------------------------------
@@ -54,12 +79,6 @@ require("lazy").setup({
 	{
 		"nvim-telescope/telescope.nvim",
 		dependencies = "nvim-lua/plenary.nvim",
-		keys = {
-			{ "<leader><space>", "<cmd>Telescope find_files<cr>", desc = "Find Files" },
-			{ "<leader>/", "<cmd>Telescope live_grep<cr>", desc = "Find in Files (Grep)" },
-			{ "<leader><tab>", "<cmd>Telescope buffers<cr>", desc = "Find Buffers" },
-			{ "<leader>h", "<cmd>Telescope help_tags<cr>", desc = "Find Help" },
-		},
 		opts = {
 			pickers = {
 				find_files = { hidden = true }
@@ -74,7 +93,7 @@ require("lazy").setup({
 	{
 		"nvim-treesitter/nvim-treesitter",
 		build = ":TSUpdate",
-		config = function ()
+		config = function()
 			require("nvim-treesitter.configs").setup({
 				ensure_installed = {
 					"c", "lua", "vim", "vimdoc", "query", "bash",
@@ -97,17 +116,17 @@ require("lazy").setup({
 			"williamboman/mason.nvim",
 			"williamboman/mason-lspconfig.nvim",
 		},
-		config = function ()
+		config = function()
 			local lspconfig = require("lspconfig")
 			require("mason").setup()
 			require("mason-lspconfig").setup {
-				ensure_installed = {"lua_ls", "tsserver"}
+				ensure_installed = { "lua_ls", "tsserver" }
 			}
 			require("mason-lspconfig").setup_handlers {
-				function (server)
+				function(server)
 					lspconfig[server].setup {}
 				end,
-				["lua_ls"] = function ()
+				["lua_ls"] = function()
 					lspconfig.lua_ls.setup {
 						settings = {
 							Lua = { diagnostics = { globals = { "vim" } } }
@@ -120,7 +139,7 @@ require("lazy").setup({
 
 
 	------------------------------------------------------------------------------
-	-- Completions 
+	-- Completions
 	--
 	{
 		"hrsh7th/nvim-cmp",
@@ -151,11 +170,11 @@ require("lazy").setup({
 					["<C-f>"] = cmp.mapping.scroll_docs(4),
 					["<C-Space>"] = cmp.mapping.complete(),
 					["<C-e>"] = cmp.mapping.abort(),
-					["<Tab>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+					["<Tab>"] = cmp.mapping.confirm({ select = true }),
 					["<S-CR>"] = cmp.mapping.confirm({
 						behavior = cmp.ConfirmBehavior.Replace,
 						select = true,
-					}), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+					}),
 					["<C-CR>"] = function(fallback)
 						cmp.abort()
 						fallback()
@@ -179,5 +198,55 @@ require("lazy").setup({
 	},
 
 
-})
 
+	------------------------------------------------------------------------------
+	-- Formatter
+	--
+	{
+		"stevearc/conform.nvim",
+		config = function()
+			require("conform").setup({
+				formatters_by_ft = {
+					javascript = { "eslint" },
+				},
+				format_on_save = {
+					timeout_ms = 500,
+					lsp_fallback = true,
+				}
+			})
+		end,
+	},
+
+
+
+	------------------------------------------------------------------------------
+	-- Which key
+	--
+	{
+		"folke/which-key.nvim",
+		config = function()
+			vim.o.timeout = true
+			vim.o.timeoutlen = 300
+			local wk = require "which-key"
+			wk.setup {
+				icons = {
+					group = "",
+				},
+			}
+			wk.register({
+				f = { "<cmd>Telescope find_files<cr>", "Find File" },
+				r = { "<cmd>Telescope oldfiles<cr>", "Recent Files" },
+				c = { "<cmd>e $MYVIMRC<cr>", "Config" },
+				n = { "<cmd>ene <bar> startinsert<cr>", "New Buffer" },
+				q = { "<cmd>bdelete<cr>", "Close Buffer" },
+				['<tab>'] = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
+				e = { "<cmd>sil 15Lex<cr>", "Toggle Explorer" },
+				g = { "<cmd>Telescope live_grep<cr>", "Find in Files (Grep)" },
+				h = { "<cmd>Telescope help_tags<cr>", "Help" },
+				t = { "<cmd>terminal<cr>", "Terminal" },
+			}, { prefix = "<leader>" })
+		end
+	},
+
+
+})

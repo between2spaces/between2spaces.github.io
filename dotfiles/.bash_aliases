@@ -2,6 +2,20 @@ alias python="python3"
 alias vi="nvim"
 alias vim="nvim"
 
+nvim() { 
+
+	if [ -n "$1" ]; then
+		if [ -n "$NVIM" ]; then
+			$(which nvim) --server "$NVIM" --remote-send "<C-\><C-N><C-W>k:drop $(realpath $1)<CR>"
+		else
+			$(which nvim) --listen ~/.cache/nvim/server.pipe "$1"
+		fi
+	else
+		[ -z "$NVIM" ] && $(which nvim) --listen ~/.cache/nvim/server.pipe
+	fi
+
+}
+
 lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
 
 docker-start() { $(which wsl.exe) -u root -e sh -c "service docker start"; }
