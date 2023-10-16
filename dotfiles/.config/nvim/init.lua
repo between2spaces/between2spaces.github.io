@@ -20,7 +20,10 @@ vim.g.clipboard = {
 
 vim.cmd "tnoremap <C-w> <C-\\><C-n><C-w>"
 
-
+vim.api.nvim_set_keymap('c', '<C-K>', 'wildmenumode() ? "<C-P>" : "<C-K>"', { noremap = true, expr = true })
+vim.api.nvim_set_keymap('c', '<C-J>', 'wildmenumode() ? "<C-N>" : "<C-J>"', { noremap = true, expr = true })
+vim.api.nvim_set_keymap('c', '<C-L>', 'wildmenumode() ? "<Down>" : "<C-L>"', { noremap = true, expr = true })
+vim.api.nvim_set_keymap('c', '<C-H>', 'wildmenumode() ? "<Up>" : "<C-H>"', { noremap = true, expr = true })
 
 
 --------------------------------------------------------------------------------------
@@ -41,6 +44,8 @@ vim.opt.ruler = false
 
 vim.g.netrw_liststyle = 3
 vim.g.netrw_banner = false
+
+
 
 --------------------------------------------------------------------------------------
 -- plugins
