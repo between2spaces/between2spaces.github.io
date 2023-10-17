@@ -1,16 +1,19 @@
 import { connect, call, map } from '../servernode.js';
 
+
 connect( {
 	name: 'Tree',
 	properties: [ 'age', 'weight' ],
 	default_values: [ 0, 1 ],
 	config: () => {
 
+		treeMap = map( 'Tree' );
+
 		call( 'Entity', 'create', 'Tree', tree => {
 
 			console.log( 'Created ', tree );
-
-			console.log( 'Tree age is', map( 'Tree' ).age( tree ) );
+			treeMap.age( tree, 3 );
+			console.log( 'Tree age is', treeMap.age( tree ) );
 
 		} );
 
@@ -33,3 +36,6 @@ connect( {
 
 
 const trees = {};
+
+let treeMap;
+

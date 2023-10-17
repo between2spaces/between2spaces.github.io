@@ -1,6 +1,7 @@
 import { WebSocket } from 'ws';
 import crypto from 'crypto';
 
+
 export function connect( client ) {
 
 	client.name = client.name || '';
@@ -75,23 +76,33 @@ export function call( targetId, fn, args = undefined, callback = undefined ) {
 }
 
 
+
 export function map( name ) {
 
 	if ( name in map.cached ) return map.cached.name;
 
-	const nameMap = map.cached[ name ] = {};
+	const properties = [ 'id', 'type', 'age', 'weight' ];
 
-	Object.defineProperty( nameMap, "age", {
-		get: function ( values ) {
+	const propertyMap = map.cached[ name ] = {};
 
-			return values[ 2 ];
+	for ( let index in properties ) {
 
-		}
-	} );
+		propertyMap[ properties[ index ] ] = function ( values, val ) {
 
-	return nameMap;
+			if ( typeof val === 'undefined' ) return values[ index ];
+			return values[ index ] = val;
+
+		};
+
+
+	}
+
+	return propertyMap;
 
 }
+
+map.cached = {};
+
 
 
 let ws;
