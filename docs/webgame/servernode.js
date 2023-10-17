@@ -43,9 +43,11 @@ export function connect( client ) {
 			const returnValue = client[ fn ]( args );
 			return callbackId && call( callerId, callbackId, returnValue );
 
-		}
+		} else if ( client.debug ) {
 
-		console.error( `${client.name}.${fn} is not a function` );
+			console.error( `Warn: ${client.name}.${fn} is not a function in servernode.js:ws.on( 'message', ... )` );
+
+		}
 
 	} );
 
@@ -72,7 +74,28 @@ export function call( targetId, fn, args = undefined, callback = undefined ) {
 
 }
 
+
+export function map( name ) {
+
+	if ( name in map.cached ) return map.cached.name;
+
+	const nameMap = map.cached[ name ] = {};
+
+	Object.defineProperty( nameMap, "age", {
+		get: function ( values ) {
+
+			return values[ 2 ];
+
+		}
+	} );
+
+	return nameMap;
+
+}
+
+
 let ws;
 
 const callbacks = {};
 let cachedMessages = '';
+

@@ -1,24 +1,4 @@
-connect( {
-	serverURL: 'ws://localhost:6500',
-	config: ( name ) => {
-
-		console.log( name );
-
-	},
-	update: () => {
-
-		console.log( 'update...' );
-
-	},
-	entity: ( entity ) => {
-
-		console.log( entity );
-
-	},
-} );
-
-
-function connect( client ) {
+export function connect( client ) {
 
 	client.name = client.name || '$UUID';
 
@@ -106,7 +86,7 @@ function connect( client ) {
 }
 
 
-function call( targetId, fn, args = undefined, callback = undefined ) {
+export function call( targetId, fn, args = undefined, callback = undefined ) {
 
 	let callbackId = '';
 

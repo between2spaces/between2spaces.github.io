@@ -179,14 +179,6 @@ cd $CWD
 
 
 
-# Tmux
-
-mkdir -p ~/.tmux
-rm -rf ~/.tmux/plugins/tpm
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-
-
-
 echo "Finished."
 echo '"source ~/.profile" to updated current process environment'
 

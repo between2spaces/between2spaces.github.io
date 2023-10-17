@@ -5,45 +5,38 @@
 vim.g.mapleader = " "
 
 
-vim.g.clipboard = {
-	name = 'WslClipboard',
-	copy = {
-		['+'] = 'clip.exe',
-		['*'] = 'clip.exe',
-	},
-	paste = {
-		['+'] = 'powershell.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))',
-		['*'] = 'powershell.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))',
-	},
-	cache_enabled = true,
-}
-
-vim.cmd "tnoremap <C-w> <C-\\><C-n><C-w>"
-
-vim.api.nvim_set_keymap('c', '<C-K>', 'wildmenumode() ? "<C-P>" : "<C-K>"', { noremap = true, expr = true })
-vim.api.nvim_set_keymap('c', '<C-J>', 'wildmenumode() ? "<C-N>" : "<C-J>"', { noremap = true, expr = true })
-vim.api.nvim_set_keymap('c', '<C-L>', 'wildmenumode() ? "<Down>" : "<C-L>"', { noremap = true, expr = true })
-vim.api.nvim_set_keymap('c', '<C-H>', 'wildmenumode() ? "<Up>" : "<C-H>"', { noremap = true, expr = true })
-
-
 --------------------------------------------------------------------------------------
 -- options
 --
 
 vim.opt.mouse = 'a'
-vim.opt.number = true
-vim.opt.relativenumber = true
-vim.opt.signcolumn = "number"
-vim.opt.scrolloff = 5
+vim.opt.scrolloff = 2
+vim.opt.wildoptions = "tagfile"
 
 -- hide the statusline
 vim.opt.laststatus = 0
 vim.opt.cmdheight = 0
 vim.opt.showmode = false
-vim.opt.ruler = false
 
+-- netrw config
 vim.g.netrw_liststyle = 3
 vim.g.netrw_banner = false
+
+-- copy to system clipboard
+vim.api.nvim_set_option("clipboard", "unnamed")
+
+
+
+-------------------------------------------------------------------------------
+-- Override colorscheme with transparent background
+--
+
+vim.api.nvim_create_autocmd("ColorScheme", {
+	pattern = "*",
+	callback = function()
+		vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
+	end,
+})
 
 
 
@@ -72,9 +65,6 @@ require("lazy").setup({
 	-- Colorschemes with tree-sitter support
 	-- https://github.com/rockerBOO/awesome-neovim#tree-sitter-supported-colorscheme
 	--
-	--{ "rebelot/kanagawa.nvim" },
-	--{ "rafamadriz/neon" },
-	--{ "Mofiqul/vscode.nvim" },
 	{ "tomasiser/vim-code-dark", config = function() vim.cmd "colorscheme codedark" end },
 
 
@@ -113,7 +103,7 @@ require("lazy").setup({
 
 
 	------------------------------------------------------------------------------
-	-- Language services
+	-- Lsp
 	--
 	{
 		"neovim/nvim-lspconfig",
@@ -122,23 +112,28 @@ require("lazy").setup({
 			"williamboman/mason-lspconfig.nvim",
 		},
 		config = function()
-			local lspconfig = require("lspconfig")
 			require("mason").setup()
 			require("mason-lspconfig").setup {
-				ensure_installed = { "lua_ls", "tsserver" }
-			}
-			require("mason-lspconfig").setup_handlers {
-				function(server)
-					lspconfig[server].setup {}
-				end,
-				["lua_ls"] = function()
-					lspconfig.lua_ls.setup {
-						settings = {
+				ensure_installed = { "lua_ls", "tsserver", "eslint" },
+				automatic_installation = true,
+				handlers = {
+					function(server_name) -- default handler (optional)
+						require("lspconfig")[server_name].setup {}
+					end,
+					["lua_ls"] = function()
+						require("lspconfig").lua_ls.setup = {
 							Lua = { diagnostics = { globals = { "vim" } } }
 						}
-					}
-				end,
+					end,
+				}
 			}
+			--lspconfig.tsserver.setup {}
+			--		capabilities = {
+			--			documentFormattingProvider = false,
+			--			documentRangeFormattingProvider = false,
+			--		}
+			--	}
+			--end,
 		end,
 	},
 
@@ -203,27 +198,6 @@ require("lazy").setup({
 	},
 
 
-
-	------------------------------------------------------------------------------
-	-- Formatter
-	--
-	{
-		"stevearc/conform.nvim",
-		config = function()
-			require("conform").setup({
-				formatters_by_ft = {
-					javascript = { "eslint" },
-				},
-				format_on_save = {
-					timeout_ms = 500,
-					lsp_fallback = true,
-				}
-			})
-		end,
-	},
-
-
-
 	------------------------------------------------------------------------------
 	-- Which key
 	--
@@ -255,3 +229,16 @@ require("lazy").setup({
 
 
 })
+
+
+
+-------------------------------------------------------------------------------
+-- Format on save using EslintFixAll for Javascript/Typescript
+--
+
+vim.api.nvim_create_autocmd("BufWritePre", {
+	pattern = { "*.js", "*.jsx", "*.ts", "*.tsx" },
+	command = "silent! EslintFixAll"
+})
+
+

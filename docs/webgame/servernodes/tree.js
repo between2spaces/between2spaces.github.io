@@ -1,4 +1,4 @@
-import { connect, call } from '../servernode.js';
+import { connect, call, map } from '../servernode.js';
 
 connect( {
 	name: 'Tree',
@@ -6,7 +6,13 @@ connect( {
 	default_values: [ 0, 1 ],
 	config: () => {
 
-		call( 'Entity', 'create', 'Tree' );
+		call( 'Entity', 'create', 'Tree', tree => {
+
+			console.log( 'Created ', tree );
+
+			console.log( 'Tree age is', map( 'Tree' ).age( tree ) );
+
+		} );
 
 	},
 	update: () => {

@@ -23,5 +23,6 @@ if [ -d "$HOME/node_modules/.bin" ] ; then
 fi
 
 
-
-. "$HOME/.cargo/env"
+if command -v tmux &> /dev/null && [ -n "$PS1" ] && [[ ! "$TERM" =~ screen ]] && [[ ! "$TERM" =~ tmux ]] && [ -z "$TMUX" ]; then
+  exec tmux
+fi

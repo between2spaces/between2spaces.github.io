@@ -7,7 +7,19 @@
   </head>
   <body>
     <script type="module">
-  	import './client.js';
+	import { connect, call } from './client.js';
+	connect( window.client = {
+		serverURL: 'ws://localhost:6500',
+		config: ( name ) => {
+			console.log( `config( '${name}' )... ` );
+		},
+		update: () => {
+			console.log( 'update... ' );
+		},
+		entity: ( entity ) => {
+			console.log( 'entity... ', entity );
+		},
+	} );
     </script>
   </body>
 </html>

@@ -15,8 +15,6 @@
     "neovim": "^4.10.1",
     "npm-check-updates": "^16.14.6",
     "tree-sitter-cli": "^0.20.8",
-    "typescript": "^5.2.2",
-    "typescript-language-server": "^3.3.2",
     "vscode-langservers-extracted": "^4.7.0"
   }
 }

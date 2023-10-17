@@ -9,13 +9,14 @@
 		"startOnUserLogin": false,
 		"showTabsInTitlebar": true,
 		"alwaysShowTabs": false,
+		"launchMode": "maximized",
 		"profiles": {
 			"defaults": {
 				"bellStyle": "taskbar",
 				"closeOnExit": "always",
 				"font": {
 					"face": "Hack Nerd Font",
-					"size": 18,
+					"size": 19,
 					"weight": "normal"
 				},
 				"padding": "0",
@@ -80,7 +81,7 @@
 			},
 			{
 				"name": "Sonokai Shusia",
-				"background": "#1e1e1e",
+				"background": "#2e2e2e",
 				"black": "#1A181A",
 				"blue": "#1080D0",
 				"brightBlack": "#707070",
