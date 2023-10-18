@@ -15,7 +15,7 @@ export function connect( client ) {
 
 	ws = new WebSocket( `http://localhost:${process.env.PORT}`, swp );
 
-	ws.on( 'open', () => {
+	ws.on( 'open', function () {
 
 		if ( cachedMessages ) {
 
@@ -25,23 +25,27 @@ export function connect( client ) {
 
 		}
 
-		if ( client.update ) setInterval( client.update, client.updateInterval || 10000 );
+		if ( client.update ) setInterval( function () {
+
+			client.update( client );
+
+		}, client.updateInterval || 10000 );
 
 	} );
 
-	ws.on( 'message', ( message ) => {
+	ws.on( 'message', function ( message ) {
 
 		const [ callerId, callbackId, fn, ...args ] = message.toString().split( '_' );
 
 		if ( fn in callbacks ) {
 
-			const returnValue = callbacks[ fn ]( args );
+			console.log( `callbacks[ '${fn}' ].resolve` );
+			callbacks[ fn ].resolve( args );
 			delete callbacks[ fn ];
-			return callbackId && call( callerId, callbackId, returnValue );
 
 		} else if ( fn in client ) {
 
-			const returnValue = client[ fn ]( args );
+			const returnValue = client[ fn ]( client, args );
 			return callbackId && call( callerId, callbackId, returnValue );
 
 		} else if ( client.debug ) {
@@ -56,52 +60,64 @@ export function connect( client ) {
 
 }
 
-export function call( targetId, fn, args = undefined, callback = undefined ) {
+export async function call( targetId, fn, args = undefined, responsePromise = false ) {
 
 	let callbackId = '';
 
-	if ( callback ) {
+	if ( responsePromise ) {
 
 		while ( ! callbackId || callbackId in callbacks ) callbackId = crypto.randomUUID().split( '-' )[ 0 ];
-		callbacks[ callbackId ] = callback;
+		callbacks[ callbackId ] = {};
+
+		console.log( `callbacks[ '${callbackId}' ] = {}` );
 
 	}
 
 	const message = ( targetId ?? '' ) + '_' + callbackId + '_' + fn + ( args ? args.constructor === Array ? '_' + args.join( '_' ) : `_${args}` : '' );
 
-	if ( ! ws.readyState ) return cachedMessages += ( ! cachedMessages ) ? message : ';' + message;
 
-	ws.send( message );
+	if ( responsePromise ) {
 
-}
+		console.log( `callbacks[ '${callbackId}' ].resolve = () => {}` );
 
+		return new Promise( function ( resolve, reject ) {
 
+			callbacks[ callbackId ].resolve = resolve;
+			callbacks[ callbackId ].reject = reject;
 
-export function map( name ) {
+			ws.readyState ? ws.send( message ) : cachedMessages += ( ! cachedMessages ) ? message : ';' + message;
 
-	if ( name in map.cached ) return map.cached.name;
+		} );
 
-	const properties = [ 'id', 'type', 'age', 'weight' ];
+	} else {
 
-	const propertyMap = map.cached[ name ] = {};
-
-	for ( let index in properties ) {
-
-		propertyMap[ properties[ index ] ] = function ( values, val ) {
-
-			if ( typeof val === 'undefined' ) return values[ index ];
-			return values[ index ] = val;
-
-		};
-
+		ws.readyState ? ws.send( message ) : cachedMessages += ( ! cachedMessages ) ? message : ';' + message;
 
 	}
 
-	return propertyMap;
+}
+
+
+
+export async function propertiesOf( name ) {
+
+	return new Promise( async function ( resolve, reject ) {
+
+		if ( name in propertiesOf.cached ) resolve( propertiesOf.cached.name );
+
+		const properties = await call( 'Entity', 'properties', 'Tree', true );
+
+		const propertyMap = propertiesOf.cached[ name ] = {};
+
+		for ( let index in properties ) propertyMap[ properties[ index ] ] = parseInt( index );
+
+		resolve( propertyMap );
+
+	} );
 
 }
 
-map.cached = {};
+propertiesOf.cached = {};
 
 
 

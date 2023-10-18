@@ -164,6 +164,13 @@ const Entity = {
 
 	},
 
+	properties: ( args ) => {
+
+		return propertiesByType[ args[ 0 ] ];
+
+	},
+
+
 };
 
 

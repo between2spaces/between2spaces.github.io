@@ -1,24 +1,22 @@
-import { connect, call, map } from '../servernode.js';
+import { connect, call, propertiesOf } from '../servernode.js';
 
 
 connect( {
 	name: 'Tree',
 	properties: [ 'age', 'weight' ],
 	default_values: [ 0, 1 ],
-	config: () => {
+	config: async ( self ) => {
 
-		treeMap = map( 'Tree' );
+		const treeProperty = self.treeProperty = await propertiesOf( 'Tree' );
 
-		call( 'Entity', 'create', 'Tree', tree => {
+		console.log( self.treeProperty );
 
-			console.log( 'Created ', tree );
-			treeMap.age( tree, 3 );
-			console.log( 'Tree age is', treeMap.age( tree ) );
+		let tree = await call( 'Entity', 'create', 'Tree', true );
 
-		} );
+		console.log( `New tree ${tree[ treeProperty.id ]} weight is ${tree[ treeProperty.weight ]}` );
 
 	},
-	update: () => {
+	update: ( self ) => {
 
 		for ( let id in trees ) {
 
@@ -27,7 +25,7 @@ connect( {
 		}
 
 	},
-	entity: ( entity ) => {
+	entity: ( self, entity ) => {
 
 		if ( 'Tree' === entity[ 1 ] ) trees[ entity[ 0 ] ] = entity;
 
