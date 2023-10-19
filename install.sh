@@ -13,6 +13,7 @@ git config user.name "between2spaces"
 git config pull.rebase true
 
 
+echo $#
 
 
 if [ $# -eq 0 ];
