@@ -102,9 +102,9 @@ require("lazy").setup({
 	},
 
 
-	------------------------------------------------------------------------------
+	----------------------------------------------------------------------------
 	-- Lsp
-	--
+	--	
 	{
 		"neovim/nvim-lspconfig",
 		dependencies = {
@@ -127,15 +127,9 @@ require("lazy").setup({
 					end,
 				}
 			}
-			--lspconfig.tsserver.setup {}
-			--		capabilities = {
-			--			documentFormattingProvider = false,
-			--			documentRangeFormattingProvider = false,
-			--		}
-			--	}
-			--end,
 		end,
 	},
+
 
 
 	------------------------------------------------------------------------------
@@ -236,9 +230,16 @@ require("lazy").setup({
 -- Format on save using EslintFixAll for Javascript/Typescript
 --
 
-vim.api.nvim_create_autocmd("BufWritePre", {
-	pattern = { "*.js", "*.jsx", "*.ts", "*.tsx" },
-	command = "silent! EslintFixAll"
-})
+local autocmd = vim.api.nvim_create_autocmd
+autocmd( "FileType", { pattern = { "javascript" }, command = "set formatprg=npx\\ prettier\\ --use-tabs\\ --single-quote\\ --stdin-filepath\\ %\\ |\\ eslint\\ --fix\\ --stdin" } )
+autocmd( "BufWritePre", { pattern = { "*.js" }, command = ":normal gggqG" } )
+--autocmd("BufWritePre", {
+--	pattern = { "*.js", "*.jsx", "*.ts", "*.tsx" },
+--	command = "silent! npx prettier --use-tabs --single-quote | silent! EslintFixAll"
+--})
 
-
+autocmd('LspAttach', {
+  callback = function(ev)
+    vim.bo[ev.buf].formatexpr = nil
+  end,
+}) 

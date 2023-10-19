@@ -5,9 +5,9 @@
 	"version": "0.1.0",
 	"licence": "MIT",
 	"type": "module",
-    "engines": {
-        "node": "16.x"
-    },
+	"engines": {
+		"node": "16.x"
+	},
 	"scripts": {
 		"update": "npx -y npm-check-updates -u",
 		"start": "npm install; if [ ! -f '.env' ]; then echo 'PORT=6500\n' > .env; fi; export $(sed -e '/^[ ]*#/d' .env | xargs) && node server"
