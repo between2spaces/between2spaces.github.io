@@ -1,3 +1,20 @@
+set -e
+
+
+# Git config
+
+echo "Configuring Git"
+
+git config --global credential.helper "store"
+
+git config user.email "between2spaces@gmail.com"
+git config user.name "between2spaces"
+
+git config pull.rebase true
+
+
+
+
 if [ $# -eq 0 ];
 then
 	if [[ -d "$HOME/between2spaces.github.io" ]];
@@ -15,20 +32,6 @@ then
 	exit 0
 fi
 
-set -e
-
-
-
-# Git
-
-echo "Configuring Git"
-
-git config --global credential.helper "store"
-
-git config user.email "between2spaces@gmail.com"
-git config user.name "between2spaces"
-
-git config pull.rebase true
 
 
 
