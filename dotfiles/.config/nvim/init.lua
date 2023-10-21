@@ -12,6 +12,16 @@ vim.g.mapleader = " "
 vim.opt.mouse = 'a'
 vim.opt.scrolloff = 2
 vim.opt.wildoptions = "tagfile"
+vim.opt.signcolumn = "number"
+vim.opt.relativenumber = true
+vim.opt.number = true
+vim.opt.listchars = { tab = '│·', space = '·' }
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 0
+vim.opt.expandtab = false
+vim.opt.cursorline = true
+vim.opt.cursorlineopt = "number"
 
 -- hide the statusline
 vim.opt.laststatus = 0
@@ -21,22 +31,10 @@ vim.opt.showmode = false
 -- netrw config
 vim.g.netrw_liststyle = 3
 vim.g.netrw_banner = false
+vim.g.netrw_keepdir = 0
 
 -- copy to system clipboard
-vim.api.nvim_set_option("clipboard", "unnamed")
-
-
-
--------------------------------------------------------------------------------
--- Override colorscheme with transparent background
---
-
-vim.api.nvim_create_autocmd("ColorScheme", {
-	pattern = "*",
-	callback = function()
-		vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
-	end,
-})
+vim.api.nvim_set_option( "clipboard", "unnamed" )
 
 
 
@@ -44,19 +42,19 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 -- plugins
 --
 
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
-	vim.fn.system({
+local lazypath = vim.fn.stdpath( "data" ) .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat( lazypath ) then
+	vim.fn.system( {
 		"git",
 		"clone",
 		"--filter=blob:none",
 		"https://github.com/folke/lazy.nvim.git",
 		"--branch=stable", lazypath,
-	})
+	} )
 end
 
 
-vim.opt.rtp:prepend(vim.env.LAZY or lazypath)
+vim.opt.rtp:prepend( vim.env.LAZY or lazypath )
 
 
 require("lazy").setup({
@@ -65,7 +63,7 @@ require("lazy").setup({
 	-- Colorschemes with tree-sitter support
 	-- https://github.com/rockerBOO/awesome-neovim#tree-sitter-supported-colorscheme
 	--
-	{ "tomasiser/vim-code-dark", config = function() vim.cmd "colorscheme codedark" end },
+	--{ "tomasiser/vim-code-dark", config = function() vim.cmd "colorscheme codedark" end },
 
 
 	------------------------------------------------------------------------------
@@ -114,17 +112,27 @@ require("lazy").setup({
 		config = function()
 			require("mason").setup()
 			require("mason-lspconfig").setup {
-				ensure_installed = { "lua_ls", "tsserver", "eslint" },
+				ensure_installed = { "lua_ls", "tsserver" },
 				automatic_installation = true,
 				handlers = {
 					function(server_name) -- default handler (optional)
-						require("lspconfig")[server_name].setup {}
+						require("lspconfig")[server_name].setup {
+
+						}
 					end,
 					["lua_ls"] = function()
 						require("lspconfig").lua_ls.setup = {
 							Lua = { diagnostics = { globals = { "vim" } } }
 						}
 					end,
+					["tsserver"] = function()
+						require("lspconfig").tsserver.setup = {
+							on_attach = function( client, bufnr)
+								client.server_capabilities.document_formatting = false
+								client.server_capabilities.document_range_formatting = false
+							end
+						}
+					end
 				}
 			}
 		end,
@@ -178,8 +186,8 @@ require("lazy").setup({
 					{ name = "nvim_lsp" },
 					{ name = "luasnip" },
 					{ name = "path" },
-				}, {
-					{ name = "buffer" },
+					}, {
+						{ name = "buffer" },
 				}),
 				experimental = {
 					ghost_text = {
@@ -201,45 +209,85 @@ require("lazy").setup({
 			vim.o.timeout = true
 			vim.o.timeoutlen = 300
 			local wk = require "which-key"
-			wk.setup {
-				icons = {
-					group = "",
-				},
-			}
-			wk.register({
+			wk.setup { icons = { group = "", }, }
+			wk.register( {
 				f = { "<cmd>Telescope find_files<cr>", "Find File" },
 				r = { "<cmd>Telescope oldfiles<cr>", "Recent Files" },
 				c = { "<cmd>e $MYVIMRC<cr>", "Config" },
 				n = { "<cmd>ene <bar> startinsert<cr>", "New Buffer" },
 				q = { "<cmd>bdelete<cr>", "Close Buffer" },
-				['<tab>'] = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
-				e = { "<cmd>sil 15Lex<cr>", "Toggle Explorer" },
+				[ "<tab>" ] = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
+				e = { "<cmd>sil 20Lex<cr>", "Toggle Explorer" },
 				g = { "<cmd>Telescope live_grep<cr>", "Find in Files (Grep)" },
 				h = { "<cmd>Telescope help_tags<cr>", "Help" },
 				t = { "<cmd>terminal<cr>", "Terminal" },
-			}, { prefix = "<leader>" })
+				}, { prefix = "<leader>" } )
 		end
 	},
 
+
+
+
+	------------------------------------------------------------------------------
+	-- Indentation guides
+	--
+	{
+		"lukas-reineke/indent-blankline.nvim",
+		main = "ibl",
+		config = function()
+			local hooks = require "ibl.hooks"
+			hooks.register( hooks.type.HIGHLIGHT_SETUP, function()
+				vim.api.nvim_set_hl( 0, "IndentGuide", { ctermfg = "darkgray" })
+			end )
+			require( "ibl" ).setup {
+				indent = { highlight = { "IndentGuide" } }
+			}
+		end
+
+	},
+
+
+
+	------------------------------------------------------------------------------
+	-- Indentation guides
+	--
+	{
+		"fgheng/winbar.nvim",
+		config = function()
+			require("winbar").setup {
+				enabled = true,
+			}
+		end
+	},
 
 })
 
 
 
 -------------------------------------------------------------------------------
--- Format on save using EslintFixAll for Javascript/Typescript
+-- Formatting for Javascript
 --
 
 local autocmd = vim.api.nvim_create_autocmd
-autocmd( "FileType", { pattern = { "javascript" }, command = "set formatprg=npx\\ prettier\\ --use-tabs\\ --single-quote\\ --stdin-filepath\\ %\\ |\\ eslint\\ --fix\\ --stdin" } )
-autocmd( "BufWritePre", { pattern = { "*.js" }, command = ":normal gggqG" } )
---autocmd("BufWritePre", {
---	pattern = { "*.js", "*.jsx", "*.ts", "*.tsx" },
---	command = "silent! npx prettier --use-tabs --single-quote | silent! EslintFixAll"
---})
+autocmd( "FileType", {
+	pattern = { "javascript" },
+	command = "setlocal formatprg=npx\\ prettier-eslint\\ --stdin\\ --stdin-filepath=x.js",
+} )
+autocmd( "BufWritePre", { pattern = { "*.js" }, command = ":normal mmgggqG'm" } )
 
-autocmd('LspAttach', {
-  callback = function(ev)
-    vim.bo[ev.buf].formatexpr = nil
-  end,
-}) 
+
+
+
+-------------------------------------------------------------------------------
+-- Override colorscheme
+--
+
+--vim.api.nvim_create_autocmd( "ColorScheme", {
+--	pattern = "*",
+--	callback = function() vim.api.nvim_set_hl(0, "Normal", { bg = "none" }) end,
+--} )
+vim.api.nvim_set_hl( 0, "Normal", { bg = "none" } )
+vim.api.nvim_set_hl( 0, "LineNr", { ctermfg = "darkgray" } )
+vim.api.nvim_set_hl( 0, "CursorLineNr", { fg = "gray" } )
+vim.api.nvim_set_hl( 0, "NonText", { ctermfg = "darkgray" } )
+

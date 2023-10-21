@@ -22,7 +22,7 @@
 				"padding": "0",
 				"scrollbarState": "hidden",
 				"cursorShape": "vintage",
-				"cursorColor": "#39ff14",
+				"cursorColor": "#b6ccd8",
 				"colorScheme": "Sonokai Shusia",
 			},
 			"list": [
@@ -105,6 +105,8 @@
 		],
 		"actions": [
 			{ "command": "unbound", "keys": "ctrl+shift+w" },
-			{ "command": "togglePaneZoom", "keys": "alt+shift+enter" },
+			{ "command": "newTab", "keys": "ctrl+n" },
+			{ "command": "nextTab", "keys": "ctrl+l" },
+			{ "command": "prevTab", "keys": "ctrl+h" }
 		]
 	}

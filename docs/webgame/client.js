@@ -4,10 +4,22 @@ export function connect( client ) {
 
 	const swp = [ client.name ];
 
-	if ( client.dependencies && client.dependencies.length ) swp.push( 'dep_' + client.dependencies.join( '_' ).replace( ' ', '' ) );
-	if ( client.entity ) swp.push( 'ent' );
+	if ( client.dependencies && client.dependencies.length ) {
 
-	connect.socketWorker = new Worker( URL.createObjectURL( new Blob( [ `
+		swp.push( 'dep_' + client.dependencies.join( '_' ).replace( ' ', '' ) );
+
+	}
+
+	if ( client.entity ) {
+
+		swp.push( 'ent' );
+
+	}
+
+	connect.socketWorker = new Worker(
+		URL.createObjectURL(
+			new Blob( [
+				`
 	let ws;
 	let timeout;
 	let clientTimeout = 10000;
@@ -25,7 +37,9 @@ export function connect( client ) {
 				cachedMessages = '';
 			}
 			if ( ${client.update ? true : false} ) {
-				setInterval( () => postMessage( [ 'Client', '', 'update' ] ), ${client.updateInterval || 10000} );
+				setInterval( () => postMessage( [ 'Client', '', 'update' ] ), ${
+					client.updateInterval || 10000
+				} );
 			}
 		};
 
@@ -62,15 +76,26 @@ export function connect( client ) {
 	}
 
 	connect();
-` ] ) ) );
+`,
+			] )
+		)
+	);
 
-
-	connect.socketWorker.onmessage = message => {
+	connect.socketWorker.onmessage = ( message ) => {
 
 		const [ callerId, callbackId, fn, ...args ] = message.data;
 
-		if ( 'config' === fn ) client.name = args[ 0 ];
-		if ( 'debug' === fn ) console.log( 'debug', args );
+		if ( 'config' === fn ) {
+
+			client.name = args[ 0 ];
+
+		}
+
+		if ( 'debug' === fn ) {
+
+			console.log( 'debug', args );
+
+		}
 
 		if ( fn in client ) {
 
@@ -85,20 +110,39 @@ export function connect( client ) {
 
 }
 
-
 export function call( targetId, fn, args = undefined, callback = undefined ) {
 
 	let callbackId = '';
 
 	if ( callback ) {
 
-		if ( ! call.backs ) call.backs = {};
-		while ( ! callbackId || callbackId in call.backs ) callbackId = crypto.randomUUID().split( '-' )[ 0 ];
+		if ( ! call.backs ) {
+
+			call.backs = {};
+
+		}
+
+		while ( ! callbackId || callbackId in call.backs ) {
+
+			callbackId = crypto.randomUUID().split( '-' )[ 0 ];
+
+		}
+
 		call.backs[ callbackId ] = callback;
 
 	}
 
-	const message = ( targetId ?? '' ) + '_' + callbackId + '_' + fn + ( args ? args.constructor === Array ? '_' + args.join( '_' ) : `_${args}` : '' );
+	const message =
+		( targetId ?? '' ) +
+		'_' +
+		callbackId +
+		'_' +
+		fn +
+		( args
+			? args.constructor === Array
+				? '_' + args.join( '_' )
+				: `_${args}`
+			: '' );
 
 	connect.socketWorker.postMessage( message );
 
