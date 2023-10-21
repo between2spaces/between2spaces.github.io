@@ -13,9 +13,6 @@ git config user.name "between2spaces"
 git config pull.rebase true
 
 
-echo $#
-
-
 if [ $# -eq 0 ];
 then
 	if [[ -d "$HOME/between2spaces.github.io" ]];
@@ -29,6 +26,7 @@ then
 		git clone https://github.com/between2spaces/between2spaces.github.io.git
 		cd between2spaces.github.io
 	fi
+	echo "here"
 	./install.sh update
 	exit 0
 fi
