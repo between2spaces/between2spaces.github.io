@@ -9,7 +9,6 @@
 		"startOnUserLogin": false,
 		"showTabsInTitlebar": true,
 		"alwaysShowTabs": false,
-		"launchMode": "maximized",
 		"profiles": {
 			"defaults": {
 				"bellStyle": "taskbar",
@@ -19,11 +18,11 @@
 					"size": 19,
 					"weight": "normal"
 				},
-				"padding": "0",
+				"padding": "5",
 				"scrollbarState": "hidden",
 				"cursorShape": "vintage",
 				"cursorColor": "#b6ccd8",
-				"colorScheme": "Sonokai Shusia",
+				"colorScheme": "Sonokai Shusia"
 			},
 			"list": [
 				{
