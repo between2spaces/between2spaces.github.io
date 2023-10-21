@@ -5,6 +5,7 @@
 vim.g.mapleader = " "
 
 
+
 --------------------------------------------------------------------------------------
 -- options
 --
@@ -166,8 +167,8 @@ require("lazy").setup({
 					end,
 				},
 				mapping = cmp.mapping.preset.insert({
-					["<C-n>"] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }),
-					["<C-p>"] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }),
+					["<C-j>"] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }),
+					["<C-k>"] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }),
 					["<C-b>"] = cmp.mapping.scroll_docs(-4),
 					["<C-f>"] = cmp.mapping.scroll_docs(4),
 					["<C-Space>"] = cmp.mapping.complete(),
@@ -214,8 +215,10 @@ require("lazy").setup({
 				f = { "<cmd>Telescope find_files<cr>", "Find File" },
 				r = { "<cmd>Telescope oldfiles<cr>", "Recent Files" },
 				c = { "<cmd>e $MYVIMRC<cr>", "Config" },
-				n = { "<cmd>ene <bar> startinsert<cr>", "New Buffer" },
-				q = { "<cmd>bdelete<cr>", "Close Buffer" },
+				n = { "<cmd>bnext<cr>", "Next buffer" },
+				p = { "<cmd>bprevious<cr>", "Previous buffer" },
+				d = { "<cmd>bdelete<cr>", "Delete buffer" },
+				[ ";" ] = { "<esc>", "Escape" },
 				[ "<tab>" ] = { "<cmd>Telescope buffers<cr>", "Find Buffer" },
 				e = { "<cmd>sil 20Lex<cr>", "Toggle Explorer" },
 				g = { "<cmd>Telescope live_grep<cr>", "Find in Files (Grep)" },
@@ -246,20 +249,6 @@ require("lazy").setup({
 
 	},
 
-
-
-	------------------------------------------------------------------------------
-	-- Indentation guides
-	--
-	{
-		"fgheng/winbar.nvim",
-		config = function()
-			require("winbar").setup {
-				enabled = true,
-			}
-		end
-	},
-
 })
 
 
@@ -273,7 +262,6 @@ autocmd( "FileType", {
 	pattern = { "javascript" },
 	command = "setlocal formatprg=npx\\ prettier-eslint\\ --stdin\\ --stdin-filepath=x.js",
 } )
-autocmd( "BufWritePre", { pattern = { "*.js" }, command = ":normal mmgggqG'm" } )
 
 
 
@@ -290,4 +278,5 @@ vim.api.nvim_set_hl( 0, "Normal", { bg = "none" } )
 vim.api.nvim_set_hl( 0, "LineNr", { ctermfg = "darkgray" } )
 vim.api.nvim_set_hl( 0, "CursorLineNr", { fg = "gray" } )
 vim.api.nvim_set_hl( 0, "NonText", { ctermfg = "darkgray" } )
+vim.api.nvim_set_hl( 0, "WhichKeyFloat", { ctermbg = "darkgray" } )
 

@@ -1,6 +1,6 @@
 const crypto = window ? window.crypto : require( 'node:crypto' ).webcrypto;
 
-export default class CommonWebSocket {
+export default class Client {
 
 	constructor( client ) {
 
@@ -16,9 +16,9 @@ export default class CommonWebSocket {
 
 		const swp = [ ( this.client.name = this.client.name || '' ) ];
 
-		swpAddList( swp, 'dep_', this.client.dependencies );
-		swpAddList( swp, 'prop_', this.client.properties );
-		swpAddList( swp, 'def_', this.client.default_values );
+		swpAddProperty( swp, 'dependencies', this.client );
+		swpAddProperty( swp, 'properties', this.client );
+		swpAddProperty( swp, 'defaults', this.client );
 
 		this.client.entity && swp.push( 'ent' );
 
@@ -139,8 +139,9 @@ export default class CommonWebSocket {
 
 }
 
-function swpAddList( swp, id, list ) {
+function swpAddProperty( swp, property, client ) {
 
-	list?.length && swp.push( id + list.join( '_' ).replace( ' ', '' ) );
+	const arr = client[ property ];
+	arr?.length && swp.push( property + arr.join( '_' ).replace( ' ', '' ) );
 
 }
