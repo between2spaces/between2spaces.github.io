@@ -103,7 +103,6 @@
 			}
 		],
 		"actions": [
-			{ "command": "unbound", "keys": "ctrl+shift+w" },
-			{ "command": { "action": "sendInput", "input": "cd" }, "keys": "" }
+			{ "command": "unbound", "keys": "ctrl+shift+w" }
 		]
 	}
