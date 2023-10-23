@@ -2,72 +2,116 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { WebSocketServer } from 'ws';
 
+const clients = {};
+const awaiting = {};
+const callbacks = {};
+
+const propertiesByType = {};
+const defaultsByType = {};
+const valuesById = {};
+const listeners = [];
+
+let dirtyIds = {};
+
 const wss = new WebSocketServer( {
 	port: process.env.PORT,
-	verifyClient: ( info ) => [ undefined, 'http://localhost:8000' ].indexOf( info.req.headers.origin ) > - 1,
+	verifyClient: ( info ) =>
+		[ undefined, 'http://localhost:8000' ].indexOf( info.req.headers.origin ) > - 1,
 } );
 
 wss.on( 'connection', ( ws, req ) => {
 
 	console.log( req.headers[ 'sec-websocket-protocol' ] );
-	const swp = req.headers[ 'sec-websocket-protocol' ].split( ',' );
+
+	const swp = req.headers[ 'sec-websocket-protocol' ]?.split( ',' ) || [];
 
 	ws.name = swp.shift();
 
-	if ( ! ws.name || '$UUID' === ws.name ) ws.name = uuid();
+	if ( ! ws.name || '$UUID' === ws.name ) {
 
-	if ( ws.name in clients ) console.error( `ERROR: Connection passed ID '${ws.name}' already in-use` );
+		ws.name = uuid();
 
-	clients[ ws.name ] = { ws };
+	}
+
+	if ( ws.name in clients ) {
+
+		console.error( `ERROR: Connection passed ID '${ws.name}' already in-use` );
+
+	}
 
 	ws.on( 'message', ( message ) => {
 
 		console.log( `Received: '${message}'` );
 
-		message.toString().split( ';' ).forEach( m => {
+		message
+			.toString()
+			.split( ';' )
+			.forEach( ( m ) => {
 
-			const [ name, callbackId, fn, ...args ] = m.split( '_' );
+				const [ name, callbackId, fn, ...args ] = m.split( '_' );
 
-			if ( 'Entity' === name ) {
+				if ( 'Entity' === name ) {
 
-				if ( fn in Entity ) {
+					if ( fn in Entity ) {
 
-					const returnValue = Entity[ fn ]( args );
-					callbackId && ws.send( ws.name + '__' + callbackId + ( returnValue ? returnValue.constructor === Array ? '_' + returnValue.join( '_' ) : `_${returnValue}` : '' ) );
+						const returnValue = Entity[ fn ]( args );
+						callbackId &&
+							ws.send(
+								ws.name +
+									'__' +
+									callbackId +
+									( returnValue
+										? returnValue.constructor === Array
+											? '_' + returnValue.join( '_' )
+											: `_${returnValue}`
+										: '' )
+							);
 
-				} else {
+					} else {
 
-					console.error( `${fn} is not a Entity function` );
+						console.error( `${fn} is not a Entity function` );
+
+					}
+
+				} else if ( name in clients ) {
+
+					clients[ name ].ws.send(
+						ws.name +
+							'_' +
+							callbackId +
+							'_' +
+							fn +
+							'_' +
+							( args
+								? args.constructor === Array
+									? '_' + args.join( '_' )
+									: `_${args}`
+								: '' )
+					);
 
 				}
 
-			} else if ( name in clients ) {
-
-				clients[ name ].ws.send( ws.name + '_' + callbackId + '_' + fn + '_' + ( args ? args.constructor === Array ? '_' + args.join( '_' ) : `_${args}` : '' ) );
-
-			}
-
-		} );
+			} );
 
 	} );
 
 	ws.on( 'close', () => console.log( 'WebSocket connection closed.' ) );
-
-
 
 	const _awaiting = [];
 
 	propertiesByType[ ws.name ] = [ 'id', 'type' ];
 	defaultsByType[ ws.name ] = [];
 
-	swp.forEach( setting => {
+	swp.forEach( ( setting ) => {
 
 		setting = setting.split( '_' );
 
 		switch ( setting.shift().trim() ) {
 
 		case 'dep':
-			setting.forEach( dependency => ! ( dependency in clients ) && _awaiting.push( dependency ) );
+			setting.forEach(
+				( dependency ) => ! ( dependency in clients ) && _awaiting.push( dependency )
+			);
 			break;
 		case 'prop':
 			propertiesByType[ ws.name ].push( ...setting );
@@ -83,13 +127,24 @@ wss.on( 'connection', ( ws, req ) => {
 
 	} );
 
-	if ( ! _awaiting.length ) return ws.send( `${ws.name}__config_${ws.name}` );
+	if ( ! _awaiting.length ) {
+
+		clients[ ws.name ] = { ws };
+		return ws.send( `${ws.name}__config_${ws.name}` );
+
+	}
 
 	for ( let name in awaiting ) {
 
 		const dependencies = awaiting[ name ];
 		const index = dependencies.indexOf( ws.name );
-		if ( index > - 1 ) dependencies.splice( index, 1 );
+
+		if ( index > - 1 ) {
+
+			dependencies.splice( index, 1 );
+
+		}
+
 		if ( ! dependencies.length ) {
 
 			delete awaiting[ name ];
@@ -103,26 +158,26 @@ wss.on( 'connection', ( ws, req ) => {
 
 } );
 
+function registerClient( ws ) {
+
+	clients[ ws.name ] = { ws };
+	ws.send( `${ws.name}__config_${ws.name}` );
+
+}
 
 function uuid() {
 
 	let val;
-	while ( ! val || val in clients || val in valuesById ) val = crypto.randomUUID().split( '-' )[ 0 ];
+
+	while ( ! val || val in clients || val in valuesById ) {
+
+		val = crypto.randomUUID().split( '-' )[ 0 ];
+
+	}
+
 	return val;
 
 }
-
-const clients = {};
-const awaiting = {};
-const callbacks = {};
-
-const propertiesByType = {};
-const defaultsByType = {};
-const valuesById = {};
-const listeners = [];
-
-let dirtyIds = {};
-
 
 function messageString( callerId, fn, args = undefined, callback = undefined ) {
 
@@ -130,18 +185,32 @@ function messageString( callerId, fn, args = undefined, callback = undefined ) {
 
 	if ( callback ) {
 
-		while ( ! callbackId || callbackId in callbacks ) callbackId = crypto.randomUUID().split( '-' )[ 0 ];
+		while ( ! callbackId || callbackId in callbacks ) {
+
+			callbackId = crypto.randomUUID().split( '-' )[ 0 ];
+
+		}
+
 		callbacks[ callbackId ] = callback;
 
 	}
 
-	return callerId + '_' + callbackId + '_' + fn + ( args ? args.constructor === Array ? '_' + args.join( '_' ) : `_${args}` : '' );
+	return (
+		callerId +
+		'_' +
+		callbackId +
+		'_' +
+		fn +
+		( args
+			? args.constructor === Array
+				? '_' + args.join( '_' )
+				: `_${args}`
+			: '' )
+	);
 
 }
 
-
 const Entity = {
-
 	create: ( args ) => {
 
 		const type = args.shift();
@@ -169,26 +238,47 @@ const Entity = {
 		return propertiesByType[ args[ 0 ] ];
 
 	},
-
-
 };
 
+fs.readdir( './server_clients/', ( err, files = [] ) => {
 
-fs.readdir( './servernodes/', ( err, files = [] ) => {
+	if ( err ) {
 
-	if ( err ) return console.log( err.message );
-	for ( const file of files ) file.endsWith( '.js' ) && import( `./servernodes/${file}` );
+		return console.log( err.message );
+
+	}
+
+	for ( const file of files ) {
+
+		file.endsWith( '.js' ) && import( `./server_clients/${file}` );
+
+	}
 
 } );
-
 
 setInterval( () => {
 
 	const _dirtyIds = dirtyIds;
 	dirtyIds = {};
 	let messages = '';
-	for ( let id in _dirtyIds ) messages += ( messages ? ';' : '' ) + messageString( 'Entity', 'entity', _dirtyIds[ id ] );
-	if ( ! messages ) return;
-	for ( let name of listeners ) clients[ name ].ws.send( messages );
 
-}, 300 );
+	for ( let id in _dirtyIds ) {
+
+		messages +=
+			( messages ? ';' : '' ) + messageString( 'Entity', 'entity', _dirtyIds[ id ] );
+
+	}
+
+	if ( ! messages ) {
+
+		return;
+
+	}
+
+	for ( let name of listeners ) {
+
+		clients[ name ].ws.send( messages );
+
+	}
+
+}, 1000 );

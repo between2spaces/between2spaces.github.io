@@ -1,2 +1,9 @@
-import Client from '../CommonClient.js';
+import * as Client from '../CommonClient.js';
 
+const client = {
+	update: () => {
+		console.log( 'update...' );
+	}
+};
+
+Client.connect( client );

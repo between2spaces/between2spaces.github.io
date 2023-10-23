@@ -159,6 +159,9 @@ if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))
 		ln -s $(which fdfind) ~/.local/bin/fd 
 	fi
 
+	# Clipboard support
+	sudo apt install wl-clipboard
+
 fi
 
 
