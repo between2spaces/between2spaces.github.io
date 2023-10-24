@@ -21,43 +21,40 @@ const wss = new WebSocketServer( {
 
 wss.on( 'connection', ( ws, req ) => {
 
-	console.log( req.headers[ 'sec-websocket-protocol' ] );
+	log( req.headers[ 'sec-websocket-protocol' ] );
 
 	const swp = req.headers[ 'sec-websocket-protocol' ]?.split( ',' ) || [];
 
-	ws.name = swp.shift();
+	log( `connection...`, swp );
 
-	if ( ! ws.name || '$UUID' === ws.name ) {
+	ws.id = swp.shift() || uuid();
 
-		ws.name = uuid();
+	if ( ws.id in clients ) {
 
-	}
-
-	if ( ws.name in clients ) {
-
-		console.error( `ERROR: Connection passed ID '${ws.name}' already in-use` );
+		log( `ERROR: Connection passed ID '${ws.id}' already in-use` );
+		return ws.send( `${ws.id}__config_1_${ws.id}` );
 
 	}
 
 	ws.on( 'message', ( message ) => {
 
-		console.log( `Received: '${message}'` );
+		log( `Received: '${message}'` );
 
 		message
 			.toString()
 			.split( ';' )
 			.forEach( ( m ) => {
 
-				const [ name, callbackId, fn, ...args ] = m.split( '_' );
+				const [ id, callbackId, fn, ...args ] = m.split( '_' );
 
-				if ( 'Entity' === name ) {
+				if ( 'Entity' === id ) {
 
 					if ( fn in Entity ) {
 
 						const returnValue = Entity[ fn ]( args );
 						callbackId &&
 							ws.send(
-								ws.name +
+								ws.id +
 									'__' +
 									callbackId +
 									( returnValue
@@ -73,10 +70,10 @@ wss.on( 'connection', ( ws, req ) => {
 
 					}
 
-				} else if ( name in clients ) {
+				} else if ( id in clients ) {
 
-					clients[ name ].ws.send(
-						ws.name +
+					clients[ id ].ws.send(
+						ws.id +
 							'_' +
 							callbackId +
 							'_' +
@@ -95,12 +92,12 @@ wss.on( 'connection', ( ws, req ) => {
 
 	} );
 
-	ws.on( 'close', () => console.log( 'WebSocket connection closed.' ) );
+	ws.on( 'close', () => log( `Client '${ws.id}' connection closed.` ) );
 
 	const _awaiting = [];
 
-	propertiesByType[ ws.name ] = [ 'id', 'type' ];
-	defaultsByType[ ws.name ] = [];
+	propertiesByType[ ws.id ] = [ 'id', 'type' ];
+	defaultsByType[ ws.id ] = [];
 
 	swp.forEach( ( setting ) => {
 
@@ -114,13 +111,13 @@ wss.on( 'connection', ( ws, req ) => {
 			);
 			break;
 		case 'prop':
-			propertiesByType[ ws.name ].push( ...setting );
+			propertiesByType[ ws.id ].push( ...setting );
 			break;
 		case 'def':
-			defaultsByType[ ws.name ].push( ...setting );
+			defaultsByType[ ws.id ].push( ...setting );
 			break;
 		case 'ent':
-			listeners.push( ws.name );
+			listeners.push( ws.id );
 			break;
 
 		}
@@ -129,15 +126,15 @@ wss.on( 'connection', ( ws, req ) => {
 
 	if ( ! _awaiting.length ) {
 
-		clients[ ws.name ] = { ws };
-		return ws.send( `${ws.name}__config_${ws.name}` );
+		clients[ ws.id ] = { ws };
+		return ws.send( `${ws.id}__config__${ws.id}` );
 
 	}
 
-	for ( let name in awaiting ) {
+	for ( let id in awaiting ) {
 
-		const dependencies = awaiting[ name ];
-		const index = dependencies.indexOf( ws.name );
+		const dependencies = awaiting[ id ];
+		const index = dependencies.indexOf( ws.id );
 
 		if ( index > - 1 ) {
 
@@ -147,21 +144,26 @@ wss.on( 'connection', ( ws, req ) => {
 
 		if ( ! dependencies.length ) {
 
-			delete awaiting[ name ];
-			clients[ name ].ws.send( `${name}__config_${name}` );
+			delete awaiting[ id ];
+			clients[ id ].ws.send( `${id}__config_${id}` );
 
 		}
 
 	}
 
-	awaiting[ ws.name ] = _awaiting;
+	awaiting[ ws.id ] = _awaiting;
 
 } );
 
+
+function log( ...args ) {
+	console.log( '\x1b[33mserver:', ...args, '\x1b[0m' );
+}
+
 function registerClient( ws ) {
 
-	clients[ ws.name ] = { ws };
-	ws.send( `${ws.name}__config_${ws.name}` );
+	clients[ ws.id ] = { ws };
+	ws.send( `${ws.id}__config_${ws.id}` );
 
 }
 
@@ -244,7 +246,7 @@ fs.readdir( './server_clients/', ( err, files = [] ) => {
 
 	if ( err ) {
 
-		return console.log( err.message );
+		return log( err.message );
 
 	}
 
@@ -275,9 +277,9 @@ setInterval( () => {
 
 	}
 
-	for ( let name of listeners ) {
+	for ( let id of listeners ) {
 
-		clients[ name ].ws.send( messages );
+		clients[ id ].ws.send( messages );
 
 	}
 

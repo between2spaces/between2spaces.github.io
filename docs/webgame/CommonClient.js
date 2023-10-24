@@ -1,10 +1,8 @@
-export { connect, call, signal, properties };
+export { connect, log, call, signal, properties };
 
 const browser = typeof window !== 'undefined';
 const crypto = browser ? crypto : ( await import( 'node:crypto' ) ).webcrypto;
 const WebSocket = ( browser ? window : await import( 'ws' ) ).WebSocket;
-
-console.log( crypto );
 
 const sockets = {};
 const callbacks = {};
@@ -14,9 +12,9 @@ const properties_cache = {};
 
 function connect( client, url = `ws://localhost:${process.env.PORT}` ) {
 
-	client.id ??= crypto.randomUUID().split( '-' )[ 0 ];
-
 	const swp = [];
+
+	client.id && swp.push( client.id );
 
 	swpadd( swp, 'dependencies', client );
 	swpadd( swp, 'properties', client );
@@ -24,11 +22,25 @@ function connect( client, url = `ws://localhost:${process.env.PORT}` ) {
 
 	client.entity && swp.push( 'ent' );
 
-	console.log( swp );
+	const socket = new WebSocket( url, swp );
 
-	const socket = ( sockets[ client.id ] = new WebSocket( url, swp ) );
+	/* assign tmp uuid client.id while waiting for server to confirm, then use config callback to clean up */
+	callbacks[ client.id = uuid() ] = {
+		config: {
+			resolve: ( id ) => {
 
-	const listen = socket.addEventListener;
+				log( `config... assigned client id '${client.id}' -> '${id}'` );
+				client.id || delete callbacks[ client.id ];
+				client.id = id;
+				sockets[ client.id ] = socket;
+
+			},
+			reject: ( error ) => {
+				log( `config... error: ${error}` );
+			}
+		},
+	};
+
 	socket.addEventListener( 'open', () => open( client ) );
 	socket.addEventListener( 'close', () => close( client ) );
 	socket.addEventListener( 'message', ( msg ) => message( client, msg.data ) );
@@ -40,6 +52,12 @@ function swpadd( swp, property, client ) {
 
 	const arr = client[ property ];
 	arr?.length && swp.push( property + arr.join( '_' ).replace( ' ', '' ) );
+
+}
+
+function log( ...args ) {
+
+	console.log( '\x1b[35mclient:', ...args, '\x1b[0m' );
 
 }
 
@@ -73,12 +91,11 @@ function message( client, msg ) {
 	const [ callerId, cid, fn, ...args ] = msg.toString().split( '_' );
 	const callback = callbacks[ client.id ];
 
-	console.log( msg );
+	log( msg );
 
 	if ( callback && fn in callback ) {
 
-		console.log( `callbacks[ '${fn}' ].resolve` );
-		callback[ fn ].resolve( args );
+		( args.shift() ? callback[ fn ].resolve : callback[ fn ].reject )( ...args );
 		delete callback[ fn ];
 
 	}
@@ -93,9 +110,15 @@ function message( client, msg ) {
 
 }
 
+function uuid() {
+
+	return crypto.randomUUID().split( '-' )[ 0 ];
+
+}
+
 function call( client, target, fn, args = '' ) {
 
-	const cid = crypto.randomUUID().split( '-' )[ 0 ];
+	const cid = uuid();
 
 	args = args?.constructor === Array ? args.join( '_' ) : `${args}`;
 
@@ -106,10 +129,10 @@ function call( client, target, fn, args = '' ) {
 	const msg = ( target ?? '' ) + '_' + cid + '_' + fn + ( args ? `_${args}` : '' );
 	const socket = sockets[ client.id ];
 
-	return new Promise( function ( res, rej ) {
+	return new Promise( function ( resolve, reject ) {
 
-		callback[ cid ].res = res;
-		callback[ cid ].rej = rej;
+		callback[ cid ].resolve = resolve;
+		callback[ cid ].reject = reject;
 
 		socket.readyState
 			? socket.send( msg )
@@ -141,8 +164,8 @@ function signal( client, target, fn, args = '' ) {
 
 function properties( client_id ) {
 
-	return new Promise( ( res, rej ) =>
-		client_id in properties_cache ? res() : rej()
+	return new Promise( ( resovle, reject ) =>
+		client_id in properties_cache ? resolve() : reject()
 	).then(
 		() => properties_cache[ client_id ],
 		() =>
