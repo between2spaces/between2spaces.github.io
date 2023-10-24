@@ -174,5 +174,6 @@ cd $CWD
 
 
 
-echo "Finished." echo '"source ~/.profile" to updated current process environment'
+echo "Finished."
+echo '"source ~/.profile" to updated current process environment'
 
