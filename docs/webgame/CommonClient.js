@@ -14,7 +14,7 @@ const properties_cache = {};
 
 function connect( client, url = `ws://localhost:${process.env.PORT}` ) {
 
-	client.id = crypto.randomUUID().split( '-' )[ 0 ];
+	client.id ??= crypto.randomUUID().split( '-' )[ 0 ];
 
 	const swp = [];
 
@@ -73,11 +73,13 @@ function message( client, msg ) {
 	const [ callerId, cid, fn, ...args ] = msg.toString().split( '_' );
 	const callback = callbacks[ client.id ];
 
+	console.log( msg );
+
 	if ( callback && fn in callback ) {
 
 		console.log( `callbacks[ '${fn}' ].resolve` );
 		callback[ fn ].resolve( args );
-		return delete callback[ fn ];
+		delete callback[ fn ];
 
 	}
 
