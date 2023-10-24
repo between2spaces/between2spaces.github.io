@@ -50,8 +50,7 @@ if [ -d $HOME/.config ]; then rm -rf $HOME/.config; fi
 
 for dotfile in dotfiles/.[a-z]*; do
 	dotfile=${dotfile##*/}
-	rm -rf
-	$HOME/$dotfile && ln -s $PWD/dotfiles/$dotfile $HOME/$dotfile
+	rm -rf $HOME/$dotfile && ln -s $PWD/dotfiles/$dotfile $HOME/$dotfile
 done
 
 
