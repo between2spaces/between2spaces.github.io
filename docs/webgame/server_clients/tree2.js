@@ -1,13 +1,13 @@
-import * as Client from '../CommonClient.js';
+import { connect, log } from '../client.js';
 
 const client = {
 	id: 'Tree',
 	config: ( id ) => {
-		Client.log( client );
+		log( client );
 	},
 	update: () => {
-		Client.log( 'update...' );
+		log( 'update...' );
 	}
 };
 
-Client.connect( client );
+connect( client );

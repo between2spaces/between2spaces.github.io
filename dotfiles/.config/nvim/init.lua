@@ -1,6 +1,7 @@
 vim.g.mapleader = ' '
 
 local map = vim.api.nvim_set_keymap
+map('n', '<tab>', ':bn<cr>', { noremap = true } )
 map('n', '<leader>e', ':e <c-d>', { noremap = true }) -- Edit
 map('n', '<leader>c', ':e $MYVIMRC<cr>', { noremap = true }) -- Configuration
 map('n', '<leader>w', ':w<cr>', { noremap = true }) -- Write file

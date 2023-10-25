@@ -11,7 +11,14 @@ const defaultsByType = {};
 const valuesById = {};
 const listeners = [];
 
+let next_client_id = 0;
+let next_entity_id = 0;
 let dirtyIds = {};
+
+const ERROR = {
+	CLIENTID_INUSE: ( id ) =>
+		`${id}__connection_1_Failed to connect. Client id '${id}' already in-use.`,
+};
 
 const wss = new WebSocketServer( {
 	port: process.env.PORT,
@@ -19,7 +26,15 @@ const wss = new WebSocketServer( {
 		[ undefined, 'http://localhost:8000' ].indexOf( info.req.headers.origin ) > - 1,
 } );
 
-wss.on( 'connection', ( ws, req ) => {
+wss.on( 'connection', connection );
+
+/**
+ * Handle a new WebSocket connection.
+ *
+ * @param {WebSocket} ws - The WebSocket connection object.
+ * @param {http.IncomingMessage} req - The incoming HTTP request associated with the WebSocket connection.
+ */
+function connection( ws, req ) {
 
 	log( req.headers[ 'sec-websocket-protocol' ] );
 
@@ -27,72 +42,16 @@ wss.on( 'connection', ( ws, req ) => {
 
 	log( `connection...`, swp );
 
-	ws.id = swp.shift() || uuid();
+	ws.id = swp.shift() || 'c' + next_client_id ++;
 
 	if ( ws.id in clients ) {
 
-		log( `ERROR: Connection passed ID '${ws.id}' already in-use` );
-		return ws.send( `${ws.id}__config_1_${ws.id}` );
+		return ws.send( MSG.ERROR.CLIENTID_INUSE( ws.id ) );
 
 	}
 
-	ws.on( 'message', ( message ) => {
-
-		log( `Received: '${message}'` );
-
-		message
-			.toString()
-			.split( ';' )
-			.forEach( ( m ) => {
-
-				const [ id, callbackId, fn, ...args ] = m.split( '_' );
-
-				if ( 'Entity' === id ) {
-
-					if ( fn in Entity ) {
-
-						const returnValue = Entity[ fn ]( args );
-						callbackId &&
-							ws.send(
-								ws.id +
-									'__' +
-									callbackId +
-									( returnValue
-										? returnValue.constructor === Array
-											? '_' + returnValue.join( '_' )
-											: `_${returnValue}`
-										: '' )
-							);
-
-					} else {
-
-						console.error( `${fn} is not a Entity function` );
-
-					}
-
-				} else if ( id in clients ) {
-
-					clients[ id ].ws.send(
-						ws.id +
-							'_' +
-							callbackId +
-							'_' +
-							fn +
-							'_' +
-							( args
-								? args.constructor === Array
-									? '_' + args.join( '_' )
-									: `_${args}`
-								: '' )
-					);
-
-				}
-
-			} );
-
-	} );
-
-	ws.on( 'close', () => log( `Client '${ws.id}' connection closed.` ) );
+	ws.addEventListener( 'message', ( msg ) => message( ws.id, msg ) );
+	ws.addEventListener( 'close', () => close( ws.id ) );
 
 	const _awaiting = [];
 
@@ -127,7 +86,7 @@ wss.on( 'connection', ( ws, req ) => {
 	if ( ! _awaiting.length ) {
 
 		clients[ ws.id ] = { ws };
-		return ws.send( `${ws.id}__config__${ws.id}` );
+		return ws.send( `${ws.id}__connection__${ws.id}` );
 
 	}
 
@@ -145,7 +104,7 @@ wss.on( 'connection', ( ws, req ) => {
 		if ( ! dependencies.length ) {
 
 			delete awaiting[ id ];
-			clients[ id ].ws.send( `${id}__config_${id}` );
+			clients[ id ].ws.send( `${id}__connection__${id}` );
 
 		}
 
@@ -153,34 +112,95 @@ wss.on( 'connection', ( ws, req ) => {
 
 	awaiting[ ws.id ] = _awaiting;
 
-} );
+}
 
+/**
+ * Handle the WebSocket connection close event of a specific client.
+ *
+ * @param {string} id - The unique identifier of the client.
+ */
+function close( id ) {
 
+	log( `Client '${id}' connection closed.` );
+
+}
+
+/**
+ * Handle incoming WebSocket messages for a specific client.
+ *
+ * @param {string} id - The unique identifier of the client.
+ * @param {string} message - The incoming WebSocket message.
+ */
+function message( client_id, message ) {
+
+	log( `Received: '${message}'` );
+
+	message
+		.toString()
+		.split( ';' )
+		.forEach( ( m ) => {
+
+			const [ id, callbackId, fn, ...args ] = m.split( '_' );
+
+			if ( 'Entity' === id ) {
+
+				if ( fn in Entity ) {
+
+					const returnValue = Entity[ fn ]( args );
+					callbackId &&
+						ws.send(
+							ws.id +
+								'__' +
+								callbackId +
+								( returnValue
+									? returnValue.constructor === Array
+										? '_' + returnValue.join( '_' )
+										: `_${returnValue}`
+									: '' )
+						);
+
+				} else {
+
+					console.error( `${fn} is not a Entity function` );
+
+				}
+
+			} else if ( id in clients ) {
+
+				clients[ id ].ws.send(
+					ws.id +
+						'_' +
+						callbackId +
+						'_' +
+						fn +
+						'_' +
+						( args
+							? args.constructor === Array
+								? '_' + args.join( '_' )
+								: `_${args}`
+							: '' )
+				);
+
+			}
+
+		} );
+
+}
+
+/**
+ * Log messages to the console with a custom prefix and color.
+ *
+ * @param {...any} args - The messages or data to be logged.
+ */
 function log( ...args ) {
+
 	console.log( '\x1b[33mserver:', ...args, '\x1b[0m' );
-}
-
-function registerClient( ws ) {
-
-	clients[ ws.id ] = { ws };
-	ws.send( `${ws.id}__config_${ws.id}` );
 
 }
 
-function uuid() {
-
-	let val;
-
-	while ( ! val || val in clients || val in valuesById ) {
-
-		val = crypto.randomUUID().split( '-' )[ 0 ];
-
-	}
-
-	return val;
-
-}
-
+/**
+ *
+ */
 function messageString( callerId, fn, args = undefined, callback = undefined ) {
 
 	let callbackId = '';
@@ -216,7 +236,7 @@ const Entity = {
 	create: ( args ) => {
 
 		const type = args.shift();
-		const id = uuid();
+		const id = 'e' + next_entity_id ++;
 		const typeDefaults = defaultsByType[ type ];
 		const values = new Array( typeDefaults.length + 2 );
 

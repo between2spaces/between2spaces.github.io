@@ -7,7 +7,7 @@ const WebSocket = ( browser ? window : await import( 'ws' ) ).WebSocket;
 const sockets = {};
 const callbacks = {};
 const intervals = {};
-const messages_cache = {};
+const cache = {};
 const properties_cache = {};
 
 function connect( client, url = `ws://localhost:${process.env.PORT}` ) {
@@ -24,20 +24,24 @@ function connect( client, url = `ws://localhost:${process.env.PORT}` ) {
 
 	const socket = new WebSocket( url, swp );
 
-	/* assign tmp uuid client.id while waiting for server to confirm, then use config callback to clean up */
-	callbacks[ client.id = uuid() ] = {
-		config: {
+	callbacks[ ( client.id = uuid() ) ] = {
+		connection: {
 			resolve: ( id ) => {
 
-				log( `config... assigned client id '${client.id}' -> '${id}'` );
+				log(
+					`server connection... assigned client id '${client.id}' -> '${id}'`
+				);
 				client.id || delete callbacks[ client.id ];
 				client.id = id;
 				sockets[ client.id ] = socket;
+				client.config && client.config( id );
 
 			},
 			reject: ( error ) => {
-				log( `config... error: ${error}` );
-			}
+
+				log( `server connection... error: ${error}` );
+
+			},
 		},
 	};
 
@@ -63,10 +67,10 @@ function log( ...args ) {
 
 function open( client ) {
 
-	if ( client.id in messages_cache ) {
+	if ( client.id in cache ) {
 
-		sockets[ client.id ].send( messages_cache[ client.id ] );
-		delete messages_cache[ client.id ];
+		sockets[ client.id ].send( cache[ client.id ] );
+		delete cache[ client.id ];
 
 	}
 
@@ -95,7 +99,7 @@ function message( client, msg ) {
 
 	if ( callback && fn in callback ) {
 
-		( args.shift() ? callback[ fn ].resolve : callback[ fn ].reject )( ...args );
+		( args.shift() ? callback[ fn ].reject : callback[ fn ].resolve )( ...args );
 		delete callback[ fn ];
 
 	}
@@ -118,28 +122,15 @@ function uuid() {
 
 function call( client, target, fn, args = '' ) {
 
-	const cid = uuid();
-
 	args = args?.constructor === Array ? args.join( '_' ) : `${args}`;
 
-	const callback = ( callbacks[ client.id ] ??= {} );
-
-	callback[ cid ] = {};
-
+	const cid = uuid();
 	const msg = ( target ?? '' ) + '_' + cid + '_' + fn + ( args ? `_${args}` : '' );
-	const socket = sockets[ client.id ];
 
 	return new Promise( function ( resolve, reject ) {
 
-		callback[ cid ].resolve = resolve;
-		callback[ cid ].reject = reject;
-
-		socket.readyState
-			? socket.send( msg )
-			: ( messages_cache[ client.id ] =
-					client.id in messages_cache
-						? messages_cache[ client.id ] + ';' + msg
-						: msg );
+		( callbacks[ client.id ] ??= {} )[ cid ] = { resolve, reject };
+		send( client, msg );
 
 	} );
 
@@ -149,39 +140,46 @@ function signal( client, target, fn, args = '' ) {
 
 	args = args?.constructor === Array ? args.join( '_' ) : `${args}`;
 
-	const msg = ( target ?? '' ) + '__' + fn + ( args ? `_${args}` : '' );
+	send( client, ( target ?? '' ) + '__' + fn + ( args ? `_${args}` : '' ) );
+
+}
+
+function send( client, msg ) {
 
 	const socket = sockets[ client.id ];
 
-	socket.readyState
-		? socket.send( msg )
-		: ( messages_cache[ client.id ] =
-				client.id in messages_cache
-					? messages_cache[ client.id ] + ';' + msg
-					: msg );
+	if ( socket.readyState ) {
+
+		return socket.send( msg );
+
+	}
+
+	cache[ client.id ] = client.id in cache ? cache[ client.id ] + ';' : '';
+	cache[ client.id ] += msg;
 
 }
 
 function properties( client_id ) {
 
+	function map( properties ) {
+
+		const map = ( properties_cache[ client_id ] = {} );
+
+		for ( let index in properties ) {
+
+			map[ properties[ index ] ] = parseInt( index );
+
+		}
+
+		return map;
+
+	}
+
 	return new Promise( ( resovle, reject ) =>
 		client_id in properties_cache ? resolve() : reject()
 	).then(
 		() => properties_cache[ client_id ],
-		() =>
-			call( 'Entity', 'properties', client_id ).then( ( properties ) => {
-
-				const map = ( properties_cache[ name ] = {} );
-
-				for ( let index in properties ) {
-
-					map[ properties[ index ] ] = parseInt( index );
-
-				}
-
-				return map;
-
-			} )
+		() => call( 'Entity', 'properties', client_id ).then( map )
 	);
 
 }

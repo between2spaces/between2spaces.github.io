@@ -1,14 +1,44 @@
-export function connect( client ) {
+import { WebSocket } from 'ws';
 
-	client.name = client.name || '$UUID';
+const sockets = {};
+const callbacks = {};
+const intervals = {};
+const cache = {};
+const properties_cache = {};
 
-	const swp = [ client.name ];
+// Function for connecting to the server
+function connect( client, url = `ws://localhost:${process.env.PORT}` ) {
 
-	if ( client.dependencies && client.dependencies.length ) {
+	const swp = buildSWPArray( client );
 
-		swp.push( 'dep_' + client.dependencies.join( '_' ).replace( ' ', '' ) );
+	const socket = createWebSocket( client, url, swp );
+
+	setupSocketCallbacks( client, socket );
+
+}
+
+// Build the swp array for WebSocket connection
+function buildSWPArray( client ) {
+
+	const swp = [];
+
+	if ( client.id ) {
+
+		swp.push( client.id );
 
 	}
+
+	[ 'dependencies', 'properties', 'defaults' ].forEach( ( property ) => {
+
+		const arr = client[ property ];
+
+		if ( arr && arr.length ) {
+
+			swp.push( property + arr.join( '_' ).replace( ' ', '' ) );
+
+		}
+
+	} );
 
 	if ( client.entity ) {
 
@@ -16,134 +46,228 @@ export function connect( client ) {
 
 	}
 
-	connect.socketWorker = new Worker(
-		URL.createObjectURL(
-			new Blob( [
-				`
-	let ws;
-	let timeout;
-	let clientTimeout = 10000;
-	let cachedMessages = '';
+	return swp;
 
-	function connect() {
+}
 
-		postMessage( [ 'Client', '', 'debug', 'connecting' ] );
+// Create a WebSocket instance
+function createWebSocket( client, url, swp ) {
 
-		ws = new WebSocket( '${client.serverURL}', ${JSON.stringify( swp )} );
+	const socket = new WebSocket( url, swp );
 
-		ws.onopen = () => {
-			if ( cachedMessages ) {
-				send( cachedMessages );
-				cachedMessages = '';
-			}
-			if ( ${client.update ? true : false} ) {
-				setInterval( () => postMessage( [ 'Client', '', 'update' ] ), ${
-					client.updateInterval || 10000
-				} );
-			}
-		};
+	callbacks[ ( client.id = next_callback_id() ) ] = {
+		connection: {
+			resolve: ( id ) => {
 
-		ws.onclose = () => {
-			ws = null;
-			postMessage( [ 'Client', '', 'closed' ] );
-			setTimeout( connect, 5000 );
-		};
+				handleConnectionResolve( client, id, socket );
 
-		ws.onerror = err => {
-			postMessage( [ 'Client', '', 'error' ] );
-			ws.close();
-		};
+			},
+			reject: ( error ) => {
 
-		ws.onmessage = messages => {
-			messages = messages.data.split( ';' );
-			for ( let message of messages ) postMessage( message.split( '_' ) );
-		};
+				handleConnectionReject( error );
 
-		timeout && clearTimeout( timeout );
-		timeout = setTimeout( send, clientTimeout );
-
-	}
-
-	onmessage = message => {
-		send( message.data );
+			},
+		},
 	};
 
-	function send( message ) {
-		timeout && clearTimeout( timeout );
-		if ( ! ws || ! ws.readyState ) return cachedMessages += ( ! cachedMessages ) ? message : ';' + message;
-		ws && ws.send( JSON.stringify( message ) );
-		timeout = setTimeout( send, clientTimeout );
+	return socket;
+
+}
+
+// Handle the connection resolve
+function handleConnectionResolve( client, id, socket ) {
+
+	log( `server connection... assigned client id '${client.id}' -> '${id}'` );
+
+	delete callbacks[ client.id ];
+
+	sockets[ ( client.id = id ) ] = socket;
+
+	if ( client.config ) {
+
+		client.config();
+
 	}
 
-	connect();
-`,
-			] )
-		)
+}
+
+// Handle the connection reject
+function handleConnectionReject( error ) {
+
+	log( `server connection... error: ${error}` );
+
+}
+
+// Set up WebSocket event callbacks
+function setupSocketCallbacks( client, socket ) {
+
+	socket.addEventListener( 'open', () => handleSocketOpen( client ) );
+	socket.addEventListener( 'close', () => handleSocketClose( client ) );
+	socket.addEventListener( 'message', ( msg ) => handleMessage( client, msg.data ) );
+	socket.addEventListener( 'error', ( err ) => handleSocketError( client, err ) );
+
+}
+
+// Handle the WebSocket open event
+function handleSocketOpen( client ) {
+
+	if ( cache[ client.id ] !== undefined ) {
+
+		sockets[ client.id ].send( cache[ client.id ] );
+		delete cache[ client.id ];
+
+	}
+
+	if ( client.update && intervals[ client.id ] === undefined ) {
+
+		client.interval ??= 10000;
+		intervals[ client.id ] = setInterval(
+			() => client.update( client ),
+			client.interval
+		);
+
+	}
+
+}
+
+// Handle the WebSocket close event (if needed)
+function handleSocketClose( client ) {
+	// Implementation for handling WebSocket close event
+}
+
+// Handle incoming messages
+function handleMessage( client, messages ) {
+
+	messages.split( ';' ).forEach( ( msg ) => {
+
+		const [ callerId, cid, fn, ...args ] = msg.toString().split( '_' );
+		const callback = callbacks[ client.id ];
+
+		log( msg );
+
+		if ( callback && callback[ fn ] !== undefined ) {
+
+			( args.shift() ? callback[ fn ].reject : callback[ fn ].resolve )( ...args );
+			delete callback[ fn ];
+
+		}
+
+		if ( client[ fn ] !== undefined ) {
+
+			client[ fn ]( args );
+
+		} else {
+
+			client.debug && console.error( `Warn: client.${fn} not found` );
+
+		}
+
+	} );
+
+}
+
+// Generate the next available callback ID
+function next_callback_id() {
+
+	let id = 0;
+
+	while ( callbacks[ id ] !== undefined ) {
+
+		id ++;
+
+	}
+
+	return id;
+
+}
+
+// Send a message to the server
+function call( client, target, fn, args = '' ) {
+
+	args = Array.isArray( args ) ? args.join( '_' ) : `${args}`;
+
+	const callback = ( callbacks[ next_callback_id() ] = {} );
+	const msg = `${target ?? ''}_${cid}_${fn}${args ? `_${args}` : ''}`;
+
+	return new Promise( ( resolve, reject ) => {
+
+		callback.resolve = resolve;
+		callback.reject = reject;
+		send( client, msg );
+
+	} );
+
+}
+
+// Send a signal message to the server
+function signal( client, target, fn, args = '' ) {
+
+	args = Array.isArray( args ) ? args.join( '_' ) : `${args}`;
+	send( client, `${target ?? ''}__${fn}${args ? `_${args}` : ''}` );
+
+}
+
+// Send a message through the WebSocket connection, with caching if the connection is not ready
+function send( client, msg ) {
+
+	const socket = sockets[ client.id ];
+
+	if ( socket.readyState ) {
+
+		socket.send( msg );
+
+	} else {
+
+		cache[ client.id ] = client.id in cache ? `${cache[ client.id ]};` : '';
+		cache[ client.id ] += msg;
+
+	}
+
+}
+
+// Retrieve and cache property mappings for a specific client ID
+function properties( client_id ) {
+
+	return new Promise( ( resolve, reject ) => {
+
+		client_id in properties_cache ? resolve() : reject();
+
+	} ).then(
+		() => properties_cache[ client_id ],
+		() => call( 'Entity', 'properties', client_id ).then( mapProperties )
 	);
 
-	connect.socketWorker.onmessage = ( message ) => {
+	function mapProperties( properties ) {
 
-		const [ callerId, callbackId, fn, ...args ] = message.data;
+		const map = ( properties_cache[ client_id ] = {} );
 
-		if ( 'config' === fn ) {
+		for ( let index in properties ) {
 
-			client.name = args[ 0 ];
-
-		}
-
-		if ( 'debug' === fn ) {
-
-			console.log( 'debug', args );
+			map[ properties[ index ] ] = parseInt( index );
 
 		}
 
-		if ( fn in client ) {
-
-			const returnValue = client[ fn ]( args );
-			return callbackId && call( callerId, callbackId, returnValue );
-
-		}
-
-		console.error( `${client.name}.${fn} is not a function` );
-
-	};
-
-}
-
-export function call( targetId, fn, args = undefined, callback = undefined ) {
-
-	let callbackId = '';
-
-	if ( callback ) {
-
-		if ( ! call.backs ) {
-
-			call.backs = {};
-
-		}
-
-		while ( ! callbackId || callbackId in call.backs ) {
-
-			callbackId = crypto.randomUUID().split( '-' )[ 0 ];
-
-		}
-
-		call.backs[ callbackId ] = callback;
+		return map;
 
 	}
 
-	const message =
-		( targetId ?? '' ) +
-		'_' +
-		callbackId +
-		'_' +
-		fn +
-		( args
-			? args.constructor === Array
-				? '_' + args.join( '_' )
-				: `_${args}`
-			: '' );
+}
 
-	connect.socketWorker.postMessage( message );
+// Handle errors (if needed)
+function handleSocketError( client, err ) {
+	// Implementation for handling WebSocket errors
+}
+
+// Log function with color formatting
+function log( ...args ) {
+
+	console.log( '\x1b[35mclient:', ...args, '\x1b[0m' );
 
 }
+
+// Handle errors (if needed)
+function error( err ) {
+	// Implementation for handling errors
+}
+
+export { connect, log, call, signal, properties };
