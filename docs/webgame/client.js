@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws';
 
-/** Function for connecting to the server */
+/* Function for connecting to the server */
 function connect( client, url = `ws://localhost:${process.env.PORT}` ) {
 
 	const swp = buildSWPArray( client );
@@ -11,7 +11,7 @@ function connect( client, url = `ws://localhost:${process.env.PORT}` ) {
 
 }
 
-/** Build the swp array for WebSocket connection */
+/* Build the swp array for WebSocket connection */
 function buildSWPArray( client ) {
 
 	const swp = [];
@@ -44,7 +44,7 @@ function buildSWPArray( client ) {
 
 }
 
-/** Create a WebSocket instance */
+/* Create a WebSocket instance */
 function createWebSocket( client, url, swp ) {
 
 	const socket = new WebSocket( url, swp );
@@ -68,7 +68,7 @@ function createWebSocket( client, url, swp ) {
 
 }
 
-/** Handle the connection resolve */
+/* Handle the connection resolve */
 function handleConnectionResolve( client, id, socket ) {
 
 	log( `server connection... assigned client id '${client.id}' -> '${id}'` );
@@ -85,14 +85,14 @@ function handleConnectionResolve( client, id, socket ) {
 
 }
 
-/** Handle the connection reject */
+/* Handle the connection reject */
 function handleConnectionReject( error ) {
 
 	log( `server connection... error: ${error}` );
 
 }
 
-/** Set up WebSocket event callbacks */
+/* Set up WebSocket event callbacks */
 function setupSocketCallbacks( client, socket ) {
 
 	socket.addEventListener( 'open', () => handleSocketOpen( client ) );
@@ -102,7 +102,7 @@ function setupSocketCallbacks( client, socket ) {
 
 }
 
-/** Handle the WebSocket open event */
+/* Handle the WebSocket open event */
 function handleSocketOpen( client ) {
 
 	if ( cache[ client.id ] !== undefined ) {
@@ -124,12 +124,12 @@ function handleSocketOpen( client ) {
 
 }
 
-/** Handle the WebSocket close event (if needed) */
+/* Handle the WebSocket close event (if needed) */
 function handleSocketClose( client ) {
 	/* Implementation for handling WebSocket close event */
 }
 
-/** Handle incoming messages */
+/* Handle incoming messages */
 function handleMessage( client, messages ) {
 
 	messages.split( ';' ).forEach( ( msg ) => {
@@ -160,7 +160,7 @@ function handleMessage( client, messages ) {
 
 }
 
-/** Generate the next available callback ID */
+/* Generate the next available callback ID */
 function next_callback_id() {
 
 	let id = 0;
@@ -175,7 +175,7 @@ function next_callback_id() {
 
 }
 
-/** Send a message to the server */
+/* Send a message to the server */
 function call( client, target, fn, args = '' ) {
 
 	args = Array.isArray( args ) ? args.join( '_' ) : `${args}`;
@@ -193,7 +193,7 @@ function call( client, target, fn, args = '' ) {
 
 }
 
-/** Send a signal message to the server */
+/* Send a signal message to the server */
 function signal( client, target, fn, args = '' ) {
 
 	args = Array.isArray( args ) ? args.join( '_' ) : `${args}`;
@@ -201,7 +201,7 @@ function signal( client, target, fn, args = '' ) {
 
 }
 
-/** Send a message through the WebSocket connection, with caching if the connection is not ready */
+/* Send a message through the WebSocket connection, with caching if the connection is not ready */
 function send( client, msg ) {
 
 	const socket = sockets[ client.id ];
@@ -219,7 +219,7 @@ function send( client, msg ) {
 
 }
 
-/** Retrieve and cache property mappings for a specific client ID */
+/* Retrieve and cache property mappings for a specific client ID */
 function properties( client_id ) {
 
 	return new Promise( ( resolve, reject ) => {
@@ -247,19 +247,19 @@ function properties( client_id ) {
 
 }
 
-/** Handle errors (if needed) */
+/* Handle errors (if needed) */
 function handleSocketError( client, err ) {
 	/* Implementation for handling WebSocket errors */
 }
 
-/** Log function with color formatting */
+/* Log function with color formatting */
 function log( ...args ) {
 
 	console.log( '\x1b[35mclient:', ...args, '\x1b[0m' );
 
 }
 
-/** Handle errors (if needed) */
+/* Handle errors (if needed) */
 function error( err ) {
 	/* Implementation for handling errors */
 }
