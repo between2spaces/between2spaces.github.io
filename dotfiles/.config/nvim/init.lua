@@ -34,7 +34,7 @@ vim.g.clipboard = {
 	cache_enabled = true
 }
 
-vim.opt.clipboard="unnamedplus"
+--vim.opt.clipboard="unnamedplus"
 
 vim.g.netrw_banner = false
 
@@ -42,11 +42,12 @@ vim.g.netrw_banner = false
 
 vim.opt.swapfile = false
 vim.opt.laststatus = 0
-vim.opt.cmdheight = 0
+--vim.opt.cmdheight = 0
 vim.opt.showmode = false
 vim.opt.cursorline = true
 vim.opt.cursorlineopt = 'number'
 vim.opt.number = true
+vim.opt.relativenumber = true
 vim.opt.signcolumn = 'number'
 
 
