@@ -145,10 +145,6 @@ source ~/.profile
 
 
 
-exit 0
-
-
-
 
 # Neovim
 
@@ -175,6 +171,10 @@ if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))
 	rm -rf $TMP_DIR
 
 fi
+
+
+exit 0
+
 
 
 
