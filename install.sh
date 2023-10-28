@@ -82,8 +82,10 @@ sudo apt install openjdk-19-jdk
 
 
 # Python
-
-echo "\x1b[33m" . "Install latest Python" . "\x1b[0m"
+RED='\033[0;31m'
+YELLOW='\033[0;31m'
+NOCOLOUR='\033[0m'
+echo -e "\n${YELLOW}Installing latest Python...${NOCOLOUR}"
 # Ubuntu's default repositories missing latest version, so add deadsnakes open source repo
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt update -y
