@@ -102,7 +102,8 @@ $HOME/between2spaces.github.io/terminal/update.sh
 
 # Node Version Manager
 
-echo "Node Version Manager" export NVM_DIR="$HOME/.nvm"
+echo "Node Version Manager"
+export NVM_DIR="$HOME/.nvm"
 if [ ! -d $NVM_DIR ]; then git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR" fi
 
 CWD=$PWD
@@ -156,21 +157,30 @@ if [ ! -f ~/.local/bin/fd ]; then ln -s $(which fdfind) ~/.local/bin/fd fi
 sudo apt install wl-clipboard
 
 
+# Neovim plugin manager
+echo "Neovim plugin manager"
+export LAZY_DIR="$HOME/.local/share/nvim/lazy/lazy.vim"
+if [ -d $LAZY_DIR ]; then rm -rf $LAZY_DIR fi
+git clone --filter:blob:none https://github.com/folke/lazy.nvim.git --branch=stable $LAZY_DIR
+
+
+
+
 # Docker
 
-sudo apt install -y docker-ce docker-ce-cli containerd.io sudo pip3 install
-docker-compose
+#sudo apt install -y docker-ce docker-ce-cli containerd.io sudo pip3 install
+#docker-compose
 
 
 
 # Symlink package.json and .eslintrc.json to ~ and npm install
 
-rm -rf $HOME/package.json && ln -s $PWD/package.json $HOME/package.json
-rm -rf $HOME/.eslintrc.json && ln -s $PWD/.eslintrc.json $HOME/.eslintrc.json
-CWD=$PWD
-cd $HOME
-npm install
-cd $CWD
+#rm -rf $HOME/package.json && ln -s $PWD/package.json $HOME/package.json
+#rm -rf $HOME/.eslintrc.json && ln -s $PWD/.eslintrc.json $HOME/.eslintrc.json
+#CWD=$PWD
+#cd $HOME
+#npm install
+#cd $CWD
 
 
 
