@@ -173,13 +173,15 @@ if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))
 fi
 
 
-exit 0
-
-
-
 
 # Neovim Python support
 pip install pynvim
+
+
+
+exit 0
+
+
 
 # Telescope requirements
 sudo apt install ripgrep fd-find
