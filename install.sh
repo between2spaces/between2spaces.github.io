@@ -96,8 +96,11 @@ sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt update -y
 sudo apt install -y python3.12
 
-
-
+CWD=$PWD
+cd ~
+python3.12 -m venv env
+source env/bin/activate
+cd $CWD
 
 
 exit 0
