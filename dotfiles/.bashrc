@@ -43,6 +43,12 @@ export EDITOR="$VISUAL"
 export SUDO_EDITOR="$VISUAL"
 
 
+# activate Python virtual environment if available
+
+if [ -f ~/env/bin/activate ]; then
+	. env/bin/activate
+fi
+
 
 # source Node Version Manager if not available
 
@@ -52,13 +58,11 @@ if [ -d $NVM_DIR ]; then
 fi
 
 
-
 # source aliases
 
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
-
 
 
 # powerline-shell prompt
@@ -71,7 +75,3 @@ if [[ $TERM != linux && ! $PROMPT_COMMAND =~ _update_ps1 ]]; then
     PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
 fi
 
-
-#if command -v tmux &> /dev/null && [ -n "$PS1" ] && [[ ! "$TERM" =~ screen ]] && [[ ! "$TERM" =~ tmux ]] && [ -z "$TMUX" ]; then
-#  sleep 1 && tmux
-#fi

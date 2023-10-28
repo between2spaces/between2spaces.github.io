@@ -57,9 +57,9 @@ done
 
 
 
-# Add Dockers official GPG key and setup repository if not already
+# Add Dockers official GPG key and repository
 
-echo -e "\n${YELLOW}# Add Dockers official GPG key and setup repository if not already${NOCOLOUR}\n"
+echo -e "\n${YELLOW}# Add Dockers official GPG key and repository${NOCOLOUR}\n"
 sudo apt install -y ca-certificates curl gnupg lsb-release
 
 if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docker.list ]; then
@@ -69,6 +69,11 @@ if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docke
 	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 fi
 
+
+# Add deadsnakes open source repository, needed for Python3.12
+
+echo -e "\n${YELLOW}# Add deadsnakes open source repository, needed for Python3.12${NOCOLOUR}\n"
+sudo add-apt-repository -y ppa:deadsnakes/ppa
 
 
 
@@ -90,20 +95,18 @@ echo -e "\n${YELLOW}# Java${NOCOLOUR}\n"
 sudo apt install openjdk-19-jdk
 
 
-# Python
-echo -e "\n${YELLOW}# Python${NOCOLOUR}\n"
-sudo add-apt-repository -y ppa:deadsnakes/ppa
-sudo apt update -y
+# Python3.12
+echo -e "\n${YELLOW}# Python3.12${NOCOLOUR}\n"
 sudo apt install -y python3.12
 
+# Python virtual environment
+echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
 CWD=$PWD
 cd ~
 python3.12 -m venv --without-pip env
 source env/bin/activate
+curl https://bootstrap.pypa.io/get-pip.py | python
 cd $CWD
-
-
-exit 0
 
 
 
@@ -114,9 +117,14 @@ exit 0
 pip install powerline-shell
 
 
+
 # Copy Windows Terminal settings to LocalState if needed
 
 $HOME/between2spaces.github.io/terminal/update.sh
+
+
+
+exit 0
 
 
 
