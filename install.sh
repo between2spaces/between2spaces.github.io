@@ -30,19 +30,23 @@ fi
 
 set -e
 
+# Colour codes for echo logging
+YELLOW='\033[1;31m'
+NOCOLOUR='\033[0m'
 
-# WSL set WSLENV USERPROFile
+
+# WSL set WSLENV USERPROFILE
 
 if [ -z "$(grep -i microsoft /proc/version)" ]; then
-	echo "Running on WSL"
-	echo "Setting USERPROFILE environment variable"
+	echo -e "\n${YELLOW}# WSL set WSLENV USERPROFILE${NOCOLOUR}\n"
 	cmd.exe /c setx WSLENV USERPROFILE/up 2>/dev/null
 	export USERPROFILE=$(wslpath $(echo "$(cmd.exe /Q /C "echo %userprofile%" 2>/dev/null)" | sed "s/\r$//"))
 fi
 
 
-
 # Dotfiles
+
+echo -e "\n${YELLOW}# Dotfiles${NOCOLOUR}\n"
 
 if [ -d $HOME/.config ]; then rm -rf $HOME/.config; fi
 
@@ -55,6 +59,7 @@ done
 
 # Add Dockers official GPG key and setup repository if not already
 
+echo -e "\n${YELLOW}# Add Dockers official GPG key and setup repository if not already${NOCOLOUR}\n"
 sudo apt install -y ca-certificates curl gnupg lsb-release
 
 if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docker.list ]; then
@@ -69,6 +74,8 @@ fi
 
 # Full apt update, upgrade, remove, clean cycle
 
+echo -e "\n${YELLOW}# Full apt update, upgrade, remove, clean cycle${NOCOLOUR}\n"
+
 sudo apt update -y
 sudo apt upgrade -y
 sudo apt dist-upgrade -y
@@ -78,15 +85,13 @@ sudo apt autoclean -y
 
 # Java
 
+echo -e "\n${YELLOW}# Java${NOCOLOUR}\n"
+
 sudo apt install openjdk-19-jdk
 
 
 # Python
-RED='\033[0;31m'
-YELLOW='\033[0;31m'
-NOCOLOUR='\033[0m'
-echo -e "\n${YELLOW}Installing latest Python...${NOCOLOUR}"
-# Ubuntu's default repositories missing latest version, so add deadsnakes open source repo
+echo -e "\n${YELLOW}# Python${NOCOLOUR}\n"
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt update -y
 sudo apt install -y python
