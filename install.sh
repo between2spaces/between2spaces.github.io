@@ -201,7 +201,7 @@ export LAZY_DIR="$HOME/.local/share/nvim/lazy/lazy.vim"
 if [ -d $LAZY_DIR ]; then
 	rm -rf $LAZY_DIR
 fi
-git clone --filter:blob:none https://github.com/folke/lazy.nvim.git --branch=stable $LAZY_DIR
+git clone --filter=blob:none https://github.com/folke/lazy.nvim.git --branch=stable $LAZY_DIR
 
 
 
