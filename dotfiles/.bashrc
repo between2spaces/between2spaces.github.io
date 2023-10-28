@@ -46,7 +46,7 @@ export SUDO_EDITOR="$VISUAL"
 # activate Python virtual environment if available
 
 if [ -f ~/env/bin/activate ]; then
-	. env/bin/activate
+	. ~/env/bin/activate
 fi
 
 
