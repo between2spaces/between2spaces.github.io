@@ -3,10 +3,8 @@
 echo "Configuring Git"
 
 git config --global credential.helper "store"
-
 git config --global user.email "between2spaces@gmail.com"
 git config --global user.name "between2spaces"
-
 git config --global pull.rebase true
 
 
@@ -21,7 +19,6 @@ if [ $# -eq 0 ]; then
 		git clone https://github.com/between2spaces/between2spaces.github.io.git
 		cd between2spaces.github.io
 	fi
-	echo "here"
 	./install.sh update
 	exit 0
 fi
@@ -114,12 +111,14 @@ cd $CWD
 
 # Powerline-shell
 
+echo -e "\n${YELLOW}# Powerline-shell${NOCOLOUR}\n"
 pip install powerline-shell
 
 
 
-# Copy Windows Terminal settings to LocalState if needed
+# Sync Windows Terminal settings
 
+echo -e "\n${YELLOW}# Sync Windows Terminal settings${NOCOLOUR}\n"
 $HOME/between2spaces.github.io/terminal/update.sh
 
 
@@ -127,7 +126,7 @@ $HOME/between2spaces.github.io/terminal/update.sh
 
 # Node Version Manager
 
-echo "Node Version Manager"
+echo -e "\n${YELLOW}# Node version manager${NOCOLOUR}\n"
 export NVM_DIR="$HOME/.nvm"
 if [ ! -d $NVM_DIR ]; then
 	git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
@@ -139,7 +138,12 @@ git -c advice.detachedHead=false checkout `git describe --abbrev=0 --tags --matc
 . "$NVM_DIR/nvm.sh"
 cd $CWD
 
+# Node package manager
+echo -e "\n${YELLOW}# Node package manager${NOCOLOUR}\n"
 nvm install node nvm install-latest-npm
+
+
+
 
 source ~/.profile
 
@@ -149,8 +153,7 @@ source ~/.profile
 # Neovim
 
 if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
-
-	# When nvim not found or timestamp on binary is older than a week
+	echo -e "\n${YELLOW}# Neovim not found or binar is older than a week, installing latest release-0.9...${NOCOLOUR}\n"
 
 	# Build prerequisites
 	sudo apt install ninja-build gettext cmake unzip curl
@@ -169,33 +172,31 @@ if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))
 
 	# Removed tmp working directory
 	rm -rf $TMP_DIR
-
 fi
 
 
 
 # Neovim Python support
+echo -e "\n${YELLOW}# Neovim Python support${NOCOLOUR}\n"
 pip install pynvim
 
 
-
-exit 0
-
-
-
-# Telescope requirements
+# Make sure Ripgrep and fd find is available
+echo -e "\n${YELLOW}# Make sure Ripgrep and fd find is available${NOCOLOUR}\n"
 sudo apt install ripgrep fd-find
 
 if [ ! -f ~/.local/bin/fd ]; then
 	ln -s $(which fdfind) ~/.local/bin/fd
 fi
 
-# Clipboard support
+
+# Neovim clipboard support for WSL2
+echo -e "\n${YELLOW}# Neovim clipoard support for WSL2${NOCOLOUR}\n"
 sudo apt install wl-clipboard
 
 
 # Neovim plugin manager
-echo "Neovim plugin manager"
+echo -e "\n${YELLOW}# Neovim plugin manager${NOCOLOUR}\n"
 export LAZY_DIR="$HOME/.local/share/nvim/lazy/lazy.vim"
 if [ -d $LAZY_DIR ]; then
 	rm -rf $LAZY_DIR
@@ -205,24 +206,20 @@ git clone --filter:blob:none https://github.com/folke/lazy.nvim.git --branch=sta
 
 
 
-# Docker
+# Install Docker
 
-#sudo apt install -y docker-ce docker-ce-cli containerd.io sudo pip3 install
-#docker-compose
-
-
-
-# Symlink package.json and .eslintrc.json to ~ and npm install
-
-#rm -rf $HOME/package.json && ln -s $PWD/package.json $HOME/package.json
-#rm -rf $HOME/.eslintrc.json && ln -s $PWD/.eslintrc.json $HOME/.eslintrc.json
-#CWD=$PWD
-#cd $HOME
-#npm install
-#cd $CWD
+echo -e "\n${YELLOW}# Install Docker${NOCOLOUR}\n"
+sudo apt install -y docker-ce docker-ce-cli containerd.io sudo pip3 install
+docker-compose
 
 
 
-echo "Finished."
-echo '"source ~/.profile" to updated current process environment'
+# NPM install project dependencies
+
+echo -e "\n${YELLOW}# NPM install project dependencies${NOCOLOUR}\n"
+npm install
+
+
+
+echo "\n${YELLOW}Finished. source ~/.profile to updated current process environment or restart terminal.${NOCOLOUR}\n"
 
