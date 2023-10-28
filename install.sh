@@ -94,7 +94,7 @@ sudo apt install openjdk-19-jdk
 echo -e "\n${YELLOW}# Python${NOCOLOUR}\n"
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt update -y
-sudo apt install -y python3
+sudo apt install -y python3.12
 
 
 
