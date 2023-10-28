@@ -98,7 +98,7 @@ sudo apt install -y python3.12
 
 CWD=$PWD
 cd ~
-python3.12 -m venv env
+python3.12 -m venv --without-pip env
 source env/bin/activate
 cd $CWD
 
