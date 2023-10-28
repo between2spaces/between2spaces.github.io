@@ -124,10 +124,6 @@ $HOME/between2spaces.github.io/terminal/update.sh
 
 
 
-exit 0
-
-
-
 
 # Node Version Manager
 
@@ -146,6 +142,11 @@ cd $CWD
 nvm install node nvm install-latest-npm
 
 source ~/.profile
+
+
+
+exit 0
+
 
 
 
