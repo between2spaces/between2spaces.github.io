@@ -209,8 +209,8 @@ git clone --filter=blob:none https://github.com/folke/lazy.nvim.git --branch=sta
 # Install Docker
 
 echo -e "\n${YELLOW}# Install Docker${NOCOLOUR}\n"
-sudo apt install -y docker-ce docker-ce-cli containerd.io sudo pip3 install
-docker-compose
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+pip install docker-compose
 
 
 
