@@ -54,19 +54,6 @@ done
 
 
 
-# Add Dockers official GPG key and repository
-
-echo -e "\n${YELLOW}# Add Dockers official GPG key and repository${NOCOLOUR}\n"
-sudo apt install -y ca-certificates curl gnupg lsb-release
-
-if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docker.list ]; then
-	echo "Adding Dockers official GPG key and setting up repo..."
-	sudo mkdir -p /etc/apt/keyrings
-	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-fi
-
-
 # Add deadsnakes open source repository, needed for Python3.12
 
 echo -e "\n${YELLOW}# Add deadsnakes open source repository, needed for Python3.12${NOCOLOUR}\n"
@@ -204,13 +191,6 @@ fi
 git clone --filter=blob:none https://github.com/folke/lazy.nvim.git --branch=stable $LAZY_DIR
 
 
-
-
-# Install Docker
-
-echo -e "\n${YELLOW}# Install Docker${NOCOLOUR}\n"
-sudo apt install -y docker-ce docker-ce-cli containerd.io
-pip install docker-compose
 
 
 
