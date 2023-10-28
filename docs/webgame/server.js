@@ -1,5 +1,4 @@
 import fs from "fs";
-import crypto from "crypto";
 import { WebSocketServer } from "ws";
 
 /* Configuration */
@@ -93,19 +92,18 @@ function processProtocolSettings( ws, settings ) {
 		const [ type, ...params ] = setting.split( "_" );
 
 		switch ( type.trim() ) {
-
-		case "dep":
+		case "dependencies":
 			params.forEach(
 				( id ) => clients[ id ] !== undefined && dependencies.push( id )
 			);
 			break;
-		case "prop":
+		case "properties":
 			propertiesByType[ ws.id ].push( ...setting );
 			break;
-		case "def":
+		case "defaults":
 			defaultsByType[ ws.id ].push( ...setting );
 			break;
-		case "ent":
+		case "listen":
 			listeners.push( ws.id );
 			break;
 

@@ -1,5 +1,6 @@
 alias python="python3"
 alias nvim="nvim"
+alias typescript-language-server="npx typescript-language-server"
 
 lazycommit() { git add .; git commit -a -m "lazy commit"; git push; }
 

@@ -182,17 +182,6 @@ echo -e "\n${YELLOW}# Neovim clipoard support for WSL2${NOCOLOUR}\n"
 sudo apt install wl-clipboard
 
 
-# Neovim plugin manager
-echo -e "\n${YELLOW}# Neovim plugin manager${NOCOLOUR}\n"
-export LAZY_DIR="$HOME/.local/share/nvim/lazy/lazy.vim"
-if [ -d $LAZY_DIR ]; then
-	rm -rf $LAZY_DIR
-fi
-git clone --filter=blob:none https://github.com/folke/lazy.nvim.git --branch=stable $LAZY_DIR
-
-
-
-
 
 # NPM install project dependencies
 
@@ -201,5 +190,9 @@ npm install
 
 
 
-echo "\n${YELLOW}Finished. source ~/.profile to updated current process environment or restart terminal.${NOCOLOUR}\n"
+# Install typescript-language-server
+npm install -g typescript-language-server
+
+
+echo -e "\n${YELLOW}Finished. source ~/.profile to updated current process environment or restart terminal.${NOCOLOUR}\n"
 

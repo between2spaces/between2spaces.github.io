@@ -2,11 +2,10 @@ import { connect, log } from '../client.js';
 
 const client = {
 	id: 'Tree',
-	config: ( id ) => {
-		log( client );
+	config: () => {
 	},
 	update: () => {
-		log( 'update...' );
+		log( client.id, 'update...' );
 	}
 };
 

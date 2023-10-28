@@ -34,9 +34,9 @@ function buildSWPArray( client ) {
 
 	} );
 
-	if ( client.entity ) {
+	if ( client.listen ) {
 
-		swp.push( 'ent' );
+		swp.push( 'listen' );
 
 	}
 
@@ -71,7 +71,7 @@ function createWebSocket( client, url, swp ) {
 /* Handle the connection resolve */
 function handleConnectionResolve( client, id, socket ) {
 
-	log( `server connection... assigned client id '${client.id}' -> '${id}'` );
+	log( 'client', `connection... assigned client id '${client.id}' -> '${id}'` );
 
 	delete callbacks[ client.id ];
 
@@ -88,7 +88,7 @@ function handleConnectionResolve( client, id, socket ) {
 /* Handle the connection reject */
 function handleConnectionReject( error ) {
 
-	log( `server connection... error: ${error}` );
+	log( 'client', `connection... error: ${error}` );
 
 }
 
@@ -136,8 +136,6 @@ function handleMessage( client, messages ) {
 
 		const [ callerId, cid, fn, ...args ] = msg.toString().split( '_' );
 		const callback = callbacks[ client.id ];
-
-		log( msg );
 
 		if ( callback && callback[ fn ] !== undefined ) {
 
@@ -253,9 +251,9 @@ function handleSocketError( client, err ) {
 }
 
 /* Log function with color formatting */
-function log( ...args ) {
+function log( id, ...args ) {
 
-	console.log( '\x1b[35mclient:', ...args, '\x1b[0m' );
+	console.log( `\x1b[90m'${id}':`, ...args, '\x1b[0m' );
 
 }
 

@@ -5,7 +5,7 @@ map('n', '<tab>', ':bn<cr>', { noremap = true } )
 map('n', '<leader>e', ':e <c-d>', { noremap = true }) -- Edit
 map('n', '<leader>c', ':e $MYVIMRC<cr>', { noremap = true }) -- Configuration
 map('n', '<leader>w', ':w<cr>', { noremap = true }) -- Write file
-map('n', '<leader>b', ':b <c-z>', { noremap = true }) -- Buffer menu 
+map('n', '<leader><tab>', ':b <c-z>', { noremap = true }) -- Buffer menu 
 map('n', '<leader>n', ':bn<cr>', { noremap = true }) -- Buffer next
 map('n', '<leader>p', ':bp<cr>', { noremap = true }) -- Buffer previous
 map('n', '<leader>d', ':bd<cr>', { noremap = true }) -- Buffer delete
@@ -22,7 +22,7 @@ vim.g.clipboard = {
 	copy = {
 		["+"] = 'wl-copy --foreground --type text/plain',
 		["*"] = 'wl-copy --foreground --primary --type text/plain',
-},
+	},
 	paste = {
 		["+"] = (function()
 			return vim.fn.systemlist('wl-paste --no-newline|sed -e "s/\r$//"', {''}, 1) -- '1' keeps empty lines
@@ -34,7 +34,6 @@ vim.g.clipboard = {
 	cache_enabled = true
 }
 
---vim.opt.clipboard="unnamedplus"
 
 vim.g.netrw_banner = false
 
@@ -42,14 +41,13 @@ vim.g.netrw_banner = false
 
 vim.opt.swapfile = false
 vim.opt.laststatus = 0
---vim.opt.cmdheight = 0
 vim.opt.showmode = false
 vim.opt.cursorline = true
 vim.opt.cursorlineopt = 'number'
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.signcolumn = 'number'
-
+vim.opt.termguicolors = true
 
 
 local au = vim.api.nvim_create_autocmd
@@ -65,4 +63,39 @@ hl( 0, 'CursorLineNr', { fg = 'Grey' } )
 hl( 0, 'NonText', { ctermfg = 'DarkGrey' } )
 hl( 0, 'Pmenu', { ctermbg = 'DarkGrey' })
 hl( 0, 'PmenuSel', { ctermbg = 'White', ctermfg = 'Black' })
+
+
+
+-- lazy.nvim plugin manager for Neovim
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+	vim.fn.system({ "git", "clone", "--filter=blob:none", "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath, })
+end
+vim.opt.rtp:prepend(lazypath)
+
+require("lazy").setup({
+	{
+		"folke/tokyonight.nvim",
+		lazy = false,
+		priority = 1000,
+		config = function()
+			require("tokyonight").setup { style = "night" }
+			vim.cmd[[colorscheme tokyonight]]
+		end
+	},
+	{
+		"NvChad/nvim-colorizer.lua",
+		config = function()
+			require"colorizer".setup {
+				buftypes = { "*" },
+			}
+		end
+	},
+	{
+		"neovim/nvim-lspconfig",
+		config = function()
+			require"lspconfig".tsserver.setup {}
+		end
+	}
+})
 

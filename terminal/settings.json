@@ -1,4 +1,4 @@
-{
+
 	"$help": "https://aka.ms/terminal-documentation",
 	"$schema": "https://aka.ms/terminal-profiles-schema",
 	"copyFormatting": "none",
@@ -68,7 +68,7 @@
 			"blue": "#458588",
 			"purple": "#b16286",
 			"cyan": "#689d6a",
-			"white": "#fbefd2",
+			"white": "#bbbbbb",
 			"brightBlack": "#504945",
 			"brightRed": "#fb4934",
 			"brightGreen": "#b8bb26",
@@ -76,9 +76,9 @@
 			"brightBlue": "#83a598",
 			"brightPurple": "#d3869b",
 			"brightCyan": "#8ec07c",
-			"brightWhite": "#ffb069",
+			"brightWhite": "#eeeeee",
 			"background": "#1d2021",
-			"foreground": "#ebdbb2"
+			"foreground": "#bbbbbb"
 		},
 		{
 			"name": "VS Code",
