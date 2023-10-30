@@ -55,8 +55,17 @@ done
 
 
 # Update root certificates
-sudo apt install --reinstall ca-certificates
+sudo apt install -y --reinstall ca-certificates
 
+
+# Add Dockers official GPG key and setup repository if not already
+
+if [ ! -f /etc/apt/keyrings/docker.gpg ] && [ ! -f /etc/apt/sources.list.d/docker.list ]; then
+	echo -e "\n${YELLOW}# Adding Dockers official GPG key and setting up repo${NOCOLOUR}\n"
+	sudo mkdir -p /etc/apt/keyrings
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+fi
 
 
 # Add deadsnakes open source repository, needed for Python3.12
