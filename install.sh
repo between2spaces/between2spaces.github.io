@@ -58,8 +58,6 @@ done
 sudo apt install --reinstall ca-certificates
 
 
-exit 0
-
 
 # Add deadsnakes open source repository, needed for Python3.12
 
