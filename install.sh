@@ -54,6 +54,11 @@ done
 
 
 
+# Update root certificates
+sudo apt install ca-certificates
+
+
+
 # Add deadsnakes open source repository, needed for Python3.12
 
 echo -e "\n${YELLOW}# Add deadsnakes open source repository, needed for Python3.12${NOCOLOUR}\n"
