@@ -1,10 +1,10 @@
-import fs from "fs";
-import { WebSocketServer } from "ws";
+import fs from 'fs';
+import { WebSocketServer } from 'ws';
 
 /* Configuration */
 const serverConfig = {
 	port: process.env.PORT,
-	allowedOrigins: [ undefined, "http://localhost:8000" ],
+	allowedOrigins: [ undefined, 'http://localhost:8000' ],
 };
 
 /* WebSocket server initialization */
@@ -17,7 +17,6 @@ const wss = new WebSocketServer( {
 /* Client data management */
 const clients = {};
 const awaiting = {};
-const callbacks = {};
 
 /* Entity data management */
 const propertiesByType = {};
@@ -25,13 +24,12 @@ const defaultsByType = {};
 const valuesById = {};
 const listeners = [];
 
-let dirtyById = {};
 let nextClientId = 0;
 let nextEntityId = 0;
 
 /* Error messages */
 const ERROR = {
-	NOVALIDPROTOCOL: "Failed to connect. No valid protocol.",
+	NOVALIDPROTOCOL: 'Failed to connect. No valid protocol.',
 	CLIENTID_INUSE: ( id ) =>
 		`Failed to connect. Client id '${id}' already in use.`,
 };
@@ -39,8 +37,8 @@ const ERROR = {
 /* Handle a new WebSocket connection */
 function handleConnection( ws, req ) {
 
-	const protocol = req.headers[ "sec-websocket-protocol" ];
-	const swp = protocol ? protocol.split( "," ) : [];
+	const protocol = req.headers[ 'sec-websocket-protocol' ];
+	const swp = protocol ? protocol.split( ',' ) : [];
 
 	if ( swp.length === 0 ) {
 
@@ -57,8 +55,8 @@ function handleConnection( ws, req ) {
 	}
 
 	ws.id = id;
-	ws.addEventListener( "message", ( msg ) => handleSocketMessage( ws, msg ) );
-	ws.addEventListener( "close", () => handleSocketClose( ws.id ) );
+	ws.addEventListener( 'message', ( msg ) => handleSocketMessage( ws, msg.data ) );
+	ws.addEventListener( 'close', () => handleSocketClose( ws.id ) );
 
 	processProtocolSettings( ws, swp );
 
@@ -67,7 +65,7 @@ function handleConnection( ws, req ) {
 /* Handle connection error */
 function handleConnectionError( ws, message ) {
 
-	send( ws, "connection", message, false );
+	send( ws, 'connection', message, false );
 	ws.close();
 
 }
@@ -84,26 +82,27 @@ function processProtocolSettings( ws, settings ) {
 
 	let dependencies = [];
 
-	propertiesByType[ ws.id ] = [ "id", "type" ];
+	propertiesByType[ ws.id ] = [ 'id', 'type' ];
 	defaultsByType[ ws.id ] = [];
 
 	settings.forEach( ( setting ) => {
 
-		const [ type, ...params ] = setting.split( "_" );
+		const [ type, ...params ] = setting.split( '_' );
 
 		switch ( type.trim() ) {
-		case "dependencies":
+
+		case 'dependencies':
 			params.forEach(
 				( id ) => clients[ id ] !== undefined && dependencies.push( id )
 			);
 			break;
-		case "properties":
+		case 'properties':
 			propertiesByType[ ws.id ].push( ...setting );
 			break;
-		case "defaults":
+		case 'defaults':
 			defaultsByType[ ws.id ].push( ...setting );
 			break;
-		case "listen":
+		case 'listen':
 			listeners.push( ws.id );
 			break;
 
@@ -114,31 +113,41 @@ function processProtocolSettings( ws, settings ) {
 	if ( dependencies.length === 0 ) {
 
 		clients[ ws.id ] = { ws };
-		return send( ws, "connection", ws.id );
+		send( ws, 'connection', ws.id );
 
 	}
+
+	processClientsAwaitingDependencies( ws.id );
+
+	if ( dependencies.length > 0 ) {
+
+		awaiting[ ws.id ] = { ws, dependencies };
+
+	}
+
+}
+
+function processClientsAwaitingDependencies( connectingId ) {
 
 	for ( let id in awaiting ) {
 
-		let [ _ws, _dependencies ] = awaiting[ id ];
-		const index = _dependencies.indexOf( ws.id );
+		let [ ws, dependencies ] = awaiting[ id ];
+		const index = dependencies.indexOf( connectingId );
 
 		if ( index > - 1 ) {
 
-			_dependencies.splice( index, 1 );
+			dependencies.splice( index, 1 );
 
 		}
 
-		if ( _dependencies.length === 0 ) {
+		if ( dependencies.length === 0 ) {
 
 			delete awaiting[ id ];
-			send( _ws, "connection", id );
+			send( ws, 'connection', id );
 
 		}
 
 	}
-
-	awaiting[ ws.id ] = { ws, dependencies };
 
 }
 
@@ -147,13 +156,13 @@ function handleSocketMessage( ws, message ) {
 
 	log( `Received: '${message}'` );
 
-	const messages = message.toString().split( ";" );
+	const messages = message.toString().split( ';' );
 
 	messages.forEach( ( msg ) => {
 
-		const [ id, callbackId, fn, success, ...args ] = msg.split( "_" );
+		const [ id, callbackId, fn, success, ...args ] = msg.split( '_' );
 
-		if ( id === "Entity" ) {
+		if ( id === 'Entity' ) {
 
 			handleEntityMessage( ws, callbackId, fn, args );
 
@@ -193,7 +202,7 @@ function handleEntityMessage( ws, callbackId, fn, args ) {
 /* Log messages to the console with a custom prefix and color */
 function log( ...args ) {
 
-	console.log( "\x1b[33mserver:", ...args, "\x1b[0m" );
+	console.log( '\x1b[33mserver:', ...args, '\x1b[0m' );
 
 }
 
@@ -201,23 +210,24 @@ function log( ...args ) {
 function send(
 	ws,
 	fn,
-	args = "",
+	args = '',
 	success = true,
-	callerId = "",
-	callbackId = ""
+	callerId = '',
+	callbackId = ''
 ) {
 
-	args = args ? ( Array.isArray( args ) ? "_" + args.join( "_" ) : `_${args}` ) : "";
-	ws.send( `${callerId}_${callbackId}_${fn}_${success ? "" : "1"}${args}` );
+	args = args ? ( Array.isArray( args ) ? '_' + args.join( '_' ) : `_${args}` ) : '';
+	console.log( `${ws.id} <- ${callerId}_${callbackId}_${fn}_${success ? '' : '1'}${args}` ); 
+	ws.send( `${callerId}_${callbackId}_${fn}_${success ? '' : '1'}${args}` );
 
 }
 
 const Entity = {
-	delta: "",
+	delta: '',
 	create: ( args ) => {
 
 		const type = args.shift();
-		const id = "e" + nextEntityId ++;
+		const id = 'e' + nextEntityId ++;
 		const typeDefaults = defaultsByType[ type ];
 		const values = new Array( typeDefaults.length + 2 );
 		const delta = `e_${id}_1_${type}`;
@@ -245,9 +255,9 @@ const Entity = {
 	},
 };
 
-wss.on( "connection", handleConnection );
+wss.on( 'connection', handleConnection );
 
-fs.readdir( "./server_clients/", ( err, files = [] ) => {
+fs.readdir( './server_clients/', ( err, files = [] ) => {
 
 	if ( err ) {
 
@@ -257,7 +267,7 @@ fs.readdir( "./server_clients/", ( err, files = [] ) => {
 
 	for ( const file of files ) {
 
-		file.endsWith( ".js" ) && import( `./server_clients/${file}` );
+		file.endsWith( '.js' ) && import( `./server_clients/${file}` );
 
 	}
 
@@ -267,7 +277,7 @@ setInterval( () => {
 
 	const delta = Entity.delta;
 
-	Entity.delta = "";
+	Entity.delta = '';
 
 	if ( delta.length === 0 ) {
 
@@ -277,7 +287,7 @@ setInterval( () => {
 
 	for ( let id of listeners ) {
 
-		send( clients[ id ].ws, "delta", delta );
+		send( clients[ id ].ws, 'delta', delta );
 
 	}
 

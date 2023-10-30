@@ -58,7 +58,7 @@ function createWebSocket( client, url, swp ) {
 			},
 			reject: ( error ) => {
 
-				handleConnectionReject( error );
+				handleConnectionReject( client, error );
 
 			},
 		},
@@ -71,24 +71,42 @@ function createWebSocket( client, url, swp ) {
 /* Handle the connection resolve */
 function handleConnectionResolve( client, id, socket ) {
 
-	log( 'client', `connection... assigned client id '${client.id}' -> '${id}'` );
+	log( 'client', `connection... client assigned id '${id}'` );
 
 	delete callbacks[ client.id ];
 
 	sockets[ ( client.id = id ) ] = socket;
 
-	if ( client.config ) {
+	if ( client.update && intervals[ client.id ] === undefined ) {
 
-		client.config();
+		client.interval ??= 10000;
+		intervals[ client.id ] = setInterval(
+			() => client.update( client ),
+			client.interval
+		);
+
+	}
+
+	if ( client.resolve ) {
+
+		client.resolve();
 
 	}
 
 }
 
 /* Handle the connection reject */
-function handleConnectionReject( error ) {
+function handleConnectionReject( client, error ) {
 
-	log( 'client', `connection... error: ${error}` );
+	log( 'client', `connection... client rejected error: ${error}` );
+
+	delete callbacks[ client.id ];
+
+	if ( client.reject ) {
+
+		client.reject( error );
+
+	}
 
 }
 
@@ -112,22 +130,10 @@ function handleSocketOpen( client ) {
 
 	}
 
-	if ( client.update && intervals[ client.id ] === undefined ) {
-
-		client.interval ??= 10000;
-		intervals[ client.id ] = setInterval(
-			() => client.update( client ),
-			client.interval
-		);
-
-	}
-
 }
 
-/* Handle the WebSocket close event (if needed) */
-function handleSocketClose( client ) {
-	/* Implementation for handling WebSocket close event */
-}
+/* Handle the WebSocket close event */
+function handleSocketClose( client ) {}
 
 /* Handle incoming messages */
 function handleMessage( client, messages ) {
@@ -174,33 +180,29 @@ function next_callback_id() {
 }
 
 /* Send a message to the server */
-function call( client, target, fn, args = '' ) {
+function call( client, targetId, fn, args = '' ) {
 
-	args = Array.isArray( args ) ? args.join( '_' ) : `${args}`;
-
-	const callback = ( callbacks[ next_callback_id() ] = {} );
-	const msg = `${target ?? ''}_${cid}_${fn}${args ? `_${args}` : ''}`;
+	let callbackId;
+	const callback = ( callbacks[ ( callbackId = next_callback_id() ) ] = {} );
 
 	return new Promise( ( resolve, reject ) => {
 
 		callback.resolve = resolve;
 		callback.reject = reject;
-		send( client, msg );
+		send( client, targetId, fn, args, '', callbackId );
 
 	} );
 
 }
 
-/* Send a signal message to the server */
-function signal( client, target, fn, args = '' ) {
+/* Sends a message to the WebSocket with the specified parameters */
+function send( client, targetId, fn, args = '', status = '', callbackId = '' ) {
 
-	args = Array.isArray( args ) ? args.join( '_' ) : `${args}`;
-	send( client, `${target ?? ''}__${fn}${args ? `_${args}` : ''}` );
+	args = args ? ( Array.isArray( args ) ? '_' + args.join( '_' ) : `_${args}` ) : '';
 
-}
+	const msg = `${targetId}_${callbackId ?? ''}_${fn}_${status}${args}`;
 
-/* Send a message through the WebSocket connection, with caching if the connection is not ready */
-function send( client, msg ) {
+	console.log( msg );
 
 	const socket = sockets[ client.id ];
 
@@ -253,7 +255,7 @@ function handleSocketError( client, err ) {
 /* Log function with color formatting */
 function log( id, ...args ) {
 
-	console.log( `\x1b[90m'${id}':`, ...args, '\x1b[0m' );
+	console.log( `\x1b[96m'${id}':`, ...args, '\x1b[0m' );
 
 }
 
@@ -268,4 +270,4 @@ const intervals = {};
 const cache = {};
 const properties_cache = {};
 
-export { connect, log, call, signal, properties };
+export { connect, log, call, properties };
