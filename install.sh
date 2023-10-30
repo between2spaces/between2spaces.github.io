@@ -54,8 +54,8 @@ done
 
 
 
-# Update root certificates
-sudo apt install -y --reinstall ca-certificates
+# Ensure we have gnupg and lsb_release
+#sudo apt install -y gnupg lsb_release
 
 
 # Add Dockers official GPG key and setup repository if not already
@@ -71,7 +71,7 @@ fi
 # Add deadsnakes open source repository, needed for Python3.12
 
 echo -e "\n${YELLOW}# Add deadsnakes open source repository, needed for Python3.12${NOCOLOUR}\n"
-sudo add-apt-repository -y ppa:deadsnakes/ppa
+#sudo add-apt-repository -y ppa:deadsnakes/ppa
 
 
 
@@ -94,14 +94,15 @@ sudo apt install openjdk-19-jdk
 
 
 # Python3.12
-echo -e "\n${YELLOW}# Python3.12${NOCOLOUR}\n"
-sudo apt install -y python3.12
+#echo -e "\n${YELLOW}# Python3.12${NOCOLOUR}\n"
+#sudo apt install -y python3.12
 
 # Python virtual environment
 echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
 CWD=$PWD
 cd ~
-python3.12 -m venv --without-pip env
+#python3.12 -m venv --without-pip env
+python3 -m venv --without-pip env
 source env/bin/activate
 curl https://bootstrap.pypa.io/get-pip.py | python
 cd $CWD

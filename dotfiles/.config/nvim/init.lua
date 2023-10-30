@@ -39,6 +39,7 @@ vim.g.netrw_banner = false
 
 
 
+vim.opt.clipboard = 'unnamedplus'
 vim.opt.swapfile = false
 vim.opt.laststatus = 0
 vim.opt.showmode = false
