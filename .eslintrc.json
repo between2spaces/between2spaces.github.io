@@ -8,7 +8,6 @@
 	},
 	"extends": [
 		"eslint:recommended" ,
-		"mdcs",
 		"plugin:import/recommended"
 	],
 	"parserOptions": {
