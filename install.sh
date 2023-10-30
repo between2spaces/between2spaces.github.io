@@ -55,7 +55,7 @@ done
 
 
 # Update root certificates
-sudo apt install ca-certificates
+sudo apt install --only-upgrade ca-certificates
 
 
 exit 0
