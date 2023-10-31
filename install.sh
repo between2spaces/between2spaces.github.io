@@ -173,7 +173,7 @@ if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))
 	sudo make install
 
 	# Removed tmp working directory
-	rm -rf $TMP_DIR
+	#rm -rf $TMP_DIR
 fi
 
 
