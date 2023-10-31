@@ -154,7 +154,7 @@ source ~/.profile
 
 # Neovim
 
-#if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
+if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
 	echo -e "\n${YELLOW}# Neovim not found or binary is older than a week, installing latest release-0.9...${NOCOLOUR}\n"
 
 	# Build prerequisites
@@ -176,7 +176,7 @@ source ~/.profile
 
 	# Removed tmp working directory
 	rm -rf $TMP_DIR
-#fi
+fi
 
 
 
