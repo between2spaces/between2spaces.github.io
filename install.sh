@@ -208,7 +208,7 @@ npm install
 
 
 # Install typescript-language-server globally for LSP support in Neovim
-npm install -g typescript-language-server
+npm install -g typescript typescript-language-server
 
 
 echo -e "\n${YELLOW}Finished. source ~/.profile to updated current process environment or restart terminal.${NOCOLOUR}\n"

@@ -1,14 +1,12 @@
 import { connect, log } from '../client.js';
 
-const debug = 'Tree1';
-
 const client = {
-	id: 'Tree1',
+	id: 'Tree',
 	resolve: () => {
-		log( client.id, `Resolve debug=${debug}` );
+		log( client.id, `Resolved` );
 	},
 	reject: ( error ) => {
-		log( client.id, `Reject error: ${error}` );
+		log( client.id, `Rejected error: ${error}` );
 	},
 	listen: () => {
 		log( client.id, 'listen...' );
@@ -18,4 +16,4 @@ const client = {
 	}
 };
 
-connect( client );
+//connect( client );

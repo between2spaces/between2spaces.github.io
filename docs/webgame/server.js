@@ -4,15 +4,15 @@ import { WebSocketServer } from 'ws';
 /* Configuration */
 const serverConfig = {
 	port: process.env.PORT,
-	allowedOrigins: [ undefined, 'http://localhost:8000' ],
+	allowedOrigins: [undefined, 'http://localhost:8000'],
 };
 
 /* WebSocket server initialization */
-const wss = new WebSocketServer( {
+const wss = new WebSocketServer({
 	port: serverConfig.port,
-	verifyClient: ( info ) =>
-		serverConfig.allowedOrigins.includes( info.req.headers.origin ),
-} );
+	verifyClient: (info) =>
+		serverConfig.allowedOrigins.includes(info.req.headers.origin),
+});
 
 /* Client data management */
 const clients = {};
@@ -30,180 +30,138 @@ let nextEntityId = 0;
 /* Error messages */
 const ERROR = {
 	NOVALIDPROTOCOL: 'Failed to connect. No valid protocol.',
-	CLIENTID_INUSE: ( id ) =>
+	CLIENTID_INUSE: (id) =>
 		`Failed to connect. Client id '${id}' already in use.`,
 };
 
 /* Handle a new WebSocket connection */
-function handleConnection( ws, req ) {
+function handleConnection(ws, req) {
+	const protocol = req.headers['sec-websocket-protocol'];
+	const swp = protocol ? protocol.split(',') : [];
 
-	const protocol = req.headers[ 'sec-websocket-protocol' ];
-	const swp = protocol ? protocol.split( ',' ) : [];
-
-	if ( swp.length === 0 ) {
-
-		return handleConnectionError( ws, ERROR.NOVALIDPROTOCOL );
-
+	if (swp.length === 0) {
+		return handleConnectionError(ws, ERROR.NOVALIDPROTOCOL);
 	}
 
-	const id = swp.shift() || `c${nextClientId ++}`;
+	const id = swp.shift();
 
-	if ( clients[ id ] ) {
+	if (id==='?') id = `c${nextClientId++}`;
 
-		return handleConnectionError( ws, ERROR.CLIENTID_INUSE( id ) );
-
+	if (clients[id]) {
+		return handleConnectionError(ws, ERROR.CLIENTID_INUSE(id));
 	}
 
 	ws.id = id;
-	ws.addEventListener( 'message', ( msg ) => handleSocketMessage( ws, msg.data ) );
-	ws.addEventListener( 'close', () => handleSocketClose( ws.id ) );
+	ws.addEventListener('message', (msg) => handleSocketMessage(ws, msg.data));
+	ws.addEventListener('close', () => handleSocketClose(ws.id));
 
-	processProtocolSettings( ws, swp );
-
+	processProtocolSettings(ws, swp);
 }
 
 /* Handle connection error */
-function handleConnectionError( ws, message ) {
-
-	send( ws, 'connection', message, false );
+function handleConnectionError(ws, message) {
+	send(ws, 'connection', message, false);
 	ws.close();
-
 }
 
 /* Handle the WebSocket connection close event of a specific client */
-function handleSocketClose( id ) {
-
-	log( `Client '${id}' connection closed.` );
-
+function handleSocketClose(id) {
+	log(`Client '${id}' connection closed.`);
 }
 
 /* Process WebSocket protocol settings */
-function processProtocolSettings( ws, settings ) {
-
+function processProtocolSettings(ws, settings) {
 	let dependencies = [];
 
-	propertiesByType[ ws.id ] = [ 'id', 'type' ];
-	defaultsByType[ ws.id ] = [];
+	propertiesByType[ws.id] = ['id', 'type'];
+	defaultsByType[ws.id] = [];
 
-	settings.forEach( ( setting ) => {
+	settings.forEach((setting) => {
+		const [type, ...params] = setting.split('_');
 
-		const [ type, ...params ] = setting.split( '_' );
-
-		switch ( type.trim() ) {
-
+		switch (type.trim()) {
 		case 'dependencies':
 			params.forEach(
-				( id ) => clients[ id ] !== undefined && dependencies.push( id )
+				(id) => clients[id] !== undefined && dependencies.push(id)
 			);
 			break;
 		case 'properties':
-			propertiesByType[ ws.id ].push( ...setting );
+			propertiesByType[ws.id].push(...setting);
 			break;
 		case 'defaults':
-			defaultsByType[ ws.id ].push( ...setting );
+			defaultsByType[ws.id].push(...setting);
 			break;
 		case 'listen':
-			listeners.push( ws.id );
+			listeners.push(ws.id);
 			break;
-
 		}
+	});
 
-	} );
-
-	if ( dependencies.length === 0 ) {
-
-		clients[ ws.id ] = { ws };
-		send( ws, 'connection', ws.id );
-
+	if (dependencies.length === 0) {
+		clients[ws.id] = { ws };
+		send(ws, 'connection', ws.id);
 	}
 
-	processClientsAwaitingDependencies( ws.id );
+	processClientsAwaitingDependencies(ws.id);
 
-	if ( dependencies.length > 0 ) {
-
-		awaiting[ ws.id ] = { ws, dependencies };
-
+	if (dependencies.length > 0) {
+		awaiting[ws.id] = { ws, dependencies };
 	}
-
 }
 
-function processClientsAwaitingDependencies( connectingId ) {
+function processClientsAwaitingDependencies(connectingId) {
+	for (let id in awaiting) {
+		let [ws, dependencies] = awaiting[id];
+		const index = dependencies.indexOf(connectingId);
 
-	for ( let id in awaiting ) {
-
-		let [ ws, dependencies ] = awaiting[ id ];
-		const index = dependencies.indexOf( connectingId );
-
-		if ( index > - 1 ) {
-
-			dependencies.splice( index, 1 );
-
+		if (index > -1) {
+			dependencies.splice(index, 1);
 		}
 
-		if ( dependencies.length === 0 ) {
-
-			delete awaiting[ id ];
-			send( ws, 'connection', id );
-
+		if (dependencies.length === 0) {
+			delete awaiting[id];
+			send(ws, 'connection', id);
 		}
-
 	}
-
 }
 
 /* Handle incoming WebSocket messages for a specific client */
-function handleSocketMessage( ws, message ) {
+function handleSocketMessage(ws, message) {
+	log(`Received: '${message}'`);
 
-	log( `Received: '${message}'` );
+	const messages = message.toString().split(';');
 
-	const messages = message.toString().split( ';' );
+	messages.forEach((msg) => {
+		const [id, callbackId, fn, success, ...args] = msg.split('_');
 
-	messages.forEach( ( msg ) => {
-
-		const [ id, callbackId, fn, success, ...args ] = msg.split( '_' );
-
-		if ( id === 'Entity' ) {
-
-			handleEntityMessage( ws, callbackId, fn, args );
-
-		} else if ( clients[ id ] === undefined ) {
-
-			return log( `Error: Unknown message target '${id}'` );
-
+		if (id === 'Entity') {
+			handleEntityMessage(ws, callbackId, fn, args);
+		} else if (clients[id] === undefined) {
+			return log(`Error: Unknown message target '${id}'`);
 		}
 
-		send( ws, fn, args, success, ws.id, callbackId );
-
-	} );
-
+		send(ws, fn, args, success, ws.id, callbackId);
+	});
 }
 
 /* Handle a message directed at Entity */
-function handleEntityMessage( ws, callbackId, fn, args ) {
-
-	if ( Entity[ fn ] === undefined ) {
-
-		return log( `${fn} is not a Entity function` );
-
+function handleEntityMessage(ws, callbackId, fn, args) {
+	if (Entity[fn] === undefined) {
+		return log(`${fn} is not a Entity function`);
 	}
 
-	const returnValue = Entity[ fn ]( args );
+	const returnValue = Entity[fn](args);
 
-	if ( callbackId ) {
-
-		return send( ws, callbackId, returnValue );
-
+	if (callbackId) {
+		return send(ws, callbackId, returnValue);
 	}
 
-	send( ws, callbackId, `Unknown fuction Entity.${fn}`, false );
-
+	send(ws, callbackId, `Unknown fuction Entity.${fn}`, false);
 }
 
 /* Log messages to the console with a custom prefix and color */
-function log( ...args ) {
-
-	console.log( '\x1b[33mserver:', ...args, '\x1b[0m' );
-
+function log(...args) {
+	console.log('\x1b[33mserver:', ...args, '\x1b[0m');
 }
 
 /* Sends a message to the WebSocket with the specified parameters */
@@ -215,80 +173,62 @@ function send(
 	callerId = '',
 	callbackId = ''
 ) {
-
-	args = args ? ( Array.isArray( args ) ? '_' + args.join( '_' ) : `_${args}` ) : '';
-	console.log( `${ws.id} <- ${callerId}_${callbackId}_${fn}_${success ? '' : '1'}${args}` ); 
-	ws.send( `${callerId}_${callbackId}_${fn}_${success ? '' : '1'}${args}` );
-
+	args = args ? (Array.isArray(args) ? '_' + args.join('_') : `_${args}`) : '';
+	console.log(
+		`${ws.id} <- ${callerId}_${callbackId}_${fn}_${success ? '' : '1'}${args}`
+	);
+	ws.send(`${callerId}_${callbackId}_${fn}_${success ? '' : '1'}${args}`);
 }
 
 const Entity = {
 	delta: '',
-	create: ( args ) => {
-
+	create: (args) => {
 		const type = args.shift();
-		const id = 'e' + nextEntityId ++;
-		const typeDefaults = defaultsByType[ type ];
-		const values = new Array( typeDefaults.length + 2 );
+		const id = 'e' + nextEntityId++;
+		const typeDefaults = defaultsByType[type];
+		const values = new Array(typeDefaults.length + 2);
 		const delta = `e_${id}_1_${type}`;
 
-		values[ 0 ] = id;
-		values[ 1 ] = type;
+		values[0] = id;
+		values[1] = type;
 
-		for ( let i = 0; i < typeDefaults.length; i ++ ) {
-
-			let value = ( values[ i + 2 ] = i < args.length ? args[ i ] : typeDefaults[ i ] );
+		for (let i = 0; i < typeDefaults.length; i++) {
+			let value = (values[i + 2] = i < args.length ? args[i] : typeDefaults[i]);
 			delta += `_${i + 2}_${value}`;
-
 		}
 
-		valuesById[ id ] = values;
+		valuesById[id] = values;
 		Entity.delta += delta;
 		return values;
-
 	},
 
-	properties: ( args ) => {
-
-		return propertiesByType[ args[ 0 ] ];
-
+	properties: (args) => {
+		return propertiesByType[args[0]];
 	},
 };
 
-wss.on( 'connection', handleConnection );
+wss.on('connection', handleConnection);
 
-fs.readdir( './server_clients/', ( err, files = [] ) => {
-
-	if ( err ) {
-
-		return log( err.message );
-
+fs.readdir('./server_clients/', (err, files = []) => {
+	if (err) {
+		return log(err.message);
 	}
 
-	for ( const file of files ) {
-
-		file.endsWith( '.js' ) && import( `./server_clients/${file}` );
-
+	for (const file of files) {
+		file.endsWith('.js') && import(`./server_clients/${file}`);
 	}
+});
 
-} );
-
-setInterval( () => {
-
+setInterval(() => {
 	const delta = Entity.delta;
 
 	Entity.delta = '';
 
-	if ( delta.length === 0 ) {
-
+	if (delta.length === 0) {
 		return;
-
 	}
 
-	for ( let id of listeners ) {
-
-		send( clients[ id ].ws, 'delta', delta );
-
+	for (let id of listeners) {
+		send(clients[id].ws, 'delta', delta);
 	}
-
-}, 1000 );
+}, 1000);
