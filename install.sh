@@ -27,6 +27,8 @@ fi
 
 set -e
 
+CWD=$PWD
+
 # Colour codes for echo logging
 YELLOW='\033[1;33m'
 NOCOLOUR='\033[0m'
@@ -99,7 +101,6 @@ sudo apt install openjdk-19-jdk
 
 # Python virtual environment
 echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
-CWD=$PWD
 cd ~
 #python3.12 -m venv --without-pip env
 python3 -m venv --without-pip env
@@ -134,7 +135,6 @@ if [ ! -d $NVM_DIR ]; then
 	git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
 fi
 
-CWD=$PWD
 cd "$NVM_DIR"
 git -c advice.detachedHead=false checkout `git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1)`
 . "$NVM_DIR/nvm.sh"
@@ -155,7 +155,7 @@ source ~/.profile
 # Neovim
 
 #if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
-	echo -e "\n${YELLOW}# Neovim not found or binar is older than a week, installing latest release-0.9...${NOCOLOUR}\n"
+	echo -e "\n${YELLOW}# Neovim not found or binary is older than a week, installing latest release-0.9...${NOCOLOUR}\n"
 
 	# Build prerequisites
 	sudo apt install ninja-build gettext cmake unzip curl
@@ -172,8 +172,10 @@ source ~/.profile
 	make CMAKE_BUILD_TYPE=Release
 	sudo make install
 
+	cd $CWD
+
 	# Removed tmp working directory
-	#rm -rf $TMP_DIR
+	rm -rf $TMP_DIR
 #fi
 
 
@@ -205,7 +207,7 @@ npm install
 
 
 
-# Install typescript-language-server
+# Install typescript-language-server globally for LSP support in Neovim
 npm install -g typescript-language-server
 
 
