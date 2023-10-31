@@ -96,14 +96,14 @@ sudo apt install openjdk-19-jdk
 
 
 # Python3.12
-#echo -e "\n${YELLOW}# Python3.12${NOCOLOUR}\n"
-#sudo apt install -y python3.12
+echo -e "\n${YELLOW}# Python3.12${NOCOLOUR}\n"
+sudo apt install -y python3.12
 
 # Python virtual environment
 echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
 cd ~
-#python3.12 -m venv --without-pip env
-python3 -m venv --without-pip env
+python3.12 -m venv --without-pip env
+#python3 -m venv --without-pip env
 source env/bin/activate
 curl https://bootstrap.pypa.io/get-pip.py | python
 cd $CWD
