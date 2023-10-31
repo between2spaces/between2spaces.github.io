@@ -35,17 +35,54 @@ const ERROR = {
 };
 
 /* Handle a new WebSocket connection */
-function handleConnection(ws, req) {
+function handleConnection(ws, req)
+{
 	const protocol = req.headers['sec-websocket-protocol'];
 	const swp = protocol ? protocol.split(',') : [];
 
 	if (swp.length === 0) {
 		return handleConnectionError(ws, ERROR.NOVALIDPROTOCOL);
 	}
+./index.html
+./x.js
+./server.js
+./servernodes/tree.js
+./servernodes/xyz.js
+./NodeClient.js
+./newer_commonclient.js
+./um.ss
+./node_modules/.package-lock.json
+./node_modules/ws/LICENSE
+./node_modules/ws/browser.js
+./node_modules/ws/wrapper.mjs
+./node_modules/ws/package.json
+./node_modules/ws/README.md
+./node_modules/ws/lib/extension.js
+./node_modules/ws/lib/receiver.js
+./node_modules/ws/lib/buffer-util.js
+./node_modules/ws/lib/sender.js
+./node_modules/ws/lib/limiter.js
+./node_modules/ws/lib/subprotocol.js
+./node_modules/ws/lib/validation.js
+./node_modules/ws/lib/constants.js
+./node_modules/ws/lib/stream.js
+./node_modules/ws/lib/websocket.js
+./node_modules/ws/lib/websocket-server.js
+./node_modules/ws/lib/event-target.js
+./node_modules/ws/lib/permessage-deflate.js
+./node_modules/ws/index.js
+./package.json
+./.env
+./server_clients/tree.js
+./server_clients/test.js
+./old_servernode.js
+./old_client.js
+./client.js
+./package-lock.json
 
-	const id = swp.shift();
+	let id = swp.shift();
 
-	if (id==='?') id = `c${nextClientId++}`;
+	if (id==='$') id = `c${nextClientId++}`;
 
 	if (clients[id]) {
 		return handleConnectionError(ws, ERROR.CLIENTID_INUSE(id));

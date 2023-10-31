@@ -13,7 +13,7 @@ function connect(client, url = `ws://localhost:${process.env.PORT}`) {
 function buildSWPArray(client) {
 	const swp = [];
 
-	swp.push(client.id || '?');
+	swp.push(client.id || '$');
 
 	['dependencies', 'properties', 'defaults'].forEach((property) => {
 		const arr = client[property];

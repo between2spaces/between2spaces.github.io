@@ -34,10 +34,7 @@
 			}
 		]
 	},
-	"actions": [
-		{ "command": "nextTab", "keys": "shift+l" },
-		{ "command": "prevTab", "keys": "shift+h" }
-	],
+	"actions": [],
 	"schemes": [],
 	"themes": []
 }

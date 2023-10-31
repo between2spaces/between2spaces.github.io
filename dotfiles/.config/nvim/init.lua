@@ -2,14 +2,11 @@ vim.g.mapleader = ' '
 
 local map = vim.keymap.set
 map('n', '<tab>', ':bn<cr>', { noremap = true } )
-map('n', '<leader>e', ':e <c-d>', { noremap = true }) -- Edit
 map('n', '<leader>c', ':e $MYVIMRC<cr>', { noremap = true }) -- Configuration
 map('n', '<leader>w', ':w<cr>', { noremap = true }) -- Write file
 map('n', '<leader><tab>', ':b <c-z>', { noremap = true }) -- Buffer menu 
-map('n', '<S-k>', '<esc>:bn<cr>', { noremap = true }) -- Buffer next
-map('n', '<S-j>', '<esc>:bp<cr>', { noremap = true }) -- Buffer previous
 map('n', '<leader>d', ':bd<cr>', { noremap = true }) -- Buffer delete
-map('n', '<leader>l', ':silent! 17Lex<cr>', { noremap = true }) -- Left Explorer
+map('n', '<leader>e', ':silent! 17Lex<cr>', { noremap = true }) -- Left Explorer
 map('n', '<leader>f', "mmgggqG'm", { noremap = true } )
 map('n', '<leader>q', ':qa<cr>', { noremap = true } )
 
@@ -97,14 +94,6 @@ require("lazy").setup({
 		"neovim/nvim-lspconfig",
 		config = function()
 			require"lspconfig".tsserver.setup {}
-		end
-	},
-	{
-		"akinsho/bufferline.nvim",
-		version = "*",
-		dependencies = "nvim-tree/nvim-web-devicons",
-		config = function()
-			require"bufferline".setup{}
 		end
 	}
 })
