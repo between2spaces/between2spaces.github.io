@@ -1,5 +1,6 @@
 {
 	"defaultProfile": "{fb7297e1-916c-44e6-a8b2-5219fe9f9e5f}",
+	"launchMode": "focus",
 	"copyOnSelect": true,
 	"newTabMenu": [
 		{
