@@ -47,6 +47,9 @@ vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.signcolumn = 'number'
 vim.opt.termguicolors = true
+vim.opt.wildoptions = "tagfile"
+vim.opt.wildignore = "**/node_modules/**"
+vim.opt.path = ".,,**"
 
 
 local au = vim.api.nvim_create_autocmd

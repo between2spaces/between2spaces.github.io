@@ -12,7 +12,9 @@
 				"face": "Hack Nerd Font",
 				"size": 17,
 				"weight": "normal"
-			}
+			},
+			"padding": "0",
+			"scrollbarState": "hidden"
 		},
 		"list": [
 			{
