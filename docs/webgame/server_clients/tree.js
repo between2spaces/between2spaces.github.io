@@ -16,4 +16,4 @@ const client = {
 	}
 };
 
-//connect( client );
+connect( client );

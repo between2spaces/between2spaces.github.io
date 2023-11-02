@@ -108,6 +108,7 @@ function handleSocketClose(id) {
 
 /* Process WebSocket protocol settings */
 function processProtocolSettings(ws, settings) {
+	const callbackId = settings.shift();
 	let dependencies = [];
 
 	propertiesByType[ws.id] = ['id', 'type'];
@@ -136,19 +137,19 @@ function processProtocolSettings(ws, settings) {
 
 	if (dependencies.length === 0) {
 		clients[ws.id] = { ws };
-		send(ws, 'connection', ws.id);
+		send(ws, 'connection', ws.id, true, '', callbackId);
 	}
 
 	processClientsAwaitingDependencies(ws.id);
 
 	if (dependencies.length > 0) {
-		awaiting[ws.id] = { ws, dependencies };
+		awaiting[ws.id] = { ws, dependencies, callbackId };
 	}
 }
 
 function processClientsAwaitingDependencies(connectingId) {
 	for (let id in awaiting) {
-		let [ws, dependencies] = awaiting[id];
+		let [ws, dependencies, callbackId] = awaiting[id];
 		const index = dependencies.indexOf(connectingId);
 
 		if (index > -1) {
@@ -157,7 +158,7 @@ function processClientsAwaitingDependencies(connectingId) {
 
 		if (dependencies.length === 0) {
 			delete awaiting[id];
-			send(ws, 'connection', id);
+			send(ws, 'connection', id, true, '', callbackId);
 		}
 	}
 }
@@ -172,7 +173,7 @@ function handleSocketMessage(ws, message) {
 		const [id, callbackId, fn, success, ...args] = msg.split('_');
 
 		if (id === 'Entity') {
-			handleEntityMessage(ws, callbackId, fn, args);
+			return handleEntityMessage(ws, callbackId, fn, args);
 		} else if (clients[id] === undefined) {
 			return log(`Error: Unknown message target '${id}'`);
 		}
@@ -187,10 +188,19 @@ function handleEntityMessage(ws, callbackId, fn, args) {
 		return log(`${fn} is not a Entity function`);
 	}
 
-	const returnValue = Entity[fn](args);
+	let success = true;
+	let response;
+
+	try {
+			
+		response = Entity[fn](args);
+	} catch(err) {
+		response = err.message;
+		success = false;
+	}
 
 	if (callbackId) {
-		return send(ws, callbackId, returnValue);
+		return send(ws, callbackId, response, success);
 	}
 
 	send(ws, callbackId, `Unknown fuction Entity.${fn}`, false);
@@ -240,6 +250,10 @@ const Entity = {
 	},
 
 	properties: (args) => {
+		const typeid = args[0];
+		if(propertiesByType[typeid] === undefined) {
+			throw (new Error(`Undefined type '${typeid}'`));
+		}
 		return propertiesByType[args[0]];
 	},
 };
