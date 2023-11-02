@@ -73,7 +73,7 @@ fi
 # Add deadsnakes open source repository, needed for Python3.12
 
 echo -e "\n${YELLOW}# Add deadsnakes open source repository, needed for Python3.12${NOCOLOUR}\n"
-#sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo add-apt-repository -y ppa:deadsnakes/ppa
 
 
 
@@ -103,7 +103,6 @@ sudo apt install -y python3.12
 echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
 cd ~
 python3.12 -m venv --without-pip env
-#python3 -m venv --without-pip env
 source env/bin/activate
 curl https://bootstrap.pypa.io/get-pip.py | python
 cd $CWD
