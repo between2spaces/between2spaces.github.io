@@ -1,19 +1,17 @@
-import { connect, log } from '../client.js';
+import { connect } from '../client.js';
 
-const client = {
+connect({
 	id: 'Tree',
-	resolve: () => {
-		log( client.id, `Resolved` );
+	listen: (connection) => {
+		connection.log('listen...');
 	},
-	reject: ( error ) => {
-		log( client.id, `Rejected error: ${error}` );
+	update: (connection) => {
+		connection.log('update...');
 	},
-	listen: () => {
-		log( client.id, 'listen...' );
-	},
-	update: () => {
-		log( client.id, 'update...' );
-	}
-};
-
-connect( client );
+})
+	.then((connection) => {
+		connection.log(`Resolved`);
+	})
+	.catch((connection, error) => {
+		connection.log(`Rejected error: ${error}`);
+	});

@@ -1,21 +1,21 @@
-import { connect, log, properties } from '../client.js';
+import { connect } from '../client.js';
 
-const client = {
-	resolve: async () => {
-		log(client.id, `Resolved`);
-		properties(client, 'Treex')
-		.then(treeProp => log(client.id, treeProp))
-		.catch(error => log(client.id, error));
+connect({
+	id: 'Tree',
+	listen: (connection) => {
+		connection.log('listen...');
 	},
-	reject: (error) => {
-		log(client.id, `Rejected error: ${error}`);
+	update: (connection) => {
+		connection.log('update...');
 	},
-	listen: () => {
-		log(client.id, 'listen...');
-	},
-	update: () => {
-		log(client.id, 'update...');
-	},
-};
-
-connect(client);
+})
+	.then((connection) => {
+		connection.log(`Resolved`);
+		connection
+			.properties('Tree')
+			.then((connection, treeProp) => connection.log(treeProp))
+			.catch((connection, error) => connection.log(error));
+	})
+	.catch((connection, error) => {
+		connection.log(`Rejected error: ${error}`);
+	});

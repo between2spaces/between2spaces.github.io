@@ -1,20 +1,6 @@
-vim.g.mapleader = ' '
-
-local map = vim.keymap.set
-map('n', '<tab>', ':bn<cr>', { noremap = true } )
-map('n', '<leader>c', ':e $MYVIMRC<cr>', { noremap = true }) -- Configuration
-map('n', '<leader>w', ':w<cr>', { noremap = true }) -- Write file
-map('n', '<leader><tab>', ':b <c-z>', { noremap = true }) -- Buffer menu 
-map('n', '<leader>d', ':bd<cr>', { noremap = true }) -- Buffer delete
-map('n', '<leader>e', ':silent! 17Lex<cr>', { noremap = true }) -- Left Explorer
-map('n', '<leader>f', "mmgggqG'm", { noremap = true } )
-map('n', '<leader>q', ':qa<cr>', { noremap = true } )
-
-
-map('c', '<c-l>', 'wildmenumode() ? "<down>" : "<c-l>"', { noremap = true, expr = true })
-
-
-vim.g.clipboard = {
+local g = vim.g
+g.mapleader = ' '
+g.clipboard = {
 	name = "wl-clipboard (wsl)",
 	copy = {
 		["+"] = 'wl-copy --foreground --type text/plain',
@@ -22,7 +8,7 @@ vim.g.clipboard = {
 	},
 	paste = {
 		["+"] = (function()
-			return vim.fn.systemlist('wl-paste --no-newline|sed -e "s/\r$//"', {''}, 1) -- '1' keeps empty lines
+			return vim.fn.systemlist('wl-paste --no-newline|sed -e "s/\r$//"', {''}, 1)
 		end),
 		["*"] = (function() 
 			return vim.fn.systemlist('wl-paste --primary --no-newline|sed -e "s/\r$//"', {''}, 1)
@@ -32,24 +18,40 @@ vim.g.clipboard = {
 }
 
 
-vim.g.netrw_banner = false
+local opt = vim.opt
+opt.clipboard = 'unnamedplus'
+opt.mouse = ''
+opt.swapfile = false
+opt.laststatus = 0
+opt.showmode = false
+opt.cursorline = true
+opt.cursorlineopt = 'number'
+opt.number = true
+opt.relativenumber = true
+opt.signcolumn = 'number'
+opt.tabstop = 4
+opt.shiftwidth = 4
+opt.wildoptions = "pum,tagfile"
+opt.wildignore = "**/node_modules/**"
+opt.path = ".,,**"
 
 
+local map = function (lhs, rhs)
+	vim.keymap.set('n', lhs, rhs, { noremap = true } )
+end
 
-vim.opt.clipboard = 'unnamedplus'
-vim.opt.mouse = ''
-vim.opt.swapfile = false
-vim.opt.laststatus = 0
-vim.opt.showmode = false
-vim.opt.cursorline = true
-vim.opt.cursorlineopt = 'number'
-vim.opt.number = true
-vim.opt.relativenumber = true
-vim.opt.signcolumn = 'number'
-vim.opt.termguicolors = true
-vim.opt.wildoptions = "tagfile"
-vim.opt.wildignore = "**/node_modules/**"
-vim.opt.path = ".,,**"
+map('<tab>', ':bn<cr>')
+map('<leader>c', ':e $MYVIMRC<cr>') -- Configuration
+map('<leader>w', ':w<cr>') -- Write file
+map('<leader><tab>', ':b <c-z>') -- Buffer menu 
+map('<leader>d', ':bd<cr>') -- Buffer delete
+map('<leader>p', ':silent! 17Lex<cr>') -- Left Explorer
+map('<leader>f', "mmgggqG'm" ) -- Format buffer
+map('<leader>q', ':ZZ<cr>' ) -- Quit
+map('<leader>h', ':Telescope help_tags<cr>' ) -- Fuzzy find help
+map('<leader>b', ':Telescope buffers<cr>' ) -- Fuzzy find buffers
+map('<leader>e', ':Telescope find_files<cr>' ) -- Fuzzy find files
+
 
 
 local au = vim.api.nvim_create_autocmd
@@ -60,44 +62,61 @@ au( 'FileType', {
 
 local hl = vim.api.nvim_set_hl
 hl( 0, 'Normal', { bg = 'None' } )
-hl( 0, 'LineNr', { ctermfg = 'DarkGrey' } )
-hl( 0, 'CursorLineNr', { fg = 'Grey' } )
-hl( 0, 'NonText', { ctermfg = 'DarkGrey' } )
-hl( 0, 'Pmenu', { ctermbg = 'DarkGrey' })
-hl( 0, 'PmenuSel', { ctermbg = 'White', ctermfg = 'Black' })
+hl( 0, 'LineNr', { ctermfg = 'DarkGray' } )
+hl( 0, 'CursorLineNr', { fg = 'White' } )
+hl( 0, 'NonText', { ctermfg = 'Gray' } )
+hl( 0, 'Pmenu', { ctermbg = 'DarkGray', ctermfg = 'Black' } )
+hl( 0, 'PmenuSel', { ctermbg = 'White', ctermfg = 'Black' } )
+hl( 0, 'Comment', { ctermfg = 'DarkGrey' } )
 
 
-
--- lazy.nvim plugin manager for Neovim
+-- Plugin management
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+
 if not vim.loop.fs_stat(lazypath) then
-	vim.fn.system({ "git", "clone", "--filter=blob:none", "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath, })
+	vim.fn.system({
+		"git", "clone", "--filter=blob:none", "https://github.com/folke/lazy.nvim.git",
+		"--branch=stable", lazypath,
+	})
 end
+
 vim.opt.rtp:prepend(lazypath)
 
-require("lazy").setup({
+require('lazy').setup({
+	{'nvim-telescope/telescope.nvim', tag = '0.1.x', dependencies = {'nvim-lua/plenary.nvim'}},
 	{
-		"folke/tokyonight.nvim",
-		lazy = false,
-		priority = 1000,
-		config = function()
-			require("tokyonight").setup { style = "night" }
-			vim.cmd[[colorscheme tokyonight]]
-		end
+		'folke/which-key.nvim',
+		event = 'VeryLazy',
+		init = function()
+			vim.o.timeout = true
+			vim.o.timeoutlen = 300
+		end,
+		opts = {},
 	},
-	{
-		"NvChad/nvim-colorizer.lua",
-		config = function()
-			require"colorizer".setup {
-				buftypes = { "*" },
-			}
-		end
-	},
-	{
-		"neovim/nvim-lspconfig",
-		config = function()
-			require"lspconfig".tsserver.setup {}
-		end
+	{'VonHeikemen/lsp-zero.nvim', branch = 'v3.x'},
+	{'williamboman/mason.nvim'},
+	{'williamboman/mason-lspconfig.nvim'},
+	{'neovim/nvim-lspconfig'},
+	{'hrsh7th/cmp-nvim-lsp'},
+	{'hrsh7th/nvim-cmp'},
+	{'L3MON4D3/LuaSnip'},
+})
+
+local lsp_zero = require('lsp-zero')
+
+lsp_zero.on_attach(function(client, bufnr)
+	-- see :help lsp-zero-keybindings
+	-- to learn the available actions
+	lsp_zero.default_keymaps({buffer = bufnr})
+end)
+
+-- see :help lsp-zero-guide:integrate-with-mason-nvim
+-- to learn how to use mason.nvim with lsp-zero
+require('mason').setup({})
+require('mason-lspconfig').setup({
+	ensure_installed = {'tsserver'},
+	handlers = {
+		lsp_zero.default_setup,
 	}
 })
 
