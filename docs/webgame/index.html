@@ -7,7 +7,70 @@
   </head>
   <body>
     <script type="module">
-	import './client.js';
+	//import './client.js';
+	const container = document.createElement('div');
+	container.style.display = 'grid';
+	container.style.gridTemplateColumns = 'repeat(80, 1fr)';
+	container.style.gridTemplateRows = 'repeat(50, 2%)';
+	container.style.height = '100%';
+	document.body.append(container);
+	class Item {
+		constructor(type = ' ', x = 1, y = 1) {
+			this.x = x;
+			this.y = y;
+			this.div = document.createElement('div');
+			this.div.style.gridColumnStart = x;
+			this.div.style.gridRowStart = y;
+			this.div.style.fontSize = '2vw';
+			this.div.style.fontFamily = 'monospace';
+			this.div.style.whiteSpace = 'pre';
+			this.div.style.width = '0.5em';
+			this.setType(type);
+			container.append(this.div);
+		}
+		move(dx, dy) {
+			const new_x = this.x + dx;
+			const new_y = this.y + dy;
+			if ( new_x > 0 && new_x < 80 ) this.x = new_x;
+			if ( new_y > 0 && new_y < 80 ) this.y = new_y;
+			this.div.style.gridColumnStart = this.x;
+			this.div.style.gridRowStart = this.y;
+		}
+		setType( type ) {
+			this.div.textContent = type;
+			if ( type === ',' ) {
+				this.div.style.color = '#5dbb63';
+			} else if ( type === ';' ) {
+				this.div.style.color = '#74b72e';
+			} else if ( type === '"' ) {
+				this.div.style.color = '#03c04a';
+			} else {
+				this.div.style.color = 'black';
+			}
+		}
+	}
+	//const box = new ItemUI(3, 3, 4, 4, '╭───╮\n│   │\n╰───╯');
+	const cursor = new Item('░');
+
+	for (let y = 1; y < 40; y++ ) {
+		for (let x = 1; x < 40; x++ ) {
+			new Item([',', ';', '"'][Math.floor(Math.random() * 3)], x, y);
+		}
+	}
+
+	document.addEventListener('keydown', (event) => {
+		console.log(event.key);
+		if ( event.key === 'k' ) {
+			cursor.move(0, -1);
+		} else if ( event.key === 'j' ) {
+			cursor.move(0, 1);
+		} else if ( event.key === 'h' ) {
+			cursor.move(-1, 0);
+		} else if ( event.key === 'l' ) {
+			cursor.move(1, 0);
+		}
+
+	} );
     </script>
   </body>
 </html>

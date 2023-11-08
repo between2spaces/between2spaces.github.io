@@ -10,9 +10,9 @@
     "start": "ncu -u -x prettier; npm install; cd docs; python3 -m http.server"
   },
   "devDependencies": {
-    "eslint": "^8.52.0",
+    "eslint": "^8.53.0",
     "eslint-config-mdcs": "^5.0.0",
-    "eslint-plugin-import": "^2.28.1",
+    "eslint-plugin-import": "^2.29.0",
     "npm-check-updates": "^16.14.6",
     "prettier": "^2.8.8",
     "prettier-eslint-cli": "^8.0.1"
