@@ -1,66 +1,66 @@
 {
-		"defaultProfile": "{fb7297e1-916c-44e6-a8b2-5219fe9f9e5f}",
-		"launchMode": "focus",
-		"copyOnSelect": true,
-		"newTabMenu": [
-				{
-						"type": "remainingProfiles"
-				}
-		],
-		"profiles": {
-				"defaults": {
-						"font": {
-								"face": "Hack Nerd Font",
-								"size": 17,
-								"weight": "normal"
-						},
-						"padding": "0",
-						"scrollbarState": "hidden",
-						"colorScheme": "Muted Pascal"
-				},
-				"list": [
-						{
-								"commandline": "wsl.exe ~",
-								"guid": "{fb7297e1-916c-44e6-a8b2-5219fe9f9e5f}",
-								"hidden": false,
-								"icon": "ms-appx:///ProfileIcons/{9acb9455-ca41-5af7-950f-6bca1bc9722f}.png",
-								"name": "Ubuntu-22.04"
-						},
-						{
-								"guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
-								"hidden": false,
-								"name": "Windows PowerShell"
-						},
-						{
-								"guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
-								"hidden": false,
-								"name": "Command Prompt"
-						}
-				]
+	"defaultProfile": "{fb7297e1-916c-44e6-a8b2-5219fe9f9e5f}",
+	"launchMode": "focus",
+	"copyOnSelect": true,
+	"newTabMenu": [
+		{
+			"type": "remainingProfiles"
+		}
+	],
+	"profiles": {
+		"defaults": {
+			"font": {
+				"face": "Hack Nerd Font",
+				"size": 17,
+				"weight": "normal"
+			},
+			"padding": "0",
+			"scrollbarState": "hidden",
+			"colorScheme": "Muted Pascal"
 		},
-		"actions": [],
-		"schemes": [
-				{
-						"name": "Muted Pascal",
-						"background": "#323a4b",
-						"foreground": "#dddddd",
-						"black": "#101113",
-						"red": "#785C62",
-						"green": "#668255",
-						"yellow": "#A08B77",
-						"blue": "#576D94",
-						"purple": "#6B6070",
-						"cyan": "#608A8D",
-						"white": "#777777",
-						"brightBlack": "#111111",
-						"brightRed": "#8E6B71",
-						"brightGreen": "#72A175",
-						"brightYellow": "#B59E89",
-						"brightBlue": "#7C8FA6",
-						"brightPurple": "#8E81A0",
-						"brightCyan": "#81A7AA",
-						"brightWhite": "#BBBBBB"
-				}
-		],
-				"themes": []
+		"list": [
+			{
+				"commandline": "wsl.exe ~",
+				"guid": "{fb7297e1-916c-44e6-a8b2-5219fe9f9e5f}",
+				"hidden": false,
+				"icon": "ms-appx:///ProfileIcons/{9acb9455-ca41-5af7-950f-6bca1bc9722f}.png",
+				"name": "Ubuntu-22.04"
+			},
+			{
+				"guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+				"hidden": false,
+				"name": "Windows PowerShell"
+			},
+			{
+				"guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+				"hidden": false,
+				"name": "Command Prompt"
+			}
+		]
+	},
+	"actions": [],
+	"schemes": [
+		{
+			"name": "Muted Pascal",
+			"background": "#323a4b",
+			"foreground": "#dddddd",
+			"black": "#101113",
+			"red": "#785C62",
+			"green": "#668255",
+			"yellow": "#A08B77",
+			"blue": "#576D94",
+			"purple": "#6B6070",
+			"cyan": "#608A8D",
+			"white": "#777777",
+			"brightBlack": "#111111",
+			"brightRed": "#8E6B71",
+			"brightGreen": "#72A175",
+			"brightYellow": "#B59E89",
+			"brightBlue": "#7C8FA6",
+			"brightPurple": "#8E81A0",
+			"brightCyan": "#81A7AA",
+			"brightWhite": "#BBBBBB"
+		}
+	],
+	"themes": []
 }

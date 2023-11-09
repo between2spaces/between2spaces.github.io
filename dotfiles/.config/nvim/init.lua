@@ -45,7 +45,7 @@ map('<leader>c', ':e $MYVIMRC<cr>') -- Configuration
 map('<leader>w', ':w<cr>') -- Write file
 map('<leader><tab>', ':b <c-z>') -- Buffer menu 
 map('<leader>d', ':bd<cr>') -- Buffer delete
-map('<leader>p', ':silent! 17Lex<cr>') -- Left Explorer
+map('<leader>p', ':silent! 20Lex<cr>') -- Left Explorer
 map('<leader>f', "mmgggqG'm" ) -- Format buffer
 map('<leader>q', ':ZZ<cr>' ) -- Quit
 map('<leader>h', ':Telescope help_tags<cr>' ) -- Fuzzy find help
