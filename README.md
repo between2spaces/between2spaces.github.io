@@ -1,6 +1,6 @@
 https://github.dev/between2spaces/between2spaces.github.io/blob/master/README.md
 
-## AI 
+## AI
 * https://chat.openai.com/
 * https://www.bing.com/create
 
@@ -14,7 +14,8 @@ https://github.dev/between2spaces/between2spaces.github.io/blob/master/README.md
 ## property
 * https://www.valuergeneral.nsw.gov.au/services/sales-enquiry.htm
 * http://house.speakingsame.com/p.php?q=Ryde%2C+NSW
-
+## prop
+## prop
 ## hardware
 * https://www.techpowerup.com/gpu-specs/
 * https://www.guru3d.com/files-details/display-driver-uninstaller-download.html
