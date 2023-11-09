@@ -15,3 +15,6 @@
 
 ## hardware
 / https://www.techpowerup.com/gpu-specs/
+/ https://www.guru3d.com/files-details/display-driver-uninstaller-download.html
+/ https://nvidiaprofileinspector.com/download-nvidia-profile-inspector/
+/ https://www.asus.com/motherboards-components/motherboards/prime/prime-b365m-a/helpdesk_download/?model2Name=PRIME-B365M-A
