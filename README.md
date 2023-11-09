@@ -26,11 +26,14 @@
 
 ## web
 * https://addons.mozilla.org/en-US/firefox/addon/ublock-origin
-* https://addons.mozilla.org/en-US/firefox/addon/vimium-c
+* https://github.com/tridactyl/tridactyl
 * https://addons.mozilla.org/en-US/firefox/addon/universal-video-maximizer
 * https://addons.mozilla.org/en-US/firefox/addon/new-tab-override
 * https://addons.mozilla.org/en-US/firefox/addon/firemonkey
 * https://greasyfork.org/en/scripts/811-resize-yt-to-window-size
+
+## home
+* http://router.asus.com
 
 ## desktop
 * https://www.nerdfonts.com/
