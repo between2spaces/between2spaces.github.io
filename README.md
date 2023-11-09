@@ -1,11 +1,7 @@
-# between2spaces
+## AI 
+ai / https://chat.openai.com/
+ai / https://www.bing.com/create
 
-## Installation
-
-```
-bash <(curl -H 'Cache-Control: no-cache, no-store' -s https://raw.githubusercontent.com/between2spaces/between2spaces.github.io/master/install.sh)
-```
-
-github | [pages](https://between2spaces.github.io)
-
-
+## buy
+buy / https://www.ozbargain.com.au/
+buy / https://whirlpool.net.au/wiki/rmp_sg_whirlpoolpcs_gaming_configs_1
