@@ -2,24 +2,35 @@
 * 
 
 ## daily
-* https://www.youtube.com
+* https://mail.google.com
 * https://old.reddit.com/new
 * https://forums.whirlpool.net.au
 * https://twitter.com
+
+## watch
+* https://www.youtube.com
+* https://www.twitch.tv
+* https://flixtor.to
+
+## comm
+* https://www.messenger.com
 * https://discord.com/channels/@me
 
 ## ai
 * https://chat.openai.com
 * https://www.bing.com/create
 
-## apps
-* https://mail.google.com
-* https://calendar.google.com
-* https://docs.google.com
-
 ## webdev
 * https://glitch.com/
 * https://webgpufundamentals.org/webgpu/lessons/webgpu-fundamentals.html
+
+## web
+* https://addons.mozilla.org/en-US/firefox/addon/ublock-origin
+* https://addons.mozilla.org/en-US/firefox/addon/vimium-c
+* https://addons.mozilla.org/en-US/firefox/addon/universal-video-maximizer
+* https://addons.mozilla.org/en-US/firefox/addon/new-tab-override
+* https://addons.mozilla.org/en-US/firefox/addon/firemonkey
+* https://greasyfork.org/en/scripts/811-resize-yt-to-window-size
 
 ## desktop
 * https://www.nerdfonts.com/
