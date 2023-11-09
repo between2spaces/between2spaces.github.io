@@ -1,7 +1,17 @@
 ## AI 
-ai / https://chat.openai.com/
-ai / https://www.bing.com/create
+/ https://chat.openai.com/
+/ https://www.bing.com/create
 
 ## buy
-buy / https://www.ozbargain.com.au/
-buy / https://whirlpool.net.au/wiki/rmp_sg_whirlpoolpcs_gaming_configs_1
+/ https://www.ozbargain.com.au/
+/ https://whirlpool.net.au/wiki/rmp_sg_whirlpoolpcs_gaming_configs_1
+/ https://www.mwave.com.au/
+/ http://www.staticice.com.au/
+/ https://au.pcpartpicker.com/
+
+## property
+/ https://www.valuergeneral.nsw.gov.au/services/sales-enquiry.htm
+/ http://house.speakingsame.com/p.php?q=Ryde%2C+NSW
+
+## hardware
+/ https://www.techpowerup.com/gpu-specs/
