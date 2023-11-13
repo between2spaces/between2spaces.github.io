@@ -4,7 +4,7 @@ const ws = new WebSocket(`ws://localhost:${process.env.PORT}`);
 
 ws.on('open', () => handleOpen());
 ws.on('close', () => handleClose());
-ws.on('message', (data) => handleMessage(data.data));
+ws.on('message', (data) => handleMessage(data));
 ws.on('error', (error) => handleError(error));
 
 function handleOpen() {
