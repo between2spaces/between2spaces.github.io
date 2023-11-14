@@ -41,7 +41,7 @@
 	"schemes": [
 		{
 			"name": "Muted Pascal",
-			"background": "#323a4b",
+			"background": "#1c1c1c",
 			"foreground": "#dddddd",
 			"black": "#101113",
 			"red": "#785C62",

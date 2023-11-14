@@ -36,21 +36,21 @@ opt.wildignore = "**/node_modules/**"
 opt.path = ".,,**"
 
 
-local map = function (lhs, rhs)
-	vim.keymap.set('n', lhs, rhs, { noremap = true } )
+local map = function (mode, lhs, rhs)
+	vim.keymap.set(mode, lhs, rhs, { noremap = true } )
 end
 
-map('<tab>', ':bn<cr>')
-map('<leader>c', ':e $MYVIMRC<cr>') -- Configuration
-map('<leader>w', ':w<cr>') -- Write file
-map('<leader><tab>', ':b <c-z>') -- Buffer menu 
-map('<leader>d', ':bd<cr>') -- Buffer delete
-map('<leader>p', ':silent! 20Lex<cr>') -- Left Explorer
-map('<leader>f', "mmgggqG'm" ) -- Format buffer
-map('<leader>q', ':ZZ<cr>' ) -- Quit
-map('<leader>h', ':Telescope help_tags<cr>' ) -- Fuzzy find help
-map('<leader>b', ':Telescope buffers<cr>' ) -- Fuzzy find buffers
-map('<leader>e', ':Telescope find_files<cr>' ) -- Fuzzy find files
+map('n', '<tab>', ':bn<cr>')
+map('n', '<leader>c', ':e $MYVIMRC<cr>') -- Configuration
+map('n', '<leader>w', ':w<cr>') -- Write file
+map('n', '<leader><tab>', ':b <c-z>') -- Buffer menu 
+map('n', '<leader>d', ':bd<cr>') -- Buffer delete
+map('n', '<leader>p', ':silent! 20Lex<cr>') -- Left Explorer
+map('n', '<leader>f', "mmgggqG'm" ) -- Format buffer
+map('n', '<leader>q', ':ZZ<cr>' ) -- Quit
+map('n', '<leader>h', ':Telescope help_tags<cr>' ) -- Fuzzy find help
+map('n', '<leader>b', ':Telescope buffers<cr>' ) -- Fuzzy find buffers
+map('n', '<leader>e', ':Telescope find_files<cr>' ) -- Fuzzy find files
 
 
 
@@ -83,7 +83,7 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require('lazy').setup({
-	{'nvim-telescope/telescope.nvim', tag = '0.1.x', dependencies = {'nvim-lua/plenary.nvim'}},
+	{'nvim-telescope/telescope.nvim', dependencies = {'nvim-lua/plenary.nvim'}},
 	{
 		'folke/which-key.nvim',
 		event = 'VeryLazy',
