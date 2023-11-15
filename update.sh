@@ -35,9 +35,11 @@ for dotfile in dotfiles/.config/[a-z]*; do
 	echo -e "${HOME}/.config/${dotfile} ${GREEN}✓${NOCOLOUR}"
 done
 
-# Add deadsnakes open source repository, if not already, needed for Python3.12
+# Attempt to add the deadsnakes open source repository, needed for Python3.12
 if [ ! -f /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list ]; then
+	set +e
 	sudo add-apt-repository -y ppa:deadsnakes/ppa
+	set -e
 fi
 
 # Full apt update, upgrade, remove, clean cycle
@@ -48,16 +50,22 @@ sudo apt dist-upgrade -y
 sudo apt autoremove -y
 sudo apt autoclean -y
 
-# Install Python3.12
-echo -e "\n${YELLOW}# Install Python3.12${NOCOLOUR}\n"
-sudo apt install -y python3.12
+# Install Python3.12 if we successfully added the deadsnakes repo
+if [ -f /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list ]; then
+	echo -e "\n${YELLOW}# Install Python3.12${NOCOLOUR}\n"
+	sudo apt install -y python3.12
+fi
 
 # Python virtual environment
 echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
 cd ~
-python3.12 -m venv --without-pip env
+if [ "$(which python3.12)" == "" ]; then 
+	python3 -m venv --without-pip env
+else
+	python3.12 -m venv --without-pip env
+fi
 source env/bin/activate
-curl https://bootstrap.pypa.io/get-pip.py | python
+curl -k https://bootstrap.pypa.io/get-pip.py | python
 cd $CWD
 
 # Powerline-shell

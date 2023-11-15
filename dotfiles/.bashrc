@@ -43,6 +43,11 @@ export EDITOR="$VISUAL"
 export SUDO_EDITOR="$VISUAL"
 
 
+# Set USERPROFILE for Windows host user home
+
+export USERPROFILE=$(wslpath $(echo "$(cmd.exe /Q /C "echo %userprofile%" 2>/dev/null)" | sed "s/\r$//"))
+
+
 # activate Python virtual environment if available
 
 if [ -f ~/env/bin/activate ]; then
