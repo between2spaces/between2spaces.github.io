@@ -106,6 +106,11 @@ echo -e "\n${YELLOW}# Node package manager${NOCOLOUR}\n"
 nvm install node
 nvm install-latest-npm
 
+# Install package.json packages; check for updates; install updates
+npm install
+npx npm-check-updates -u
+npm install
+
 # Source .bashrc
 . "$HOME/.bashrc"
 

@@ -42,6 +42,7 @@ end
 
 map('n', '<tab>', ':bn<cr>')
 map('n', '<leader>c', ':e $MYVIMRC<cr>') -- Configuration
+map('n', '<leader>t', ':e ~/between2spaces.github.io/terminal/settings.json<cr>') -- Terminal settings
 map('n', '<leader>w', ':w<cr>') -- Write file
 map('n', '<leader><tab>', ':b <c-z>') -- Buffer menu 
 map('n', '<leader>d', ':bd<cr>') -- Buffer delete
@@ -70,6 +71,15 @@ hl( 0, 'PmenuSel', { ctermbg = 'White', ctermfg = 'Black' } )
 hl( 0, 'Comment', { ctermfg = 'DarkGrey' } )
 
 
+-- lsp
+vim.lsp.start({
+	name = 'tsserver',
+	cmd = {'npx typescript-language-server --stdio'},
+	root_dir = vim.fs.dirname('~/between2spaces.github.io/'),
+})
+
+
+
 -- Plugin management
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 
@@ -93,30 +103,6 @@ require('lazy').setup({
 		end,
 		opts = {},
 	},
-	{'VonHeikemen/lsp-zero.nvim', branch = 'v3.x'},
-	{'williamboman/mason.nvim'},
-	{'williamboman/mason-lspconfig.nvim'},
 	{'neovim/nvim-lspconfig'},
-	{'hrsh7th/cmp-nvim-lsp'},
-	{'hrsh7th/nvim-cmp'},
-	{'L3MON4D3/LuaSnip'},
-})
-
-local lsp_zero = require('lsp-zero')
-
-lsp_zero.on_attach(function(client, bufnr)
-	-- see :help lsp-zero-keybindings
-	-- to learn the available actions
-	lsp_zero.default_keymaps({buffer = bufnr})
-end)
-
--- see :help lsp-zero-guide:integrate-with-mason-nvim
--- to learn how to use mason.nvim with lsp-zero
-require('mason').setup({})
-require('mason-lspconfig').setup({
-	ensure_installed = {'tsserver'},
-	handlers = {
-		lsp_zero.default_setup,
-	}
 })
 

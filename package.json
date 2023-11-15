@@ -7,14 +7,16 @@
   "licence": "MIT",
   "type": "module",
   "scripts": {
-    "start": "ncu -u -x prettier; npm install; cd docs; python3 -m http.server"
+    "start": "npm install; npx npm-check-updates -u; npm install; cd docs; python3 -m http.server"
   },
   "devDependencies": {
     "eslint": "^8.53.0",
     "eslint-config-mdcs": "^5.0.0",
     "eslint-plugin-import": "^2.29.0",
     "npm-check-updates": "^16.14.6",
-    "prettier": "^2.8.8",
-    "prettier-eslint-cli": "^8.0.1"
+    "prettier": "^3.1.0",
+    "prettier-eslint-cli": "^8.0.1",
+	"typescript-language-server": "^4.1.2",
+	"typescript": "^5.2.2"
   }
 }
