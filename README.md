@@ -11,6 +11,7 @@
 * https://www.youtube.com
 * https://www.twitch.tv
 * https://flixtor.to
+* https://en.xemthethao.live
 
 ## comm
 * https://www.messenger.com

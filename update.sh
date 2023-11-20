@@ -76,6 +76,11 @@ pip install powerline-shell
 echo -e "\n${YELLOW}# Neovim clipoard support for WSL2${NOCOLOUR}\n"
 sudo apt install wl-clipboard
 
+
+# Install ripgrep requried for NeoVim Telescope
+echo -e "\n${YELLOW}# ripgrep ${NOCOLOR}\n"
+sudo apt install ripgrep
+
 # Neovim
 if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
 	echo -e "\n${YELLOW}# Neovim not found or binary is older than a week, installing latest release...${NOCOLOUR}\n"
@@ -110,6 +115,9 @@ nvm install-latest-npm
 npm install
 npx npm-check-updates -u
 npm install
+
+# Install vtsls language server for Neovim LSP
+npm install -g @vtsls/language-server
 
 # Source .bashrc
 . "$HOME/.bashrc"
