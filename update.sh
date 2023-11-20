@@ -7,14 +7,15 @@ NOCOLOUR='\e[0m'
 
 # Git global config
 echo -e "\n${YELLOW}# Git set global config${NOCOLOUR}\n"
-git config --global credential.helper "store"
-echo -e "git config --global credential.helper "store" ${GREEN}✓${NOCOLOUR}"
-git config --global user.email "between2spaces@gmail.com"
-echo -e "git config --global user.email "between2spaces@gmail.com" ${GREEN}✓${NOCOLOUR}"
-git config --global user.name "between2spaces"
-echo -e "git config --global user.name "between2spaces" ${GREEN}✓${NOCOLOUR}"
-git config --global pull.rebase true
-echo -e "git config --global pull.rebase true ${GREEN}✓${NOCOLOUR}"
+git config credential.helper "store"
+echo -e "git config credential.helper "store" ${GREEN}✓${NOCOLOUR}"
+git config user.email "between2spaces@gmail.com"
+echo -e "git config user.email "between2spaces@gmail.com" ${GREEN}✓${NOCOLOUR}"
+git config user.name "between2spaces"
+echo -e "git config user.name "between2spaces" ${GREEN}✓${NOCOLOUR}"
+git config pull.rebase true
+echo -e "git config pull.rebase true ${GREEN}✓${NOCOLOUR}"
+
 
 # Dotfiles
 echo -e "\n${YELLOW}# Dotfiles${NOCOLOUR}\n"
