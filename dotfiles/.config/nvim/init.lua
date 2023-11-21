@@ -302,6 +302,11 @@ vim.keymap.set('n', '<leader>cf', "mmgggqG'm", { desc = 'Format' })
 vim.keymap.set('n', '<leader>fc', ':e $MYVIMRC<cr>', { desc = 'Config file' })
 
 
+-- Next/previous buffer
+vim.keymap.set('n', '<tab>', ':bnext<cr>', { desc = 'Next buffer' })
+vim.keymap.set('n', '<s-tab>', ':bprevious<cr>', { desc = 'Previous buffer' })
+
+
 -- [[ Highlight on yank ]]
 -- See `:help vim.highlight.on_yank()`
 local highlight_group = vim.api.nvim_create_augroup('YankHighlight', { clear = true })
