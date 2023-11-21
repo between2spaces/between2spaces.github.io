@@ -2,19 +2,18 @@ export default class Terminal {
 	static BLACK = [0, 0, 0, 1];
 	static WHITE = [1, 1, 1, 1];
 	static YELLOW = [1, 1, 0.7, 1];
+	static MAX_COL = 999;
+	static MAX_ROW = 999;
 
-	constructor(layers = [{ cols: 80, rows: 25 }], container = document.body) {
+	constructor(container = document.body) {
 		this.layers = [];
 
-		for (let i = 0; i < layers.length; i++) {
-			const layer = layers[i];
-			this.layers.push({
-				cols: layer.cols || 80,
-				rows: layer.rows || 25,
-				colour: layer.colour || Terminal.WHITE,
-				wrap: true,
-			});
-		}
+		this.layers.push({
+			cols: Terminal.MAX_COL,
+			rows: Terminal.MAX_ROW,
+			colour: Terminal.WHITE,
+			wrap: true,
+		});
 
 		this.context = createWebGLContext(container);
 		this.shader = createShader(this.context.gl);
@@ -22,20 +21,16 @@ export default class Terminal {
 
 		resizeObserver.observe(container);
 
-		let cols = this.layers[0].cols;
-		let rows = this.layers[0].rows;
-
 		this.projection = {near: 0, far: 100};
 		this.modelViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 		this.modelViewDirty = true;
 
-		this.setView(0, 0, cols/2, -rows/2);
-
+		this.setView(0, 0, 80, 25);
+		this.buildBuffers();
 		this.setCharacterSet(
 			"0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕",
 			1024,
 		);
-		this.buildBuffers();
 
 		terminals.push(this);
 		this.dirty = true;

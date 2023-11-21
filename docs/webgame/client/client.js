@@ -1,9 +1,8 @@
 import Terminal from "./terminal.js";
 
 export default function main(container) {
-	const term = new Terminal([{ cols: 20, rows: 25 }], container);
+	const term = new Terminal(container);
 	term.setBackground("#172b2c");
-
 	term.put(0, 0, "╭");
 	term.put(term.cols - 1, 0, "╮");
 	term.setColour(Terminal.YELLOW);

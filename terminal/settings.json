@@ -9,6 +9,7 @@
 	"profiles": {
 		"defaults": {
 			"font": {
+				"face": "Hack Nerd Font",
 				"size": 15
 			},
 			"padding": "0",
