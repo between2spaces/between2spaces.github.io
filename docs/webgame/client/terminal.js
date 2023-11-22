@@ -2,8 +2,8 @@ export default class Terminal {
 	static BLACK = [0, 0, 0, 1];
 	static WHITE = [1, 1, 1, 1];
 	static YELLOW = [1, 1, 0.7, 1];
-	static MAX_COL = 999;
-	static MAX_ROW = 999;
+	static MAX_COL = 1;
+	static MAX_ROW = 1;
 
 	constructor(container = document.body) {
 		this.layers = [];
@@ -21,15 +21,17 @@ export default class Terminal {
 
 		resizeObserver.observe(container);
 
-		this.projection = {near: 0, far: 100};
+		this.projection = { near: 0, far: 100 };
 		this.modelViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 		this.modelViewDirty = true;
 
-		this.setView(0, 0, 80, 25);
+		this.setView(0, 0, Terminal.MAX_ROW, Terminal.MAX_COL);
 		this.buildBuffers();
 		this.setCharacterSet(
-			"0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└←↑→↓↖↗↘↙↔↕",
-			1024,
+			"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+				"abcdefghijklmnopqrstuvwxyz~!@#$%^&*(" +
+				")_+[]{}\\|;':\",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└" +
+				"←↑→↓↖↗↘↙↔↕"
 		);
 
 		terminals.push(this);
@@ -84,6 +86,8 @@ export default class Terminal {
 		const near = projection.near;
 		const far = projection.far;
 
+		bottom = -bottom;
+
 		projection.right = right;
 		projection.left = left;
 		projection.top = top;
@@ -94,9 +98,18 @@ export default class Terminal {
 		const nf = 1 / (near - far);
 
 		this.projectionMatrix = [
-			-2 * lr, 0, 0, 0,
-			0, -2 * bt, 0, 0,
-			0, 0, 2 * nf, 0,
+			-2 * lr,
+			0,
+			0,
+			0,
+			0,
+			-2 * bt,
+			0,
+			0,
+			0,
+			0,
+			2 * nf,
+			0,
 			(left + right) * lr,
 			(top + bottom) * bt,
 			(far + near) * nf,
@@ -108,7 +121,7 @@ export default class Terminal {
 
 	buildBuffers() {}
 
-	setCharacterSet(characters, size = 1024, fontFamily = "monospace") {
+	setCharacterSet(characters, size = 2048, fontFamily = "monospace") {
 		const gl = this.context.gl;
 		const { texture, uvs } = createCharactersTexture(gl, characters, size);
 		this.texture = texture;
@@ -120,9 +133,8 @@ export default class Terminal {
 			let vertices = degeneratedTriangleStripeVertices(
 				layer.cols,
 				layer.rows,
-				layerZ,
 			);
-			let textureCoord = new Array((vertices.length * 2) / 3);
+			let textureCoord = new Array(vertices.length);
 
 			let top = 1 + layer.rows * 0.5;
 
@@ -160,38 +172,26 @@ export default class Terminal {
 
 			layer.indicesPerRow = (layer.cols + 1) * 4;
 			layer.indicesTotal = layer.indicesPerRow * layer.rows - 3;
-
-			layer.vertices = {
-				typedArray: new Float32Array(vertices),
-				size: 3,
-				buffer: gl.createBuffer(),
-				dirty: true,
-			};
-			layer.colours = {
-				typedArray: new Float32Array(colours),
-				size: 4,
-				buffer: gl.createBuffer(),
-				dirty: true,
-			};
-
-			layer.textureCoord = {
-				typedArray: new Float32Array(textureCoord),
-				size: 2,
-				buffer: gl.createBuffer(),
-				dirty: true,
-			};
+			layer.indices = ( layer.cols * 4 ) * layer.rows;
 
 			//layer.modelViewMatrix = [ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, layerZ ++, 1 ];
 			layer.z = layerZ;
 			layerZ++;
 
 			// Load the vertices buffer to GPU and tell WebGL how to pull positions into the vertexPosition attribute
+			console.log(vertices);
+			layer.vertices = {
+				typedArray: new Uint16Array(vertices),
+				size: 2,
+				buffer: gl.createBuffer(),
+				dirty: true,
+			};
 			gl.bindBuffer(gl.ARRAY_BUFFER, layer.vertices.buffer);
 			gl.bufferData(gl.ARRAY_BUFFER, layer.vertices.typedArray, gl.STATIC_DRAW);
 			gl.vertexAttribPointer(
 				this.shader.attributes.vertexPosition,
-				layer.vertices.size,
-				gl.FLOAT,
+				2,
+				gl.SHORT,
 				false,
 				0,
 				0,
@@ -199,6 +199,12 @@ export default class Terminal {
 			gl.enableVertexAttribArray(this.shader.attributes.vertexPosition);
 
 			// Load the colours buffer to GPU and tell WebGL how to pull colors into the vertexColor attribute
+			layer.colours = {
+				typedArray: new Float32Array(colours),
+				size: 4,
+				buffer: gl.createBuffer(),
+				dirty: true,
+			};
 			gl.bindBuffer(gl.ARRAY_BUFFER, layer.colours.buffer);
 			gl.bufferData(gl.ARRAY_BUFFER, layer.colours.typedArray, gl.STATIC_DRAW);
 			gl.vertexAttribPointer(
@@ -212,6 +218,12 @@ export default class Terminal {
 			gl.enableVertexAttribArray(this.shader.attributes.colour);
 
 			// Load the textureCoord buffer to GPU and tell WebGL how to pull texture coordinates into the textureCoord attribute
+			layer.textureCoord = {
+				typedArray: new Float32Array(textureCoord),
+				size: 2,
+				buffer: gl.createBuffer(),
+				dirty: true,
+			};
 			gl.bindBuffer(gl.ARRAY_BUFFER, layer.textureCoord.buffer);
 			gl.bufferData(
 				gl.ARRAY_BUFFER,
@@ -378,14 +390,14 @@ export default class Terminal {
 				layer.vertices.dirty = false;
 			}
 
-			gl.vertexAttribPointer(
-				this.shader.attributes.vertexPosition,
-				layer.vertices.size,
-				gl.FLOAT,
-				false,
-				0,
-				0,
-			);
+			//gl.vertexAttribPointer(
+			//	this.shader.attributes.vertexPosition,
+			//	layer.vertices.size,
+			//	gl.FLOAT,
+			//	false,
+			//	0,
+			//	0,
+			//);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, layer.textureCoord.buffer);
 
@@ -394,14 +406,14 @@ export default class Terminal {
 				layer.textureCoord.dirty = false;
 			}
 
-			gl.vertexAttribPointer(
-				this.shader.attributes.textureCoord,
-				layer.textureCoord.size,
-				gl.FLOAT,
-				false,
-				0,
-				0,
-			);
+			//gl.vertexAttribPointer(
+			//	this.shader.attributes.textureCoord,
+			//	layer.textureCoord.size,
+			//	gl.FLOAT,
+			//	false,
+			//	0,
+			//	0,
+			//);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, layer.colours.buffer);
 
@@ -410,16 +422,16 @@ export default class Terminal {
 				layer.textureCoord.dirty = false;
 			}
 
-			gl.vertexAttribPointer(
-				this.shader.attributes.colour,
-				layer.colours.size,
-				gl.FLOAT,
-				false,
-				0,
-				0,
-			);
+			//gl.vertexAttribPointer(
+			//	this.shader.attributes.colour,
+			//	layer.colours.size,
+			//	gl.FLOAT,
+			//	false,
+			//	0,
+			//	0,
+			//);
 
-			gl.drawArrays(gl.TRIANGLE_STRIP, 0, layer.indicesTotal);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, layer.indices);
 		}
 
 		this.dirty = false;
@@ -429,7 +441,7 @@ export default class Terminal {
 function createWebGLContext(container) {
 	const canvas = document.createElement("canvas");
 	container.append(canvas);
-	const gl = canvas.getContext("webgl", { antialias: false });
+	const gl = canvas.getContext("webgl2", { antialias: false });
 	gl.clearColor(0.0, 0.0, 0.0, 1.0);
 	gl.clearDepth(1.0);
 	gl.disable(gl.DEPTH_TEST);
@@ -442,16 +454,17 @@ function createShader(gl) {
 	const vertexShader = gl.createShader(gl.VERTEX_SHADER);
 	gl.shaderSource(
 		vertexShader,
-		`
-		attribute vec4 aVertexPosition;
-		attribute vec2 aTextureCoord;
-		attribute vec4 aColour;
+		`#version 300 es
+		in vec2 aPosition;
+		in vec2 aTextureCoord;
+		in vec4 aColour;
 		uniform mat4 uModelViewMatrix;
 		uniform mat4 uProjectionMatrix;
-		varying highp vec2 vTextureCoord;
-		varying highp vec4 vColour;
+		out vec2 vTextureCoord;
+		out vec4 vColour;
 		void main() {
-			gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+			//gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition.x, aPosition.y, 0, 1.0);
+			gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 			vTextureCoord = aTextureCoord;
 			vColour = aColour;
 		}
@@ -466,12 +479,14 @@ function createShader(gl) {
 	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 	gl.shaderSource(
 		fragmentShader,
-		`
-		varying highp vec2 vTextureCoord;
-		varying highp vec4 vColour;
+		`#version 300 es
+		precision highp float;
+		in vec2 vTextureCoord;
+		in vec4 vColour;
 		uniform sampler2D uTexture;
+		out vec4 outColor;
 		void main() {
-			gl_FragColor = texture2D(uTexture, vTextureCoord) * vColour;
+			outColor = texture(uTexture, vTextureCoord) * vColour;
 		}
 	`,
 	);
@@ -492,7 +507,7 @@ function createShader(gl) {
 	}
 
 	const attributes = {
-		vertexPosition: gl.getAttribLocation(program, "aVertexPosition"),
+		vertexPosition: gl.getAttribLocation(program, "aPosition"),
 		textureCoord: gl.getAttribLocation(program, "aTextureCoord"),
 		colour: gl.getAttribLocation(program, "aColour"),
 	};
@@ -537,7 +552,7 @@ function createCharactersTexture(gl, characters, size = 1024) {
 		let top = (y - metrics.actualBoundingBoxAscent) / size;
 		let right = (x + 0.5 * metrics.width) / size;
 		let bottom = (y + metrics.actualBoundingBoxDescent) / size;
-		uvs[characters[i]] = [left, bottom, left, top, right, bottom, right, top];
+		uvs[characters[i]] = [left, top, left, bottom, right, top, right, bottom];
 	}
 
 	const texture = gl.createTexture();
@@ -551,44 +566,54 @@ function createCharactersTexture(gl, characters, size = 1024) {
 	return { texture, uvs };
 }
 
-function degeneratedTriangleStripeVertices(cols, rows, z = 0) {
+function degeneratedTriangleStripeVertices(cols, rows) {
 	const vertices = [];
-	let top = 1 + rows * 0.5;
+	//let top = 1 + rows * 0.5;
 
-	for (let row = 0; row < rows; row++) {
-		top--;
+	//for (let row = 0; row < rows; row++) {
+	//	top--;
 
-		let bottom = top - 1;
-		let left = -1 - cols * 0.5;
+	//	let bottom = top - 1;
+	//	let left = -1 - cols * 0.5;
 
+	//	for (let col = 0; col < cols; col++) {
+	//		left++;
+
+	//		let right = left + 1;
+
+	//		if (row > 0 && col === 0) {
+	//			vertices.push(left, bottom, z, left, bottom, z, left, bottom, z);
+	//		}
+
+	//		vertices.push(
+	//			left,
+	//			bottom,
+	//			z,
+	//			left,
+	//			top,
+	//			z,
+	//			right,
+	//			bottom,
+	//			z,
+	//			right,
+	//			top,
+	//			z,
+	//		);
+
+	//		if (col === cols - 1) {
+	//			vertices.push(right, top, z);
+	//		}
+	//	}
+	//}
+	const left = -cols * 0.5;
+	const top = rows * 0.5;
+	for (let row = 0; row > -rows; row--) {
 		for (let col = 0; col < cols; col++) {
-			left++;
-
-			let right = left + 1;
-
-			if (row > 0 && col === 0) {
-				vertices.push(left, bottom, z, left, bottom, z, left, bottom, z);
-			}
-
-			vertices.push(
-				left,
-				bottom,
-				z,
-				left,
-				top,
-				z,
-				right,
-				bottom,
-				z,
-				right,
-				top,
-				z,
-			);
-
-			if (col === cols - 1) {
-				vertices.push(right, top, z);
-			}
+			vertices.push(col, row, col, row - 1, col + 1, row, col + 1, row - 1);
 		}
+		//if (row > 0) {
+		//		vertices.push(
+		//}
 	}
 
 	return vertices;
