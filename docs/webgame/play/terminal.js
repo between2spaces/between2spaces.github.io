@@ -164,6 +164,12 @@ class Pane {
 
 		this.paneMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 
+		const { canvas, ctx, imageData, texture } = createCanvasTexture(gl, size);
+		this.paneTexture = texture;
+		this.gl.activeTexture(this.gl.TEXTURE1);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, this.paneTexture);
+
+
 		let colours = [];
 		let vertices = degeneratedTriangleStripeVertices(this.cols, this.rows);
 		let textureCoord = new Array(vertices.length);
@@ -423,11 +429,65 @@ function createShader(gl) {
 	return { program, attributes, uniforms };
 }
 
-function createCharactersTexture(gl, characters, size = 1024) {
+function createCanvasTexture(gl, size = 1024) {
 	const canvas = document.createElement('canvas');
 	canvas.width = canvas.height = size;
 	const ctx = canvas.getContext('2d');
+	ctx.clearRect(0, 0, size, size);
+	const imageData = ctx.getImageData(0, 0, size, size);
+	const texture = gl.createTexture();
+	return { canvas, ctx, imageData, texture };
+}
 
+function updateTexture(gl, texture, image) {
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+}
+
+function updateImageData(image) {
+
+		const heightdata = this.heightmap.imageData.data;
+
+		for ( let zi = 0; zi < this.size; zi ++ ) {
+
+			for ( let xi = 0; xi < this.size; xi ++ ) {
+
+				let height = 0;
+
+				for ( let octave of octaves ) height += this.noise( xi * octave.frequency, zi * octave.frequency ) * octave.amplitude;
+
+				let dx = 0;
+				let dz = 0;
+
+				if ( xi < this.edgeWidth ) dx = this.edgeWidth - xi;
+				if ( zi < this.edgeWidth ) dz = this.edgeWidth - zi;
+				if ( zi > this.size - this.edgeWidth ) dz = zi - ( this.size - this.edgeWidth );
+				if ( xi > this.size - this.edgeWidth ) dx = xi - ( this.size - this.edgeWidth );
+
+				let edgeClamp = ( dx > 0 || dz > 0 ) ? Math.pow( ( edgeSq - Math.sqrt( dx * dx + dz * dz ) ) / edgeSq, 2 ) : 1;
+
+				let index = ( zi * this.size + xi ) * 4;
+
+				heightdata[ index ] = 100 + Math.floor( Math.random() * 100 );
+				heightdata[ index + 1 ] = heightdata[ index ];
+				heightdata[ index + 2 ] = heightdata[ index ];
+				heightdata[ index + 3 ] = ( height + 1 ) * 127 * edgeClamp;
+
+			}
+
+		}
+
+		this.heightmap.ctx.putImageData( this.heightmap.imageData, 0, 0 );
+
+
+}
+
+function createCharactersTexture(gl, characters, size = 1024) {
+	const { canvas, ctx, texture } = createCanvasTexture(gl, size);
 	ctx.clearRect(0, 0, size, size);
 	ctx.fillStyle = 'white';
 	ctx.textAlign = 'center';
@@ -457,13 +517,7 @@ function createCharactersTexture(gl, characters, size = 1024) {
 		uvs[characters[i]] = [left, bottom, left, top, right, bottom, right, top];
 	}
 
-	const texture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+	updateTexture(gl, texture, canvas);
 
 	return { texture, uvs };
 }
