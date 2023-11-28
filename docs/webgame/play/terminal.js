@@ -1,22 +1,35 @@
 export class Terminal {
-	constructor(container = document.body) {
+	constructor(container = document.body, defaults = {}) {
 		this.container = container;
-		this.context = createWebGLContext(container);
+		this.defaults = Object.assign({
+			cols: 20,
+			rows: 20,
+			wrap: true,
+			background: '#172b2c',
+			colour: COLOURS.WHITE,
+			panes: 1
+		}, defaults);
 
+		this.context = createWebGLContext(container);
 		this.gl = this.context.gl;
 
 		this.shader = createShader(this.gl);
 		this.gl.useProgram(this.shader.program);
 		this.gl.uniform1i(this.shader.uniforms.fontTexture, 0);
-		this.gl.uniform1i(this.shader.uniforms.layerTexture, 1);
+		this.gl.uniform1i(this.shader.uniforms.paneTexture, 1);
 
-		this.layers = [];
-		this.addLayer(10, 10);
+		this.setBackground(this.defaults.background);
+
+		this.panes = [];
+
+		for (let index = 0; index < this.defaults.panes; index++) {
+			this.addPane();
+		}
 
 		resizeObserver.observe(container);
 
 		this.projection = { near: 0, far: 100 };
-		this.setView(0, 0, this.layers[0].cols, this.layers[0].rows);
+		this.setView(0, 0, this.panes[0].cols - 1, this.panes[0].rows - 1);
 		this.setCharacterSet(
 			'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
 				'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
@@ -29,20 +42,38 @@ export class Terminal {
 		this.dirty = true;
 	}
 
-	addLayer(cols, rows, index = undefined) {
-		if (index === undefined || index >= this.layers.length) {
-			this.layers.push(new Layer(this, cols, rows));
+	addPane(params={}) {
+
+		params = Object.assign({
+			cols: this.defaults.cols,
+			rows: this.defaults.rows,
+			colour: this.defaults.colour,
+			wrap: this.defaults.wrap
+		}, params);
+
+		params.terminal = this;
+
+		const pane = new Pane(params);
+
+		if (params.index === undefined || params.index >= this.panes.length) {
+			this.panes.push(pane);
 		} else {
-			if (index <= 0) {
-				this.layers.unshift(new Layer(this, cols, rows));
+			if (params.index <= 0) {
+				this.panes.unshift(pane);
 			} else {
-				this.layers.splice(index, new Layer(this, cols, rows));
+				this.panes.splice(params.index, pane);
 			}
 		}
+
+		for (let index in this.panes) {
+			this.panes[index].index = index;
+		}
+
+		return pane;
 	}
 
-	getLayer(layer = 0) {
-		return this.layers[layer];
+	getPane(index = 0) {
+		return this.panes[index];
 	}
 
 	setBackground(colour) {
@@ -114,45 +145,38 @@ export class Terminal {
 	render() {
 		const gl = this.context.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		for (let layer of this.layers) {
-			layer.render();
+		for (let pane of this.panes) {
+			pane.render();
 		}
 		this.dirty = false;
 	}
 }
 
-class Layer {
-	constructor(terminal, cols, rows) {
-		this.terminal = terminal;
-		this.cols = cols;
-		this.rows = rows;
-		this.colour = COLOUR.WHITE;
-		this.wrap = true;
-
-		this.indicesPerRow = cols * 4 + 2;
-		this.indices = this.indicesPerRow * rows - 2;
+class Pane {
+	constructor(params={}) {
+		Object.assign(this, params);
+		this.indicesPerRow = this.cols * 4 + 2;
+		this.indices = this.indicesPerRow * this.rows - 2;
 
 		this.gl = this.terminal.context.gl;
 		this.attribs = this.terminal.shader.attributes;
 		this.uniforms = this.terminal.shader.uniforms;
 
-		this.modelViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-		this.translate(0, 0, 0);
+		this.paneMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 
 		let colours = [];
-		let vertices = degeneratedTriangleStripeVertices(cols, rows);
-		console.log(vertices);
+		let vertices = degeneratedTriangleStripeVertices(this.cols, this.rows);
 		let textureCoord = new Array(vertices.length);
 
-		let top = 1 + rows * 0.5;
+		let top = 1 + this.rows * 0.5;
 
-		for (let row = 0; row < rows; row++) {
+		for (let row = 0; row < this.rows; row++) {
 			top--;
 
 			let bottom = top - 1;
-			let left = -1 - cols * 0.5;
+			let left = -1 - this.cols * 0.5;
 
-			for (let col = 0; col < cols; col++) {
+			for (let col = 0; col < this.cols; col++) {
 				left++;
 
 				let right = left + 1;
@@ -168,7 +192,7 @@ class Layer {
 				colours.push(0.0, 0.0, 0.0, 0.0);
 				colours.push(0.0, 0.0, 0.0, 0.0);
 
-				if (col === cols - 1) {
+				if (col === this.cols - 1) {
 					colours.push(0.0, 0.0, 0.0, 0.0);
 				}
 			}
@@ -211,28 +235,26 @@ class Layer {
 		this.gl.vertexAttribPointer(this.attribs.colour, 4, this.gl.FLOAT, false, 0, 0);
 		this.gl.enableVertexAttribArray(this.attribs.colour);
 
+
 		this.gl.bindVertexArray( null );
 
-		this.dirty = true;
 		this.terminal.dirty = true;
 	}
 
-	translate(x, y, z) {
-		this.modelViewMatrix[0] += x;
-		this.modelViewMatrix[5] += y;
-		this.modelViewMatrix[10] += z;
+	translate(x, y) {
+		this.paneMatrix[12] += x;
+		this.paneMatrix[13] += y;
 	}
 
 	setColour(colour) {
-		this.colour = colour;
+		const rgba = typeof colour === 'string' ? hexToRgba(colour) : colour;
+		this.colour = rgba;
 	}
 
 	put(col, row, char) {
 		if (!this.wrap && (col >= this.cols || row >= this.rows)) {
 			return;
 		}
-
-		console.log(`put(${col},${row},'${char}')`);
 
 		if (col >= this.cols) {
 			row += Math.floor(col / this.cols);
@@ -244,8 +266,6 @@ class Layer {
 		const charUVs = this.terminal.charUVs[char];
 		let indices = row * this.indicesPerRow + col * 4;
 		let texIndex = indices * 2;
-
-		console.log(`put(${col},${row},'${char}') indicesPerRow=${this.indicesPerRow} texIndex=${texIndex}`);
 
 		const textureCoord = this.textureCoord;
 		textureCoord.typedArray[texIndex] = charUVs[0];
@@ -302,8 +322,8 @@ class Layer {
 			this.colours.dirty = false;
 		}
 
-		this.gl.bindVertexArray( this.vao );
-		this.gl.uniformMatrix4fv(this.uniforms.modelViewMatrix, false, this.modelViewMatrix);
+		this.gl.bindVertexArray(this.vao);
+		this.gl.uniformMatrix4fv(this.uniforms.paneMatrix, false, this.paneMatrix);
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, this.indices);
 	}
 
@@ -311,17 +331,17 @@ class Layer {
 
 
 
-export const COLOUR = {
+export const COLOURS = {
 	BLACK: [0, 0, 0, 1],
 	WHITE: [1, 1, 1, 1],
-	YELLOW: [1, 1, 0.7, 1],
+	YELLOW: [1, 1, 0.6, 1],
+	RED: [1, 0, 0, 1],
 };
 
 function createWebGLContext(container) {
 	const canvas = document.createElement('canvas');
 	container.append(canvas);
 	const gl = canvas.getContext('webgl2', { antialias: false });
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);
 	gl.clearDepth(1.0);
 	gl.disable(gl.DEPTH_TEST);
 	gl.enable(gl.BLEND);
@@ -338,16 +358,16 @@ function createShader(gl) {
 		in vec2 aTextureCoord;
 		in vec4 aColour;
 		uniform mat4 uProjectionMatrix;
-		uniform mat4 uModelViewMatrix;
+		uniform mat4 uPaneMatrix;
 		uniform sampler2D uFontTexture;
-		uniform sampler2D uLayerTexture;
+		uniform sampler2D uPaneTexture;
 		out vec2 vTextureCoord;
 		out vec4 vColour;
 		void main() {
 			ivec2 size = textureSize(uFontTexture, 0);
 			vTextureCoord = aTextureCoord;
 			vColour = aColour;
-			gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
+			gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 		}
 	`,
 	);
@@ -395,9 +415,9 @@ function createShader(gl) {
 
 	const uniforms = {
 		projectionMatrix: gl.getUniformLocation(program, 'uProjectionMatrix'),
-		modelViewMatrix: gl.getUniformLocation(program, 'uModelViewMatrix'),
+		paneMatrix: gl.getUniformLocation(program, 'uPaneMatrix'),
 		fontTexture: gl.getUniformLocation(program, 'uFontTexture'),
-		layerTexture: gl.getUniformLocation(program, 'uLayerTexture'),
+		paneTexture: gl.getUniformLocation(program, 'uPaneTexture'),
 	};
 
 	return { program, attributes, uniforms };
@@ -451,8 +471,6 @@ function createCharactersTexture(gl, characters, size = 1024) {
 function degeneratedTriangleStripeVertices(cols, rows) {
 	const vertices = [];
 
-	// |
-	// | / |
 	for (let row = 0; row < rows; row++) {
 		let col = 0;
 		while (col < cols) {
