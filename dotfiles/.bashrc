@@ -69,3 +69,13 @@ if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
 
+# Fancy prompt
+Z="\033[0m"
+ENV="\033[92;100m"
+ENV_="\033[90;42m"
+USR="\033[97;42m"
+USR_="\033[32;100m"
+CWD="\033[97;100m"
+CWD_="\033[90m"
+
+export PS1="${ENV}${VIRTUAL_ENV_PROMPT}${Z}${ENV_}${Z}${USR}\u${Z}${USR_}${Z}${CWD} \w${Z}${CWD_}${Z}\n\$ "
