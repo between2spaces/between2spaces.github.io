@@ -1,3 +1,10 @@
+# How to install Corporate Cert in WSL2
+# 1) Go to any HTTPS cite in browser
+# 2) View site security info from location bar icon
+# 3) Export WKGLOBAL-Secure-CertificateAuthority as Base64-encoded ASCII, certificate chain
+# 4) sudo cp /mnt/c/Users/stephen.carmody/Downloads/WKGLOBAL-Secure-CertificateAuthority.crt /usr/local/share/ca-certificates
+# 5) sudo update-ca-certificates
+#
 set -e
 
 CWD=$PWD
