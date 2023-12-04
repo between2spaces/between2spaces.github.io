@@ -1,55 +1,110 @@
 export class Terminal {
 	constructor(container = document.body, defaults = {}) {
 		this.container = container;
-		this.defaults = Object.assign({
-			cols: 20,
-			rows: 20,
-			wrap: true,
-			background: '#172b2c',
-			colour: COLOURS.WHITE,
-			panes: 1
-		}, defaults);
+
+		defaults = this.defaults = Object.assign(
+			{
+				cols: 20,
+				rows: 20,
+				wrap: true,
+				background: '#172b2c',
+				colour: COLOURS.WHITE,
+				panes: 1,
+			},
+			defaults,
+		);
 
 		this.context = createWebGLContext(container);
-		this.gl = this.context.gl;
 
-		this.shader = createShader(this.gl);
-		this.gl.useProgram(this.shader.program);
-		this.gl.uniform1i(this.shader.uniforms.fontTexture, 0);
-		this.gl.uniform1i(this.shader.uniforms.paneTexture, 1);
+		const gl = this.gl = this.context.gl;
+		const shader = this.shader = createShader(gl,
+			`#version 300 es
+			precision highp float;
+			in vec2 aPosition;
+			in vec2 aTextureCoord;
+			in vec4 aColour;
+			uniform mat4 uProjectionMatrix;
+			uniform mat4 uPaneMatrix;
+			uniform sampler2D uFontTexture;
+			uniform sampler2D uPaneTexture;
+			uniform uvec2 uPaneSize;
+			out vec2 vTextureCoord;
+			out vec4 vColour;
+			out vec4 vGlyph;
+			void main() {
+				ivec2 size = textureSize(uFontTexture, 0);
+				uint indicesPerRow = uPaneSize.x * uint(4) + uint(2);
+				//int row = gl_VertexID / uPaneSize.y
+				ivec2 pixel = ivec2(floor(aPosition.x), floor(aPosition.y));
+				//vec2 uv = vec2(0.5, 0.8);
+				vec4 rgba = texelFetch(uPaneTexture, pixel, 0);
+				vGlyph = vec4(rgba.r, rgba.g, rgba.b, 1);
+				vTextureCoord = aTextureCoord;
+				vColour = aColour;
+				vColour = vec4(aPosition.x / float(uPaneSize.x), aPosition.y, 1.0, 1.0);
+				//if (uv.x < 0.5) vColour = vec4(1.0, 1.0, 1.0, 1.0);
+				gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
+			}
+		`, `#version 300 es
+			precision highp float;
+			in vec4 vGlyph;
+			in vec2 vTextureCoord;
+			in vec4 vColour;
+			uniform sampler2D uFontTexture;
+			uniform sampler2D uPaneTexture;
+			out vec4 outColor;
+			void main() {
+				outColor = texture(uFontTexture, vTextureCoord) * vec4(vGlyph.r, vGlyph.g, vGlyph.b, 1);
+			}
+		`);
 
-		this.setBackground(this.defaults.background);
+		gl.useProgram(shader.program);
 
+		shader.aPosition = gl.getAttribLocation(shader.program, 'aPosition');
+		shader.aTextureCoord = gl.getAttribLocation(shader.program, 'aTextureCoord');
+		shader.aColour = gl.getAttribLocation(shader.program, 'aColour');
+		shader.uProjectionMatrix = gl.getUniformLocation(shader.program, 'uProjectionMatrix');
+		shader.uPaneMatrix = gl.getUniformLocation(shader.program, 'uPaneMatrix');
+		shader.uPaneSize = gl.getUniformLocation(shader.program, 'uPaneSize');
+		shader.uFontTexture = gl.getUniformLocation(shader.program, 'uFontTexture');
+		shader.uPaneTexture = gl.getUniformLocation(shader.program, 'uPaneTexture');
+
+		// set which texture units to render with
+		gl.uniform1i(shader.uFontTexure, 0);   // texture unit 0
+		gl.uniform1i(shader.uPaneTexture, 1);  // texture unit 1
+
+
+		this.setBackground(defaults.background);
+		this.setCharacterSet(
+			'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+			'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
+			')_+[]{}\\|;\':",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└' +
+			'←↑→↓↖↗↘↙↔↕',
+			4096,
+		);
+
+		this.projection = { near: 0, far: 100 };
 		this.panes = [];
-
-		for (let index = 0; index < this.defaults.panes; index++) {
+		for (let i = 0; i < this.defaults.panes; i++) {
 			this.addPane();
 		}
 
-		resizeObserver.observe(container);
-
-		this.projection = { near: 0, far: 100 };
 		this.setView(0, 0, this.panes[0].cols - 1, this.panes[0].rows - 1);
-		this.setCharacterSet(
-			'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
-				'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
-				')_+[]{}\\|;\':",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└' +
-				'←↑→↓↖↗↘↙↔↕',
-		);
-
 		terminals.push(this);
-
+		resizeObserver.observe(container);
 		this.dirty = true;
 	}
 
-	addPane(params={}) {
-
-		params = Object.assign({
-			cols: this.defaults.cols,
-			rows: this.defaults.rows,
-			colour: this.defaults.colour,
-			wrap: this.defaults.wrap
-		}, params);
+	addPane(params = {}) {
+		params = Object.assign(
+			{
+				cols: this.defaults.cols,
+				rows: this.defaults.rows,
+				colour: this.defaults.colour,
+				wrap: this.defaults.wrap,
+			},
+			params,
+		);
 
 		params.terminal = this;
 
@@ -122,57 +177,115 @@ export class Terminal {
 			(left + right) * lr, (top + bottom) * bt, (far + near) * nf, 1,
 		];
 
-		this.context.gl.uniformMatrix4fv(
-			this.shader.uniforms.projectionMatrix,
-			false,
-			this.projectionMatrix,
-		);
-
+		this.context.gl.uniformMatrix4fv(this.shader.uProjectionMatrix, false, this.projectionMatrix);
 		this.dirty = true;
 	}
 
 	setCharacterSet(characters, size = 2048, fontFamily = 'monospace') {
 		const gl = this.context.gl;
-		const { texture, uvs } = createCharactersTexture(gl, characters, size);
+		const { canvas, ctx, texture } = createCanvasTexture(gl, size);
 
-		this.fontTexture = texture;
-		this.charUVs = uvs;
+		ctx.clearRect(0, 0, size, size);
+		ctx.fillStyle = 'white';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
 
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, this.fontTexture);
+		let font = size * 0.5;
+		let metrics;
+		let cols;
+		let height;
+
+		this.charUVs = {};
+
+		do {
+			ctx.font = `${font--}px monospace`;
+			metrics = ctx.measureText('█');
+			cols = Math.floor(size / metrics.width);
+			height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+		} while (cols * Math.floor(size / height) < characters.length);
+
+		for (let i = 0, l = characters.length; i < l; i++) {
+			let y = metrics.actualBoundingBoxAscent + Math.floor(i / cols) * height;
+			let x = metrics.width * 0.5 + (i % cols) * metrics.width;
+			ctx.fillText(characters[i], x, y);
+			let left = (x - 0.5 * metrics.width) / size;
+			let top = (y - metrics.actualBoundingBoxAscent) / size;
+			let right = (x + 0.5 * metrics.width) / size;
+			let bottom = (y + metrics.actualBoundingBoxDescent) / size;
+			this.charUVs[characters[i]] = [left, bottom, left, top, right, bottom, right, top];
+		}
+
+		gl.activeTexture(gl.TEXTURE0 + 0);
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
 	}
 
 	render() {
 		const gl = this.context.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
 		for (let pane of this.panes) {
 			pane.render();
 		}
+
 		this.dirty = false;
 	}
 }
 
 class Pane {
-	constructor(params={}) {
+	constructor(params = {}) {
 		Object.assign(this, params);
 		this.indicesPerRow = this.cols * 4 + 2;
 		this.indices = this.indicesPerRow * this.rows - 2;
 
-		this.gl = this.terminal.context.gl;
-		this.attribs = this.terminal.shader.attributes;
-		this.uniforms = this.terminal.shader.uniforms;
+		const gl = this.gl = this.terminal.context.gl;
+		const shader = this.terminal.shader;
 
 		this.paneMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+		this.paneSize = new Uint16Array([this.cols, this.rows]);
+		console.log(this.paneSize[0]);
 
-		const { canvas, ctx, imageData, texture } = createCanvasTexture(gl, size);
-		this.paneTexture = texture;
-		this.gl.activeTexture(this.gl.TEXTURE1);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, this.paneTexture);
+		// create a white 256x256 texture to hold cell info
+		const size = 256;
+		this.paneTexture = createCanvasTexture(gl, size);
+		this.paneTexture.ctx.fillStyle = 'white';
+		this.paneTexture.ctx.fillRect(0, 0, size, size);
 
+		document.body.append(this.paneTexture.canvas);
 
-		let colours = [];
-		let vertices = degeneratedTriangleStripeVertices(this.cols, this.rows);
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, this.paneTexture.texture);
+
+		// Set the parameters so we don't need mips
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.paneTexture.canvas);
+
+		// build degenerated triangle stripe vertices for a colsxrows pane
+		const vertices = [];
+
+		for (let row = 0; row < this.rows; row++) {
+			let col = 0;
+
+			while (col < this.cols) {
+				vertices.push(col, row + 1, col, row, col + 1, row + 1, col + 1, row);
+				col++;
+			}
+
+			if (row < this.rows - 1) {
+				vertices.push(col, row, 0, row + 2);
+			}
+		}
+
 		let textureCoord = new Array(vertices.length);
+		let colours = [];
 
 		let top = 1 + this.rows * 0.5;
 
@@ -203,46 +316,34 @@ class Pane {
 				}
 			}
 		}
+
 		/* Vertices   Array of Uint16 [0 to 65536] -> 2 Unsigned Shorts per vertex */
-		this.vertices = {
-			typedArray: new Uint16Array(vertices),
-			buffer: this.gl.createBuffer(),
-			dirty: true,
-		};
+		this.vertices = { typedArray: new Uint16Array(vertices), buffer: gl.createBuffer(), dirty: true };
 
 		/* Texture coordinates   Array of Uint16 -> 2 Unsigned Shorts per vertex */
-		this.textureCoord = {
-			typedArray: new Float32Array(textureCoord),
-			buffer: this.gl.createBuffer(),
-			dirty: true,
-		};
+		this.textureCoord = { typedArray: new Float32Array(textureCoord), buffer: gl.createBuffer(), dirty: true };
 
-		this.colours = {
-			typedArray: new Float32Array(colours),
-			buffer: this.gl.createBuffer(),
-			dirty: true,
-		};
+		this.colours = { typedArray: new Float32Array(colours), buffer: gl.createBuffer(), dirty: true };
 
-		this.vao = this.gl.createVertexArray();
-		this.gl.bindVertexArray( this.vao );
+		this.vao = gl.createVertexArray();
+		gl.bindVertexArray(this.vao);
 
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertices.buffer);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.vertices.typedArray, this.gl.STATIC_DRAW);
-		this.gl.vertexAttribPointer(this.attribs.vertexPosition, 2, this.gl.UNSIGNED_SHORT, false, 0, 0);
-		this.gl.enableVertexAttribArray(this.attribs.vertexPosition);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices.buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.vertices.typedArray, gl.STATIC_DRAW);
+		gl.vertexAttribPointer(shader.aPosition, 2, gl.UNSIGNED_SHORT, false, 0, 0);
+		gl.enableVertexAttribArray(shader.aPosition);
 
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCoord.buffer);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.textureCoord.typedArray, this.gl.STATIC_DRAW);
-		this.gl.vertexAttribPointer(this.attribs.textureCoord, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(this.attribs.textureCoord);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.textureCoord.buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.textureCoord.typedArray, gl.STATIC_DRAW);
+		gl.vertexAttribPointer(shader.aTextureCoord, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(shader.aTextureCoord);
 
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colours.buffer);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.colours.typedArray, this.gl.STATIC_DRAW);
-		this.gl.vertexAttribPointer(this.attribs.colour, 4, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(this.attribs.colour);
+		gl.bindBuffer(gl.ARRAY_BUFFER, this.colours.buffer);
+		gl.bufferData(gl.ARRAY_BUFFER, this.colours.typedArray, gl.STATIC_DRAW);
+		gl.vertexAttribPointer(shader.aColour, 4, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(shader.aColour);
 
-
-		this.gl.bindVertexArray( null );
+		gl.bindVertexArray(null);
 
 		this.terminal.dirty = true;
 	}
@@ -267,7 +368,7 @@ class Pane {
 			col = col % this.cols;
 		}
 
-		if (row >= this.rows) return;
+		if (row >= this.rows) { return; }
 
 		const charUVs = this.terminal.charUVs[char];
 		let indices = row * this.indicesPerRow + col * 4;
@@ -306,6 +407,15 @@ class Pane {
 		colours.typedArray[colIndex + 14] = colour[2];
 		colours.typedArray[colIndex + 15] = colour[3];
 
+		const imageData = this.paneTexture.imageData;
+		const i = (this.paneTexture.canvas.width * row + col) * 4;
+		imageData.data[i] = Math.floor(colour[0] * 255);
+		imageData.data[i + 1] = Math.floor(colour[1] * 255);
+		imageData.data[i + 2] = Math.floor(colour[2] * 255);
+		imageData.data[i + 3] = Math.floor(colour[3] * 255);
+		// console.log(colour);
+		// console.log(imageData.data[i], imageData.data[i + 1], imageData.data[i + 2]);
+
 		colours.dirty = true;
 	}
 
@@ -316,26 +426,37 @@ class Pane {
 	}
 
 	render() {
+		const gl = this.gl;
+		const shader = this.terminal.shader;
+
 		if (this.textureCoord.dirty) {
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureCoord.buffer);
-			this.gl.bufferSubData(this.gl.ARRAY_BUFFER, 0, this.textureCoord.typedArray);
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.textureCoord.buffer);
+			gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.textureCoord.typedArray);
 			this.textureCoord.dirty = false;
 		}
 
 		if (this.colours.dirty) {
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.colours.buffer);
-			this.gl.bufferSubData(this.gl.ARRAY_BUFFER, 0, this.colours.typedArray);
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.colours.buffer);
+			gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.colours.typedArray);
+			this.paneTexture.ctx.putImageData(this.paneTexture.imageData, 0, 0);
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, this.paneTexture.texture);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.paneTexture.canvas);
 			this.colours.dirty = false;
 		}
 
-		this.gl.bindVertexArray(this.vao);
-		this.gl.uniformMatrix4fv(this.uniforms.paneMatrix, false, this.paneMatrix);
-		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, this.indices);
+		gl.bindVertexArray(this.vao);
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, this.paneTexture.texture);
+		gl.uniformMatrix4fv(shader.uPaneMatrix, false, this.paneMatrix);
+		gl.uniform2ui(shader.uPaneSize, this.cols, this.rows);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.indices);
 	}
-
 }
-
-
 
 export const COLOURS = {
 	BLACK: [0, 0, 0, 1],
@@ -355,28 +476,9 @@ function createWebGLContext(container) {
 	return { canvas, gl };
 }
 
-function createShader(gl) {
+function createShader(gl, vertexShaderCode, fragmentShaderCode) {
 	const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-	gl.shaderSource(
-		vertexShader,
-		`#version 300 es
-		in vec2 aPosition;
-		in vec2 aTextureCoord;
-		in vec4 aColour;
-		uniform mat4 uProjectionMatrix;
-		uniform mat4 uPaneMatrix;
-		uniform sampler2D uFontTexture;
-		uniform sampler2D uPaneTexture;
-		out vec2 vTextureCoord;
-		out vec4 vColour;
-		void main() {
-			ivec2 size = textureSize(uFontTexture, 0);
-			vTextureCoord = aTextureCoord;
-			vColour = aColour;
-			gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
-		}
-	`,
-	);
+	gl.shaderSource(vertexShader, vertexShaderCode);
 	gl.compileShader(vertexShader);
 
 	if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
@@ -384,19 +486,7 @@ function createShader(gl) {
 	}
 
 	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-	gl.shaderSource(
-		fragmentShader,
-		`#version 300 es
-		precision highp float;
-		in vec2 vTextureCoord;
-		in vec4 vColour;
-		uniform sampler2D uFontTexture;
-		out vec4 outColor;
-		void main() {
-			outColor = texture(uFontTexture, vTextureCoord) * vColour;
-		}
-	`,
-	);
+	gl.shaderSource(fragmentShader, fragmentShaderCode);
 	gl.compileShader(fragmentShader);
 
 	if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
@@ -413,20 +503,7 @@ function createShader(gl) {
 		console.error(gl.getProgramInfoLog(program));
 	}
 
-	const attributes = {
-		vertexPosition: gl.getAttribLocation(program, 'aPosition'),
-		textureCoord: gl.getAttribLocation(program, 'aTextureCoord'),
-		colour: gl.getAttribLocation(program, 'aColour'),
-	};
-
-	const uniforms = {
-		projectionMatrix: gl.getUniformLocation(program, 'uProjectionMatrix'),
-		paneMatrix: gl.getUniformLocation(program, 'uPaneMatrix'),
-		fontTexture: gl.getUniformLocation(program, 'uFontTexture'),
-		paneTexture: gl.getUniformLocation(program, 'uPaneTexture'),
-	};
-
-	return { program, attributes, uniforms };
+	return { program };
 }
 
 function createCanvasTexture(gl, size = 1024) {
@@ -439,104 +516,45 @@ function createCanvasTexture(gl, size = 1024) {
 	return { canvas, ctx, imageData, texture };
 }
 
-function updateTexture(gl, texture, image) {
-	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-}
-
 function updateImageData(image) {
+	const heightdata = this.heightmap.imageData.data;
 
-		const heightdata = this.heightmap.imageData.data;
+	for (let zi = 0; zi < this.size; zi++) {
+		for (let xi = 0; xi < this.size; xi++) {
+			let height = 0;
 
-		for ( let zi = 0; zi < this.size; zi ++ ) {
-
-			for ( let xi = 0; xi < this.size; xi ++ ) {
-
-				let height = 0;
-
-				for ( let octave of octaves ) height += this.noise( xi * octave.frequency, zi * octave.frequency ) * octave.amplitude;
-
-				let dx = 0;
-				let dz = 0;
-
-				if ( xi < this.edgeWidth ) dx = this.edgeWidth - xi;
-				if ( zi < this.edgeWidth ) dz = this.edgeWidth - zi;
-				if ( zi > this.size - this.edgeWidth ) dz = zi - ( this.size - this.edgeWidth );
-				if ( xi > this.size - this.edgeWidth ) dx = xi - ( this.size - this.edgeWidth );
-
-				let edgeClamp = ( dx > 0 || dz > 0 ) ? Math.pow( ( edgeSq - Math.sqrt( dx * dx + dz * dz ) ) / edgeSq, 2 ) : 1;
-
-				let index = ( zi * this.size + xi ) * 4;
-
-				heightdata[ index ] = 100 + Math.floor( Math.random() * 100 );
-				heightdata[ index + 1 ] = heightdata[ index ];
-				heightdata[ index + 2 ] = heightdata[ index ];
-				heightdata[ index + 3 ] = ( height + 1 ) * 127 * edgeClamp;
-
+			for (let octave of octaves) {
+				height +=
+					this.noise(xi * octave.frequency, zi * octave.frequency) *
+					octave.amplitude;
 			}
 
-		}
+			let dx = 0;
+			let dz = 0;
 
-		this.heightmap.ctx.putImageData( this.heightmap.imageData, 0, 0 );
+			if (xi < this.edgeWidth) { dx = this.edgeWidth - xi; }
 
+			if (zi < this.edgeWidth) { dz = this.edgeWidth - zi; }
 
-}
+			if (zi > this.size - this.edgeWidth) { dz = zi - (this.size - this.edgeWidth); }
 
-function createCharactersTexture(gl, characters, size = 1024) {
-	const { canvas, ctx, texture } = createCanvasTexture(gl, size);
-	ctx.clearRect(0, 0, size, size);
-	ctx.fillStyle = 'white';
-	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle';
+			if (xi > this.size - this.edgeWidth) { dx = xi - (this.size - this.edgeWidth); }
 
-	let font = size * 0.5;
-	let metrics;
-	let cols;
-	let height;
-	let uvs = {};
+			let edgeClamp =
+				dx > 0 || dz > 0
+					? Math.pow((edgeSq - Math.sqrt(dx * dx + dz * dz)) / edgeSq, 2)
+					: 1;
 
-	do {
-		ctx.font = `${font--}px monospace`;
-		metrics = ctx.measureText('█');
-		cols = Math.floor(size / metrics.width);
-		height = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-	} while (cols * Math.floor(size / height) < characters.length);
+			let index = (zi * this.size + xi) * 4;
 
-	for (let i = 0, l = characters.length; i < l; i++) {
-		let y = metrics.actualBoundingBoxAscent + Math.floor(i / cols) * height;
-		let x = metrics.width * 0.5 + (i % cols) * metrics.width;
-		ctx.fillText(characters[i], x, y);
-		let left = (x - 0.5 * metrics.width) / size;
-		let top = (y - metrics.actualBoundingBoxAscent) / size;
-		let right = (x + 0.5 * metrics.width) / size;
-		let bottom = (y + metrics.actualBoundingBoxDescent) / size;
-		uvs[characters[i]] = [left, bottom, left, top, right, bottom, right, top];
-	}
-
-	updateTexture(gl, texture, canvas);
-
-	return { texture, uvs };
-}
-
-function degeneratedTriangleStripeVertices(cols, rows) {
-	const vertices = [];
-
-	for (let row = 0; row < rows; row++) {
-		let col = 0;
-		while (col < cols) {
-			vertices.push(col, row + 1, col, row, col + 1, row + 1, col + 1, row);
-			col++;
-		}
-		if (row < rows - 1) {
-			vertices.push(col, row, 0, row + 2);
+			heightdata[index] = 100 + Math.floor(Math.random() * 100);
+			heightdata[index + 1] = heightdata[index];
+			heightdata[index + 2] = heightdata[index];
+			heightdata[index + 3] = (height + 1) * 127 * edgeClamp;
 		}
 	}
 
-	return vertices;
+	this.heightmap.ctx.putImageData(this.heightmap.imageData, 0, 0);
 }
 
 function hexToRgba(hex) {
@@ -553,7 +571,7 @@ function hexToRgba(hex) {
 			parseInt(rgb[2], 16) / 255.0,
 			parseInt(rgb[3], 16) / 255.0,
 			1,
-		  ]
+		]
 		: null;
 }
 
