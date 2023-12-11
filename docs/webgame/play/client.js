@@ -1,8 +1,8 @@
 import './websocket.js';
-import { Terminal, COLOURS } from './terminal.js';
+import { GlyphRenderer, COLOURS } from './glyphrenderer.js';
 
 export default function main(container) {
-	const term = new Terminal(container, { panes: 2 });
+	const term = new GlyphRenderer(container, { panes: 2 });
 	const behind = term.panes[0];
 	const chars = '░▒▓█';
 	behind.setColour('#333');
@@ -13,8 +13,8 @@ export default function main(container) {
 	}
 	term.panes[1].setColour('#fff');
 	term.panes[1].write(0, 0, 'alsztest0123456789');
-	term.panes[1].setColour('#f00');
+	//term.panes[1].setColour('#f00');
 	term.panes[1].write(5, 0, 'e');
-	term.panes[1].setColour('#fff');
+	//term.panes[1].setColour('#fff');
 	term.panes[1].write(6, 0, 'st0123456789');
 }

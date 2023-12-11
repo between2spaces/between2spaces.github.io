@@ -10,9 +10,9 @@
 		"defaults": {
 			"font": {
 				"face": "Hack Nerd Font",
-				"size": 15
+				"size": 16
 			},
-			"padding": "0",
+			"padding": "10",
 			"scrollbarState": "hidden",
 			"colorScheme": "Muted Pascal"
 		},
@@ -40,7 +40,7 @@
 	"schemes": [
 		{
 			"name": "Muted Pascal",
-			"background": "#282c34",
+			"background": "#343541",
 			"foreground": "#dddddd",
 			"black": "#101113",
 			"red": "#785C62",
