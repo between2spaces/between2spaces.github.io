@@ -35,7 +35,12 @@ export class GlyphRenderer {
 				//ivec2 size = textureSize(uFontTexture, 0);
 				int indicesPerRow = uPaneColsRows.x * 4 + 2;
 				int row = int(floor(float(gl_VertexID) / float(indicesPerRow)));
-				int col = int((gl_VertexID - indicesPerRow * (gl_VertexID / indicesPerRow)) / 4);
+				//int col = int((gl_VertexID - indicesPerRow * int(floor(float(gl_VertexID) / float(indicesPerRow)))) / 4);
+				//int col = (gl_VertexID % indicesPerRow) / 4;
+				float fVertexID = float(gl_VertexID);
+				float fIndicesPerRow = float(indicesPerRow);
+				float fCol = floor((fVertexID - floor((fVertexID + 0.5) / fIndicesPerRow) * fIndicesPerRow) + 0.5);
+				int col = int(fCol) / 4;
 				//ivec2 pixel = ivec2(aPosition.x), aPosition.y);
 				//vec2 uv = vec2(0.5, 0.8);
 				vec4 rgba = texelFetch(uPaneTexture, ivec2(col, row), 0);
@@ -45,7 +50,7 @@ export class GlyphRenderer {
 				float blue = float((rgbacr >> 17) & 0x1F) / 31.0;
 				float alpha = float((rgbacr >> 12) & 0x1F) / 31.0;
 				vColour = vec4(red, green, blue, 1);
-				//if (red > 0.0) vColour = vec4(1, 0, 0, 1);
+				//if (col == 8 && row == 0) vColour = vec4(0, 1, 0, 1);
 				vTextureCoord = aTextureCoord;
 				gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 			}
@@ -492,28 +497,32 @@ class Pane {
 		}
 
 		if (this.colours.dirty) {
-			let col = 8;
-			let row = 0;
-			let i = (this.paneTexture.canvas.width * row + col) * 4;
-			//imageData.data[i] = (rgbacr >> 24) & 0xFF;
-			//imageData.data[i + 1] = (rgbacr >> 16) & 0xFF;
-			//imageData.data[i + 2] = (rgbacr >> 8) & 0xFF;
-			//imageData.data[i + 3] = rgbacr & 0xFF;
-			let r = this.paneTexture.imageData.data[i];
-			let g = this.paneTexture.imageData.data[i + 1];
-			let b = this.paneTexture.imageData.data[i + 2];
-			let a = this.paneTexture.imageData.data[i + 3];
-			console.log(i, r, g, b, a);
-			//let rgbacr = (int(rgba.r * 255.0) << 24) | (int(rgba.g * 255.0) << 16) | (int(rgba.b * 255.0) << 8) | int(rgba.a * 255.0);
-			//
-			let rgbacr = (r << 24) | (g << 16) | (b << 8) | a;
-			let red = ((rgbacr >> 27) & 0x1F) / 31.0;
-			let green = ((rgbacr >> 22) & 0x1F) / 31.0;
-			let blue = ((rgbacr >> 17) & 0x1F) / 31.0;
-			let alpha = ((rgbacr >> 12) & 0x1F) / 31.0;
-			console.log(red, green, blue, alpha);
+			//int indicesPerRow = uPaneColsRows.x * 4 + 2;
+			//int row = int(floor(float(gl_VertexID) / float(indicesPerRow)));
+			//int col = int((gl_VertexID - indicesPerRow * (gl_VertexID / indicesPerRow)) / 4);
+			//ivec2 pixel = ivec2(aPosition.x), aPosition.y);
+			//vec2 uv = vec2(0.5, 0.8);
+			//vec4 rgba = texelFetch(uPaneTexture, ivec2(col, row), 0);
+			//int rgbacr = (int(round(rgba.r * 255.0)) << 24) | (int(round(rgba.g * 255.0)) << 16) | (int(round(rgba.b * 255.0)) << 8) | int(round(rgba.a * 255.0));
+			//float red = float((rgbacr >> 27) & 0x1F) / 31.0;
+			//float green = float((rgbacr >> 22) & 0x1F) / 31.0;
+			//float blue = float((rgbacr >> 17) & 0x1F) / 31.0;
+			//float alpha = float((rgbacr >> 12) & 0x1F) / 31.0;
 
-			
+			let uPaneColsRows = {x: this.cols, y: this.rows};
+			let indicesPerRow = uPaneColsRows.x * 4 + 2;
+			let gl_VertexID = 8 * 4;
+			let row = Math.floor(gl_VertexID / indicesPerRow);
+			let col = parseInt((gl_VertexID - indicesPerRow * (gl_VertexID / indicesPerRow)) / 4);
+			console.log('debug', '(', gl_VertexID, '-', indicesPerRow, '*', 'floor(', gl_VertexID, '/', indicesPerRow, ')', ')', '/', '4');
+			console.log('debug', '(', gl_VertexID, '-', indicesPerRow, '*', Math.floor(gl_VertexID / indicesPerRow), ')', '/', '4');
+			console.log('debug', '(', gl_VertexID, '-', indicesPerRow * Math.floor(gl_VertexID / indicesPerRow), ')', '/', '4');
+			console.log('debug', (gl_VertexID - indicesPerRow * Math.floor(gl_VertexID / indicesPerRow)) / 4);
+			//const pixel = ctx.getImageData(x, y, 1, 1);
+			//const data = pixel.data;
+			//const rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
+			console.log(this.paneTexture.ctx);
+						
 			this.paneTexture.ctx.putImageData(this.paneTexture.imageData, 0, 0);
 			gl.activeTexture(gl.TEXTURE1);
 			gl.bindTexture(gl.TEXTURE_2D, this.paneTexture.texture);
@@ -599,55 +608,6 @@ function createCanvasTexture(gl, size = 1024) {
 	return { canvas, ctx, imageData, texture };
 }
 
-function updateImageData(image) {
-	const heightdata = this.heightmap.imageData.data;
-
-	for (let zi = 0; zi < this.size; zi++) {
-		for (let xi = 0; xi < this.size; xi++) {
-			let height = 0;
-
-			for (let octave of octaves) {
-				height +=
-					this.noise(xi * octave.frequency, zi * octave.frequency) *
-					octave.amplitude;
-			}
-
-			let dx = 0;
-			let dz = 0;
-
-			if (xi < this.edgeWidth) {
-				dx = this.edgeWidth - xi;
-			}
-
-			if (zi < this.edgeWidth) {
-				dz = this.edgeWidth - zi;
-			}
-
-			if (zi > this.size - this.edgeWidth) {
-				dz = zi - (this.size - this.edgeWidth);
-			}
-
-			if (xi > this.size - this.edgeWidth) {
-				dx = xi - (this.size - this.edgeWidth);
-			}
-
-			let edgeClamp =
-				dx > 0 || dz > 0
-					? Math.pow((edgeSq - Math.sqrt(dx * dx + dz * dz)) / edgeSq, 2)
-					: 1;
-
-			let index = (zi * this.size + xi) * 4;
-
-			heightdata[index] = 100 + Math.floor(Math.random() * 100);
-			heightdata[index + 1] = heightdata[index];
-			heightdata[index + 2] = heightdata[index];
-			heightdata[index + 3] = (height + 1) * 127 * edgeClamp;
-		}
-	}
-
-	this.heightmap.ctx.putImageData(this.heightmap.imageData, 0, 0);
-}
-
 function hex_to_rgba(hex) {
 	// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
 	hex = hex.replace(
@@ -664,28 +624,6 @@ function hex_to_rgba(hex) {
 			1,
 		  ]
 		: null;
-}
-
-function bitReduceTo4Bytes(rgba, col, row) {
-	// Ensure each component is within its specified bit depth
-	const r = rgba[0] & 0xff; // 8 bits for red
-	const g = rgba[1] & 0xff; // 8 bits for green
-	const b = rgba[2] & 0xff; // 8 bits for blue
-	const a = rgba[3] & 0xff; // 8 bits for alpha
-	col = col & 0x3f; // 6 bits for column
-	row = row & 0x3f; // 6 bits for row
-
-	// Combine the components into a 32-bit value
-	const combined =
-		(r << 24) | (g << 16) | (b << 8) | a | (col << 26) | (row << 20);
-
-	// Extract 8-bit values from the 32-bit combined value
-	const byte1 = (combined >>> 24) & 0xff;
-	const byte2 = (combined >>> 16) & 0xff;
-	const byte3 = (combined >>> 8) & 0xff;
-	const byte4 = combined & 0xff;
-
-	return [byte1, byte2, byte3, byte4];
 }
 
 const renderers = [];
