@@ -10,7 +10,7 @@
 		"defaults": {
 			"font": {
 				"face": "Hack Nerd Font",
-				"size": 16
+				"size": 18
 			},
 			"padding": "10",
 			"scrollbarState": "hidden",

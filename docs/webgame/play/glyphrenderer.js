@@ -32,17 +32,12 @@ export class GlyphRenderer {
 			out vec4 vColour;
 			out vec4 vGlyph;
 			void main() {
-				//ivec2 size = textureSize(uFontTexture, 0);
 				int indicesPerRow = uPaneColsRows.x * 4 + 2;
 				int row = int(floor(float(gl_VertexID) / float(indicesPerRow)));
-				//int col = int((gl_VertexID - indicesPerRow * int(floor(float(gl_VertexID) / float(indicesPerRow)))) / 4);
-				//int col = (gl_VertexID % indicesPerRow) / 4;
 				float fVertexID = float(gl_VertexID);
 				float fIndicesPerRow = float(indicesPerRow);
 				float fCol = floor((fVertexID - floor((fVertexID + 0.5) / fIndicesPerRow) * fIndicesPerRow) + 0.5);
 				int col = int(fCol) / 4;
-				//ivec2 pixel = ivec2(aPosition.x), aPosition.y);
-				//vec2 uv = vec2(0.5, 0.8);
 				vec4 rgba = texelFetch(uPaneTexture, ivec2(col, row), 0);
 				int rgbacr = (int(round(rgba.r * 255.0)) << 24) | (int(round(rgba.g * 255.0)) << 16) | (int(round(rgba.b * 255.0)) << 8) | int(round(rgba.a * 255.0));
 				float red = float((rgbacr >> 27) & 0x1F) / 31.0;
@@ -50,7 +45,7 @@ export class GlyphRenderer {
 				float blue = float((rgbacr >> 17) & 0x1F) / 31.0;
 				float alpha = float((rgbacr >> 12) & 0x1F) / 31.0;
 				vColour = vec4(red, green, blue, 1);
-				//if (col == 8 && row == 0) vColour = vec4(0, 1, 0, 1);
+				//if (rgba.r == 0.0) vColour = vec4(0, 1, 0, 1);
 				vTextureCoord = aTextureCoord;
 				gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 			}
@@ -311,8 +306,8 @@ class Pane {
 		gl.bindTexture(gl.TEXTURE_2D, this.paneTexture.texture);
 
 		// Set the parameters so we don't need mips
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
@@ -449,11 +444,6 @@ class Pane {
 		// Append char col and row to 32bit rgbacr using 6 bits for col and 6 bits for row (value range [0 to 63])
 		const rgbacr = this.rgba5555 | (charUVs[8] << 6) | charUVs[9];
 
-		if (col == 8 && row == 0) {
-			console.log(this.rgba);
-			console.log((this.rgba5555 >> 27) & 0x1F);
-		}
-
 		// Extract 8-bit values from the 32-bit combined value
 		const imageData = this.paneTexture.imageData;
 		const i = (this.paneTexture.canvas.width * row + col) * 4;
@@ -513,15 +503,11 @@ class Pane {
 			let indicesPerRow = uPaneColsRows.x * 4 + 2;
 			let gl_VertexID = 8 * 4;
 			let row = Math.floor(gl_VertexID / indicesPerRow);
-			let col = parseInt((gl_VertexID - indicesPerRow * (gl_VertexID / indicesPerRow)) / 4);
-			console.log('debug', '(', gl_VertexID, '-', indicesPerRow, '*', 'floor(', gl_VertexID, '/', indicesPerRow, ')', ')', '/', '4');
-			console.log('debug', '(', gl_VertexID, '-', indicesPerRow, '*', Math.floor(gl_VertexID / indicesPerRow), ')', '/', '4');
-			console.log('debug', '(', gl_VertexID, '-', indicesPerRow * Math.floor(gl_VertexID / indicesPerRow), ')', '/', '4');
-			console.log('debug', (gl_VertexID - indicesPerRow * Math.floor(gl_VertexID / indicesPerRow)) / 4);
-			//const pixel = ctx.getImageData(x, y, 1, 1);
-			//const data = pixel.data;
-			//const rgba = `rgba(${data[0]}, ${data[1]}, ${data[2]}, ${data[3] / 255})`;
-			console.log(this.paneTexture.ctx);
+			let col = parseInt((gl_VertexID - indicesPerRow * Math.floor(gl_VertexID / indicesPerRow)) / 4);
+			console.log('debug', col, row);
+			const pixel = this.paneTexture.ctx.getImageData(col, row, 1, 1);
+			const rgba = pixel.data;
+			console.log('debug', rgba);
 						
 			this.paneTexture.ctx.putImageData(this.paneTexture.imageData, 0, 0);
 			gl.activeTexture(gl.TEXTURE1);

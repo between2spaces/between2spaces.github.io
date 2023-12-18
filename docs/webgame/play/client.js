@@ -11,10 +11,6 @@ export default function main(container) {
 			term.panes[0].put(col, row, chars[Math.floor(Math.random() * chars.length)]);
 		}
 	}
-	term.panes[1].setColour('#fff');
-	term.panes[1].write(0, 0, 'alsztest0123456789');
-	//term.panes[1].setColour('#f00');
-	term.panes[1].write(5, 0, 'e');
-	//term.panes[1].setColour('#fff');
-	term.panes[1].write(6, 0, 'st0123456789');
+	term.panes[1].setColour('#aff');
+	term.panes[1].write(0, 0, '');
 }
