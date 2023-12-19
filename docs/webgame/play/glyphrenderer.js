@@ -26,27 +26,21 @@ export class GlyphRenderer {
 			uniform mat4 uProjectionMatrix;
 			uniform mat4 uPaneMatrix;
 			uniform sampler2D uFontTexture;
-			uniform sampler2D uPaneTexture;
+			uniform sampler2D uGlyphColour;
+			uniform sampler2D uGlyphColRow;
 			uniform ivec2 uPaneColsRows;
 			out vec2 vTextureCoord;
 			out vec4 vColour;
 			out vec4 vGlyph;
 			void main() {
-				int indicesPerRow = uPaneColsRows.x * 4 + 2;
-				int row = int(floor(float(gl_VertexID) / float(indicesPerRow)));
-				float fVertexID = float(gl_VertexID);
-				float fIndicesPerRow = float(indicesPerRow);
-				float fCol = floor((fVertexID - floor((fVertexID + 0.5) / fIndicesPerRow) * fIndicesPerRow) + 0.5);
-				int col = int(fCol) / 4;
-				vec4 rgba = texelFetch(uPaneTexture, ivec2(col, row), 0);
-				int rgbacr = (int(round(rgba.r * 255.0)) << 24) | (int(round(rgba.g * 255.0)) << 16) | (int(round(rgba.b * 255.0)) << 8) | int(round(rgba.a * 255.0));
-				float red = float((rgbacr >> 27) & 0x1F) / 31.0;
-				float green = float((rgbacr >> 22) & 0x1F) / 31.0;
-				float blue = float((rgbacr >> 17) & 0x1F) / 31.0;
-				float alpha = float((rgbacr >> 12) & 0x1F) / 31.0;
-				vColour = vec4(red, green, blue, 1);
-				//if (rgba.r == 0.0) vColour = vec4(0, 1, 0, 1);
+				float fIndicesPerRow = float(uPaneColsRows.x * 4 + 2);
+				float fVertex = float(gl_VertexID);
+				int row = int(floor(fVertex / fIndicesPerRow));
+				float fCol = (fVertex - floor((fVertex + 0.5) / fIndicesPerRow) * fIndicesPerRow) + 0.5;
+				int col = int(floor(fCol)) / 4;
+				vColour = texelFetch(uGlyphColour, ivec2(col, row), 0);
 				vTextureCoord = aTextureCoord;
+				//vTextureCoord = texelFetch(uGlyphColRow, , 0); 
 				gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 			}
 		`,
@@ -56,7 +50,6 @@ export class GlyphRenderer {
 			in vec2 vTextureCoord;
 			in vec4 vColour;
 			uniform sampler2D uFontTexture;
-			uniform sampler2D uPaneTexture;
 			out vec4 outColor;
 			void main() {
 				outColor = texture(uFontTexture, vTextureCoord) * vColour;
@@ -81,11 +74,12 @@ export class GlyphRenderer {
 			'uPaneColsRows',
 		);
 		shader.uFontTexture = gl.getUniformLocation(shader.program, 'uFontTexture');
-		shader.uPaneTexture = gl.getUniformLocation(shader.program, 'uPaneTexture');
+		shader.uGlyphColour = gl.getUniformLocation(shader.program, 'uGlyphColour');
+		shader.uGlyphColRow = gl.getUniformLocation(shader.program, 'uGlyphColRow');
 
-		// set which texture units to render with
-		gl.uniform1i(shader.uFontTexure, 0); // texture unit 0
-		gl.uniform1i(shader.uPaneTexture, 1); // texture unit 1
+		gl.uniform1i(shader.uFontTexure, 0);
+		gl.uniform1i(shader.uGlyphColour, 1);
+		gl.uniform1i(shader.uGlyphColRow, 2);
 
 		this.setBackground(defaults.background);
 		this.setCharacterSet(
@@ -243,8 +237,8 @@ export class GlyphRenderer {
 			let top = (y - metrics.actualBoundingBoxAscent) / size;
 			let right = (x + 0.5 * metrics.width) / size;
 			let bottom = (y + metrics.actualBoundingBoxDescent) / size;
-			let charCol = i % cols & 0x3f; // 6 bits [0 to 63] for Col
-			let charRow = Math.floor(i / cols) & 0x3f; // 6 bits [0 to 63] for Row
+			let charCol = i % cols;
+			let charRow = Math.floor(i / cols);
 			this.charUVs[characters[i]] = [
 				left,
 				bottom,
@@ -261,12 +255,10 @@ export class GlyphRenderer {
 
 		document.body.append(canvas);
 
-		gl.activeTexture(gl.TEXTURE0 + 0);
+		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, texture);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
 	}
 
@@ -294,31 +286,16 @@ class Pane {
 		this.paneMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 		this.paneSize = new Uint16Array([this.cols, this.rows]);
 
-		// create a white 256x256 texture to hold cell info
-		const size = 256;
-		this.paneTexture = createCanvasTexture(gl, size);
-		this.paneTexture.ctx.fillStyle = 'white';
-		this.paneTexture.ctx.fillRect(0, 0, size, size);
+		// Calculate minimum power of 2 texture size to hold per pixel glyph information
+		const maxColsRows = Math.max(this.cols, this.rows);
+		let pow = 1;
+		while (Math.pow(2, pow)	< maxColsRows) pow++;
+		const size = Math.pow(2, pow);
 
-		document.body.append(this.paneTexture.canvas);
-
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, this.paneTexture.texture);
-
-		// Set the parameters so we don't need mips
-		//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		//gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-		gl.texImage2D(
-			gl.TEXTURE_2D,
-			0,
-			gl.RGBA,
-			gl.RGBA,
-			gl.UNSIGNED_BYTE,
-			this.paneTexture.canvas,
-		);
+		this.glyphColour = createCanvasTexture(gl, size);
+		document.body.append(this.glyphColour.canvas);
+		this.glyphColRow = createCanvasTexture(gl, size);
+		document.body.append(this.glyphColRow.canvas);
 
 		// build degenerated triangle stripe vertices for a colsxrows pane
 		const vertices = [];
@@ -416,13 +393,6 @@ class Pane {
 
 	setColour(colour) {
 		this.rgba = typeof colour === 'string' ? hex_to_rgba(colour) : colour;
-		// Bit reduce rgba8888 to rgba5555 + 12 bits for char col row
-		// 32 - 12 = 20 / 4 = 5
-		this.rgba5555 =
-			(Math.round(this.rgba[0] * 31) << 27) |
-			(Math.round(this.rgba[1] * 31) << 22) |
-			(Math.round(this.rgba[2] * 31) << 17) |
-			(Math.round(this.rgba[3] * 31) << 12);
 	}
 
 	put(col, row, char) {
@@ -439,19 +409,19 @@ class Pane {
 			return;
 		}
 
+		const i = (this.glyphColour.canvas.width * row + col) * 4;
 		const charUVs = this.renderer.charUVs[char];
 
-		// Append char col and row to 32bit rgbacr using 6 bits for col and 6 bits for row (value range [0 to 63])
-		const rgbacr = this.rgba5555 | (charUVs[8] << 6) | charUVs[9];
+		let imageData = this.glyphColour.imageData;
+		imageData.data[i] = this.rgba[0] * 255;
+		imageData.data[i + 1] = this.rgba[1] * 255;
+		imageData.data[i + 2] = this.rgba[2] * 255;
+		imageData.data[i + 3] = this.rgba[3] * 255;
 
-		// Extract 8-bit values from the 32-bit combined value
-		const imageData = this.paneTexture.imageData;
-		const i = (this.paneTexture.canvas.width * row + col) * 4;
-		imageData.data[i] = (rgbacr >> 24) & 0xFF;
-		imageData.data[i + 1] = (rgbacr >> 16) & 0xFF;
-		imageData.data[i + 2] = (rgbacr >> 8) & 0xFF;
-		imageData.data[i + 3] = rgbacr & 0xFF;
-
+		imageData = this.glyphColRow.imageData;
+		imageData.data[i] = charUVs[8];
+		imageData.data[i + 1] = charUVs[9];
+	
 		let indices = row * this.indicesPerRow + col * 4;
 		let texIndex = indices * 2;
 
@@ -486,50 +456,27 @@ class Pane {
 			this.textureCoord.dirty = false;
 		}
 
-		if (this.colours.dirty) {
-			//int indicesPerRow = uPaneColsRows.x * 4 + 2;
-			//int row = int(floor(float(gl_VertexID) / float(indicesPerRow)));
-			//int col = int((gl_VertexID - indicesPerRow * (gl_VertexID / indicesPerRow)) / 4);
-			//ivec2 pixel = ivec2(aPosition.x), aPosition.y);
-			//vec2 uv = vec2(0.5, 0.8);
-			//vec4 rgba = texelFetch(uPaneTexture, ivec2(col, row), 0);
-			//int rgbacr = (int(round(rgba.r * 255.0)) << 24) | (int(round(rgba.g * 255.0)) << 16) | (int(round(rgba.b * 255.0)) << 8) | int(round(rgba.a * 255.0));
-			//float red = float((rgbacr >> 27) & 0x1F) / 31.0;
-			//float green = float((rgbacr >> 22) & 0x1F) / 31.0;
-			//float blue = float((rgbacr >> 17) & 0x1F) / 31.0;
-			//float alpha = float((rgbacr >> 12) & 0x1F) / 31.0;
+		gl.bindVertexArray(this.vao);
 
-			let uPaneColsRows = {x: this.cols, y: this.rows};
-			let indicesPerRow = uPaneColsRows.x * 4 + 2;
-			let gl_VertexID = 8 * 4;
-			let row = Math.floor(gl_VertexID / indicesPerRow);
-			let col = parseInt((gl_VertexID - indicesPerRow * Math.floor(gl_VertexID / indicesPerRow)) / 4);
-			console.log('debug', col, row);
-			const pixel = this.paneTexture.ctx.getImageData(col, row, 1, 1);
-			const rgba = pixel.data;
-			console.log('debug', rgba);
-						
-			this.paneTexture.ctx.putImageData(this.paneTexture.imageData, 0, 0);
-			gl.activeTexture(gl.TEXTURE1);
-			gl.bindTexture(gl.TEXTURE_2D, this.paneTexture.texture);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, this.glyphColour.texture);
+		if (this.colours.dirty) {
+			this.glyphColour.ctx.putImageData(this.glyphColour.imageData, 0, 0);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-			gl.texImage2D(
-				gl.TEXTURE_2D,
-				0,
-				gl.RGBA,
-				gl.RGBA,
-				gl.UNSIGNED_BYTE,
-				this.paneTexture.canvas,
-			);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glyphColour.canvas);
+		}
+
+		gl.activeTexture(gl.TEXTURE2);
+		gl.bindTexture(gl.TEXTURE_2D, this.glyphColRow.texture);
+		if (this.colours.dirty) {
+			this.glyphColRow.ctx.putImageData(this.glyphColRow.imageData, 0, 0);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glyphColRow.canvas);
 			this.colours.dirty = false;
 		}
 
-		gl.bindVertexArray(this.vao);
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, this.paneTexture.texture);
 		gl.uniformMatrix4fv(shader.uPaneMatrix, false, this.paneMatrix);
 		gl.uniform2i(shader.uPaneColsRows, this.cols, this.rows);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.indices);
