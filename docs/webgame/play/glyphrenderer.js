@@ -4,8 +4,8 @@ export class GlyphRenderer {
 
 		defaults = this.defaults = Object.assign(
 			{
-				cols: 20,
-				rows: 20,
+				cols: 17,
+				rows: 7,
 				wrap: true,
 				background: '#172b2c',
 				colour: COLOURS.WHITE,
@@ -15,6 +15,9 @@ export class GlyphRenderer {
 		);
 
 		this.context = createWebGLContext(container);
+
+		// 2  |\ | 4
+		// 1 | \|  3
 
 		const gl = (this.gl = this.context.gl);
 		const shader = (this.shader = createShader(
@@ -32,15 +35,34 @@ export class GlyphRenderer {
 			out vec2 vTextureCoord;
 			out vec4 vColour;
 			out vec4 vGlyph;
+			out vec2 uv;
 			void main() {
 				float fIndicesPerRow = float(uPaneColsRows.x * 4 + 2);
 				float fVertex = float(gl_VertexID);
-				int row = int(floor(fVertex / fIndicesPerRow));
-				float fCol = (fVertex - floor((fVertex + 0.5) / fIndicesPerRow) * fIndicesPerRow) + 0.5;
-				int col = int(floor(fCol)) / 4;
-				vColour = texelFetch(uGlyphColour, ivec2(col, row), 0);
+				float fCol = floor((fVertex - floor((fVertex + 0.5) / fIndicesPerRow) * fIndicesPerRow) + 0.5) / 4.0;
+				float fRow = floor(fVertex / fIndicesPerRow);
+				vColour = texelFetch(uGlyphColour, ivec2(fCol, fRow), 0);
+				vec4 glyphColRowPixel = texelFetch(uGlyphColRow, ivec2(fCol, fRow), 0);
+				int corner = (gl_VertexID - int(fRow) * 2) % 4;
+				uv = vec2((glyphColRowPixel.r * 255.0) / float(uPaneColsRows.x), (glyphColRowPixel.g * 255.0) / float(uPaneColsRows.y));
+				//vTextureCoord = vec2(glyphColRowPixel.r, glyphColRowPixel.g);
+				vec2 uvUnit = vec2(1.0 / float(uPaneColsRows.x), 1.0 / float(uPaneColsRows.y)); 
+				if (corner == 0 || corner == 2) uv.y = uv.y + uvUnit.y;
+				if (corner == 2 || corner == 3) uv.x = uv.x + uvUnit.x;
+				//vTextureCoord = texelFetch(uGlyphColRow, ivec2(fCol, fRow), 0); 
 				vTextureCoord = aTextureCoord;
-				//vTextureCoord = texelFetch(uGlyphColRow, , 0); 
+				float diff = vTextureCoord.x - uv.x;
+				if (diff < 0.0) diff = -diff;
+				if (diff < 0.005) {
+					vColour.r = 1.0;
+					vColour.g = 1.0;
+					vColour.b = 1.0;
+				}
+				//if (corner == 2) {
+				//	vColour.r = 0.0;
+				//	vColour.g = 0.0;
+				//	vColour.b = 0.0;
+				//}
 				gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 			}
 		`,
@@ -49,6 +71,7 @@ export class GlyphRenderer {
 			in vec4 vGlyph;
 			in vec2 vTextureCoord;
 			in vec4 vColour;
+			in vec2 uv;
 			uniform sampler2D uFontTexture;
 			out vec4 outColor;
 			void main() {
@@ -421,6 +444,7 @@ class Pane {
 		imageData = this.glyphColRow.imageData;
 		imageData.data[i] = charUVs[8];
 		imageData.data[i + 1] = charUVs[9];
+		imageData.data[i + 3] = 255;
 	
 		let indices = row * this.indicesPerRow + col * 4;
 		let texIndex = indices * 2;
