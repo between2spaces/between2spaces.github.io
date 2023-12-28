@@ -4,8 +4,8 @@ export class GlyphRenderer {
 
 		defaults = this.defaults = Object.assign(
 			{
-				cols: 17,
-				rows: 7,
+				cols: 80,
+				rows: 30,
 				wrap: true,
 				background: '#172b2c',
 				colour: COLOURS.WHITE,
@@ -16,66 +16,54 @@ export class GlyphRenderer {
 
 		this.context = createWebGLContext(container);
 
-		// 2  |\ | 4
-		// 1 | \|  3
-
 		const gl = (this.gl = this.context.gl);
 		const shader = (this.shader = createShader(
 			gl,
 			`#version 300 es
 			precision highp float;
 			in vec2 aPosition;
-			in vec2 aTextureCoord;
 			uniform mat4 uProjectionMatrix;
 			uniform mat4 uPaneMatrix;
 			uniform sampler2D uFontTexture;
+			uniform ivec2 uFontColsRows;
+			uniform ivec2 uFontUsedSize;
 			uniform sampler2D uGlyphColour;
 			uniform sampler2D uGlyphColRow;
 			uniform ivec2 uPaneColsRows;
-			out vec2 vTextureCoord;
+			out vec2 vUV;
 			out vec4 vColour;
-			out vec4 vGlyph;
-			out vec2 uv;
 			void main() {
-				float fIndicesPerRow = float(uPaneColsRows.x * 4 + 2);
+				float fPerRow = float(uPaneColsRows.x * 4 + 2);
 				float fVertex = float(gl_VertexID);
-				float fCol = floor((fVertex - floor((fVertex + 0.5) / fIndicesPerRow) * fIndicesPerRow) + 0.5) / 4.0;
-				float fRow = floor(fVertex / fIndicesPerRow);
+				float fCol = floor((fVertex - floor((fVertex + 0.5) / fPerRow) * fPerRow) + 0.5) / 4.0;
+				float fRow = floor(fVertex / fPerRow);
+
 				vColour = texelFetch(uGlyphColour, ivec2(fCol, fRow), 0);
-				vec4 glyphColRowPixel = texelFetch(uGlyphColRow, ivec2(fCol, fRow), 0);
+
+				vec4 vTexel = texelFetch(uGlyphColRow, ivec2(fCol, fRow), 0);
+				vec2 vGlyph = vec2(vTexel) * 255.0;
+				ivec2 fontSize = textureSize(uFontTexture, 0);
+				vec2 usedSize = vec2(uFontUsedSize) / vec2(fontSize);
+
+				vec2 uvUnit = vec2(usedSize.x / float(uFontColsRows.x), usedSize.y / float(uFontColsRows.y)); 
+
+				vUV = usedSize * (vGlyph / vec2(uFontColsRows));
+
 				int corner = (gl_VertexID - int(fRow) * 2) % 4;
-				uv = vec2((glyphColRowPixel.r * 255.0) / float(uPaneColsRows.x), (glyphColRowPixel.g * 255.0) / float(uPaneColsRows.y));
-				//vTextureCoord = vec2(glyphColRowPixel.r, glyphColRowPixel.g);
-				vec2 uvUnit = vec2(1.0 / float(uPaneColsRows.x), 1.0 / float(uPaneColsRows.y)); 
-				if (corner == 0 || corner == 2) uv.y = uv.y + uvUnit.y;
-				if (corner == 2 || corner == 3) uv.x = uv.x + uvUnit.x;
-				//vTextureCoord = texelFetch(uGlyphColRow, ivec2(fCol, fRow), 0); 
-				vTextureCoord = aTextureCoord;
-				float diff = vTextureCoord.x - uv.x;
-				if (diff < 0.0) diff = -diff;
-				if (diff < 0.005) {
-					vColour.r = 1.0;
-					vColour.g = 1.0;
-					vColour.b = 1.0;
-				}
-				//if (corner == 2) {
-				//	vColour.r = 0.0;
-				//	vColour.g = 0.0;
-				//	vColour.b = 0.0;
-				//}
+				if (corner == 0 || corner == 2) vUV.y = vUV.y + uvUnit.y;
+				if (corner == 2 || corner == 3) vUV.x = vUV.x + uvUnit.x;
+
 				gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 			}
 		`,
 			`#version 300 es
 			precision highp float;
-			in vec4 vGlyph;
-			in vec2 vTextureCoord;
 			in vec4 vColour;
-			in vec2 uv;
+			in vec2 vUV;
 			uniform sampler2D uFontTexture;
 			out vec4 outColor;
 			void main() {
-				outColor = texture(uFontTexture, vTextureCoord) * vColour;
+				outColor = texture(uFontTexture, vUV) * vColour;
 			}
 		`,
 		));
@@ -83,20 +71,19 @@ export class GlyphRenderer {
 		gl.useProgram(shader.program);
 
 		shader.aPosition = gl.getAttribLocation(shader.program, 'aPosition');
-		shader.aTextureCoord = gl.getAttribLocation(
-			shader.program,
-			'aTextureCoord',
-		);
+		//shader.aTextureCoord = gl.getAttribLocation(
+		//	shader.program,
+		//	'aTextureCoord',
+		//);
 		shader.uProjectionMatrix = gl.getUniformLocation(
 			shader.program,
 			'uProjectionMatrix',
 		);
 		shader.uPaneMatrix = gl.getUniformLocation(shader.program, 'uPaneMatrix');
-		shader.uPaneColsRows = gl.getUniformLocation(
-			shader.program,
-			'uPaneColsRows',
-		);
+		shader.uPaneColsRows = gl.getUniformLocation(shader.program, 'uPaneColsRows');
 		shader.uFontTexture = gl.getUniformLocation(shader.program, 'uFontTexture');
+		shader.uFontColsRows = gl.getUniformLocation(shader.program, 'uFontColsRows');
+		shader.uFontUsedSize = gl.getUniformLocation(shader.program, 'uFontUsedSize');
 		shader.uGlyphColour = gl.getUniformLocation(shader.program, 'uGlyphColour');
 		shader.uGlyphColRow = gl.getUniformLocation(shader.program, 'uGlyphColRow');
 
@@ -110,6 +97,7 @@ export class GlyphRenderer {
 				'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
 				')_+[]{}\\|;\':",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└' +
 				'←↑→↓↖↗↘↙↔↕',
+			2048	
 		);
 
 		this.projection = { near: 0, far: 100 };
@@ -161,8 +149,31 @@ export class GlyphRenderer {
 		return this.panes[index];
 	}
 
+	static hexToRGBA(hex) {
+		// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+		hex = hex.replace(
+			/^#?([a-f\d])([a-f\d])([a-f\d])$/i,
+			(m, r, g, b) => r + r + g + g + b + b + 'ff',
+		);
+		hex = hex.replace(
+			/^#?([a-f\d])([a-f\d])([a-f\d])([a-f\d])$/i,
+			(m, r, g, b, a) => r + r + g + g + b + b + a + a,
+		);
+
+
+		const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex);
+		return [
+			parseInt(rgb ? rgb[1] : '0', 16) / 255.0,
+			parseInt(rgb ? rgb[2] : '0', 16) / 255.0,
+			parseInt(rgb ? rgb[3] : '0', 16) / 255.0,
+			parseInt(rgb ? rgb[4] : '1', 16) / 255.0,
+		];
+	}
+
+
+
 	setBackground(colour) {
-		const rgba = typeof colour === 'string' ? hex_to_rgba(colour) : colour;
+		const rgba = typeof colour === 'string' ? GlyphRenderer.hexToRGBA(colour) : colour;
 		this.context.gl.clearColor(...rgba);
 	}
 
@@ -239,29 +250,38 @@ export class GlyphRenderer {
 		let font = size * 0.5;
 		let metrics;
 		let cols;
+		let rows;
+		let width;
 		let height;
 
 		this.fontTextureSize = size;
 		this.charUVs = {};
 
 		do {
-			ctx.font = `${font--}px monospace`;
+			ctx.font = `${font--}px ${fontFamily}`;
 			metrics = ctx.measureText('█');
-			cols = Math.floor(size / metrics.width);
-			height =
-				metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-		} while (cols * Math.floor(size / height) < characters.length);
+			width = Math.ceil(metrics.width);
+			cols = Math.floor(size / width);
+			height = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent);
+			rows = Math.floor(size / height);
+		} while (cols * rows < characters.length);
+
+		console.log(cols, rows, cols * width, rows * height);
+
+		gl.uniform2i(this.shader.uFontColsRows, cols, rows);
+		gl.uniform2i(this.shader.uFontUsedSize, cols * width, rows * height);
 
 		for (let i = 0, l = characters.length; i < l; i++) {
-			let y = metrics.actualBoundingBoxAscent + Math.floor(i / cols) * height;
-			let x = metrics.width * 0.5 + (i % cols) * metrics.width;
-			ctx.fillText(characters[i], x, y);
-			let left = (x - 0.5 * metrics.width) / size;
-			let top = (y - metrics.actualBoundingBoxAscent) / size;
-			let right = (x + 0.5 * metrics.width) / size;
-			let bottom = (y + metrics.actualBoundingBoxDescent) / size;
+			let y = Math.round(Math.floor(i / cols) * height);
+			let x = Math.round((i % cols) * width);
+			ctx.fillText(characters[i], x + 0.5 * width, y + metrics.actualBoundingBoxAscent);
+			let left = x / size;
+			let top = y / size;
+			let right = (x + width) / size;
+			let bottom = (y + height) / size;
 			let charCol = i % cols;
 			let charRow = Math.floor(i / cols);
+			
 			this.charUVs[characters[i]] = [
 				left,
 				bottom,
@@ -283,9 +303,11 @@ export class GlyphRenderer {
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+
 	}
 
-	render() {
+	update() {
+		if ( !this.dirty ) return;
 		const gl = this.context.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -378,8 +400,8 @@ class Pane {
 
 		/* Texture coordinates   Array of Uint16 -> 2 Unsigned Shorts per vertex */
 		this.textureCoord = {
-			typedArray: new Float32Array(textureCoord),
-			buffer: gl.createBuffer(),
+			//typedArray: new Float32Array(textureCoord),
+			//buffer: gl.createBuffer(),
 			dirty: true,
 		};
 
@@ -395,14 +417,14 @@ class Pane {
 		gl.vertexAttribPointer(shader.aPosition, 2, gl.UNSIGNED_SHORT, false, 0, 0);
 		gl.enableVertexAttribArray(shader.aPosition);
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.textureCoord.buffer);
-		gl.bufferData(
-			gl.ARRAY_BUFFER,
-			this.textureCoord.typedArray,
-			gl.STATIC_DRAW,
-		);
-		gl.vertexAttribPointer(shader.aTextureCoord, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(shader.aTextureCoord);
+		//gl.bindBuffer(gl.ARRAY_BUFFER, this.textureCoord.buffer);
+		//gl.bufferData(
+		//	gl.ARRAY_BUFFER,
+		//	this.textureCoord.typedArray,
+		//	gl.STATIC_DRAW,
+		//);
+		//gl.vertexAttribPointer(shader.aTextureCoord, 2, gl.FLOAT, false, 0, 0);
+		//gl.enableVertexAttribArray(shader.aTextureCoord);
 
 		gl.bindVertexArray(null);
 
@@ -415,7 +437,7 @@ class Pane {
 	}
 
 	setColour(colour) {
-		this.rgba = typeof colour === 'string' ? hex_to_rgba(colour) : colour;
+		this.rgba = typeof colour === 'string' ? GlyphRenderer.hexToRGBA(colour) : colour;
 	}
 
 	put(col, row, char) {
@@ -441,27 +463,17 @@ class Pane {
 		imageData.data[i + 2] = this.rgba[2] * 255;
 		imageData.data[i + 3] = this.rgba[3] * 255;
 
+		this.colours.dirty = true;
+
 		imageData = this.glyphColRow.imageData;
 		imageData.data[i] = charUVs[8];
 		imageData.data[i + 1] = charUVs[9];
 		imageData.data[i + 3] = 255;
-	
-		let indices = row * this.indicesPerRow + col * 4;
-		let texIndex = indices * 2;
 
-		const textureCoord = this.textureCoord;
-		textureCoord.typedArray[texIndex] = charUVs[0];
-		textureCoord.typedArray[texIndex + 1] = charUVs[1];
-		textureCoord.typedArray[texIndex + 2] = charUVs[2];
-		textureCoord.typedArray[texIndex + 3] = charUVs[3];
-		textureCoord.typedArray[texIndex + 4] = charUVs[4];
-		textureCoord.typedArray[texIndex + 5] = charUVs[5];
-		textureCoord.typedArray[texIndex + 6] = charUVs[6];
-		textureCoord.typedArray[texIndex + 7] = charUVs[7];
+		this.textureCoord.dirty = true;
 
-		textureCoord.dirty = true;
+		this.renderer.dirty = true;
 
-		this.colours.dirty = true;
 	}
 
 	write(col, row, string) {
@@ -474,12 +486,6 @@ class Pane {
 		const gl = this.gl;
 		const shader = this.renderer.shader;
 
-		if (this.textureCoord.dirty) {
-			gl.bindBuffer(gl.ARRAY_BUFFER, this.textureCoord.buffer);
-			gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.textureCoord.typedArray);
-			this.textureCoord.dirty = false;
-		}
-
 		gl.bindVertexArray(this.vao);
 
 		gl.activeTexture(gl.TEXTURE1);
@@ -489,16 +495,17 @@ class Pane {
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glyphColour.canvas);
+			this.colours.dirty = false;
 		}
 
 		gl.activeTexture(gl.TEXTURE2);
 		gl.bindTexture(gl.TEXTURE_2D, this.glyphColRow.texture);
-		if (this.colours.dirty) {
+		if (this.textureCoord.dirty) {
 			this.glyphColRow.ctx.putImageData(this.glyphColRow.imageData, 0, 0);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glyphColRow.canvas);
-			this.colours.dirty = false;
+			this.textureCoord.dirty = false;
 		}
 
 		gl.uniformMatrix4fv(shader.uPaneMatrix, false, this.paneMatrix);
@@ -565,24 +572,6 @@ function createCanvasTexture(gl, size = 1024) {
 	return { canvas, ctx, imageData, texture };
 }
 
-function hex_to_rgba(hex) {
-	// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-	hex = hex.replace(
-		/^#?([a-f\d])([a-f\d])([a-f\d])$/i,
-		(m, r, g, b) => r + r + g + g + b + b,
-	);
-
-	const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-	return rgb
-		? [
-			parseInt(rgb[1], 16) / 255.0,
-			parseInt(rgb[2], 16) / 255.0,
-			parseInt(rgb[3], 16) / 255.0,
-			1,
-		  ]
-		: null;
-}
-
 const renderers = [];
 
 function updateFrame() {
@@ -590,12 +579,11 @@ function updateFrame() {
 
 	for (let renderer of renderers) {
 		if (renderer.dirty) {
-			renderer.render();
+			console.log('dirty');
 		}
 	}
 }
 
-updateFrame();
 
 const resizeObserver = new ResizeObserver((entries) => {
 	for (const entry of entries) {
