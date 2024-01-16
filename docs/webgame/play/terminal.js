@@ -1,4 +1,4 @@
-export class GlyphRenderer {
+export class Terminal {
 	constructor(container = document.body, defaults = {}) {
 		this.container = container;
 
@@ -173,7 +173,7 @@ export class GlyphRenderer {
 
 
 	setBackground(colour) {
-		const rgba = typeof colour === 'string' ? GlyphRenderer.hexToRGBA(colour) : colour;
+		const rgba = typeof colour === 'string' ? Terminal.hexToRGBA(colour) : colour;
 		this.context.gl.clearColor(...rgba);
 	}
 
@@ -437,7 +437,7 @@ class Pane {
 	}
 
 	setColour(colour) {
-		this.rgba = typeof colour === 'string' ? GlyphRenderer.hexToRGBA(colour) : colour;
+		this.rgba = typeof colour === 'string' ? Terminal.hexToRGBA(colour) : colour;
 	}
 
 	put(col, row, char) {

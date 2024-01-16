@@ -63,6 +63,10 @@ if [ -d $NVM_DIR ]; then
 fi
 
 
+# required for Python requests module inside venvs to trust system-trusted certificate authorities
+export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+
+
 # source aliases
 
 if [ -f ~/.bash_aliases ]; then

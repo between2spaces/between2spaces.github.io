@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import sys
 import requests
 from lxml import html, etree
