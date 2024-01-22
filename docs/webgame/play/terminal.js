@@ -1,4 +1,7 @@
+import * as gl_utils from './gl_utils.js';
+
 export class Terminal {
+
 	constructor(container = document.body, defaults = {}) {
 		this.container = container;
 
@@ -14,10 +17,10 @@ export class Terminal {
 			defaults,
 		);
 
-		this.context = createWebGLContext(container);
+		this.context = gl_utils.createContext(container);
 
 		const gl = (this.gl = this.context.gl);
-		const shader = (this.shader = createShader(
+		const shader = (this.shader = gl_utils.createShader(
 			gl,
 			`#version 300 es
 			precision highp float;
@@ -71,10 +74,6 @@ export class Terminal {
 		gl.useProgram(shader.program);
 
 		shader.aPosition = gl.getAttribLocation(shader.program, 'aPosition');
-		//shader.aTextureCoord = gl.getAttribLocation(
-		//	shader.program,
-		//	'aTextureCoord',
-		//);
 		shader.uProjectionMatrix = gl.getUniformLocation(
 			shader.program,
 			'uProjectionMatrix',
@@ -240,7 +239,7 @@ export class Terminal {
 
 	setCharacterSet(characters, size = 1024, fontFamily = 'monospace') {
 		const gl = this.context.gl;
-		const { canvas, ctx, texture } = createCanvasTexture(gl, size);
+		const { canvas, ctx, texture } = gl_utils.createCanvasTexture(gl, size);
 
 		ctx.clearRect(0, 0, size, size);
 		ctx.fillStyle = 'white';
@@ -265,8 +264,6 @@ export class Terminal {
 			height = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent);
 			rows = Math.floor(size / height);
 		} while (cols * rows < characters.length);
-
-		console.log(cols, rows, cols * width, rows * height);
 
 		gl.uniform2i(this.shader.uFontColsRows, cols, rows);
 		gl.uniform2i(this.shader.uFontUsedSize, cols * width, rows * height);
@@ -320,6 +317,7 @@ export class Terminal {
 }
 
 class Pane {
+
 	constructor(params = {}) {
 		Object.assign(this, params);
 		this.indicesPerRow = this.cols * 4 + 2;
@@ -337,9 +335,9 @@ class Pane {
 		while (Math.pow(2, pow)	< maxColsRows) pow++;
 		const size = Math.pow(2, pow);
 
-		this.glyphColour = createCanvasTexture(gl, size);
+		this.glyphColour = gl_utils.createCanvasTexture(gl, size);
 		document.body.append(this.glyphColour.canvas);
-		this.glyphColRow = createCanvasTexture(gl, size);
+		this.glyphColRow = gl_utils.createCanvasTexture(gl, size);
 		document.body.append(this.glyphColRow.canvas);
 
 		// build degenerated triangle stripe vertices for a colsxrows pane
@@ -358,74 +356,20 @@ class Pane {
 			}
 		}
 
-		let textureCoord = new Array(vertices.length);
-		let colours = [];
-
-		let top = 1 + this.rows * 0.5;
-
-		for (let row = 0; row < this.rows; row++) {
-			top--;
-
-			let bottom = top - 1;
-			let left = -1 - this.cols * 0.5;
-
-			for (let col = 0; col < this.cols; col++) {
-				left++;
-
-				let right = left + 1;
-
-				if (row > 0 && col === 0) {
-					colours.push(0.0, 0.0, 0.0, 0.0);
-					colours.push(0.0, 0.0, 0.0, 0.0);
-					colours.push(0.0, 0.0, 0.0, 0.0);
-				}
-
-				colours.push(0.0, 0.0, 0.0, 0.0);
-				colours.push(0.0, 0.0, 0.0, 0.0);
-				colours.push(0.0, 0.0, 0.0, 0.0);
-				colours.push(0.0, 0.0, 0.0, 0.0);
-
-				if (col === this.cols - 1) {
-					colours.push(0.0, 0.0, 0.0, 0.0);
-				}
-			}
-		}
-
 		/* Vertices   Array of Uint16 [0 to 65536] -> 2 Unsigned Shorts per vertex */
 		this.vertices = {
 			typedArray: new Uint16Array(vertices),
-			buffer: gl.createBuffer(),
-			dirty: true,
+			buffer: gl.createBuffer()
 		};
-
-		/* Texture coordinates   Array of Uint16 -> 2 Unsigned Shorts per vertex */
-		this.textureCoord = {
-			//typedArray: new Float32Array(textureCoord),
-			//buffer: gl.createBuffer(),
-			dirty: true,
-		};
-
-		this.colours = { dirty: true };
 
 		this.setColour(COLOURS.WHITE);
 
 		this.vao = gl.createVertexArray();
 		gl.bindVertexArray(this.vao);
-
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices.buffer);
 		gl.bufferData(gl.ARRAY_BUFFER, this.vertices.typedArray, gl.STATIC_DRAW);
 		gl.vertexAttribPointer(shader.aPosition, 2, gl.UNSIGNED_SHORT, false, 0, 0);
 		gl.enableVertexAttribArray(shader.aPosition);
-
-		//gl.bindBuffer(gl.ARRAY_BUFFER, this.textureCoord.buffer);
-		//gl.bufferData(
-		//	gl.ARRAY_BUFFER,
-		//	this.textureCoord.typedArray,
-		//	gl.STATIC_DRAW,
-		//);
-		//gl.vertexAttribPointer(shader.aTextureCoord, 2, gl.FLOAT, false, 0, 0);
-		//gl.enableVertexAttribArray(shader.aTextureCoord);
-
 		gl.bindVertexArray(null);
 
 		this.renderer.dirty = true;
@@ -441,18 +385,14 @@ class Pane {
 	}
 
 	put(col, row, char) {
-		if (!this.wrap && (col >= this.cols || row >= this.rows)) {
-			return;
-		}
+		if (!this.wrap && (col >= this.cols || row >= this.rows)) return;
 
 		if (col >= this.cols) {
 			row += Math.floor(col / this.cols);
 			col = col % this.cols;
 		}
 
-		if (row >= this.rows) {
-			return;
-		}
+		if (row >= this.rows) return;
 
 		const i = (this.glyphColour.canvas.width * row + col) * 4;
 		const charUVs = this.renderer.charUVs[char];
@@ -462,18 +402,15 @@ class Pane {
 		imageData.data[i + 1] = this.rgba[1] * 255;
 		imageData.data[i + 2] = this.rgba[2] * 255;
 		imageData.data[i + 3] = this.rgba[3] * 255;
-
-		this.colours.dirty = true;
+		this.glyphColour.dirty = true;
 
 		imageData = this.glyphColRow.imageData;
 		imageData.data[i] = charUVs[8];
 		imageData.data[i + 1] = charUVs[9];
 		imageData.data[i + 3] = 255;
-
-		this.textureCoord.dirty = true;
+		this.glyphColRow.dirty = true;
 
 		this.renderer.dirty = true;
-
 	}
 
 	write(col, row, string) {
@@ -490,22 +427,22 @@ class Pane {
 
 		gl.activeTexture(gl.TEXTURE1);
 		gl.bindTexture(gl.TEXTURE_2D, this.glyphColour.texture);
-		if (this.colours.dirty) {
+		if (this.glyphColour.dirty) {
 			this.glyphColour.ctx.putImageData(this.glyphColour.imageData, 0, 0);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glyphColour.canvas);
-			this.colours.dirty = false;
+			this.glyphColour.dirty = false;
 		}
 
 		gl.activeTexture(gl.TEXTURE2);
 		gl.bindTexture(gl.TEXTURE_2D, this.glyphColRow.texture);
-		if (this.textureCoord.dirty) {
+		if (this.glyphColRow.dirty) {
 			this.glyphColRow.ctx.putImageData(this.glyphColRow.imageData, 0, 0);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glyphColRow.canvas);
-			this.textureCoord.dirty = false;
+			this.glyphColRow.dirty = false;
 		}
 
 		gl.uniformMatrix4fv(shader.uPaneMatrix, false, this.paneMatrix);
@@ -520,57 +457,6 @@ export const COLOURS = {
 	YELLOW: [1, 1, 0.6, 1],
 	RED: [1, 0, 0, 1],
 };
-
-function createWebGLContext(container) {
-	const canvas = document.createElement('canvas');
-	container.append(canvas);
-	const gl = canvas.getContext('webgl2', { antialias: false });
-	gl.clearDepth(1.0);
-	gl.disable(gl.DEPTH_TEST);
-	gl.enable(gl.BLEND);
-	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-	return { canvas, gl };
-}
-
-function createShader(gl, vertexShaderCode, fragmentShaderCode) {
-	const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-	gl.shaderSource(vertexShader, vertexShaderCode);
-	gl.compileShader(vertexShader);
-
-	if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-		console.error(gl.getShaderInfoLog(vertexShader));
-	}
-
-	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-	gl.shaderSource(fragmentShader, fragmentShaderCode);
-	gl.compileShader(fragmentShader);
-
-	if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-		console.error(gl.getShaderInfoLog(fragmentShader));
-	}
-
-	const program = gl.createProgram();
-
-	gl.attachShader(program, vertexShader);
-	gl.attachShader(program, fragmentShader);
-	gl.linkProgram(program);
-
-	if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-		console.error(gl.getProgramInfoLog(program));
-	}
-
-	return { program };
-}
-
-function createCanvasTexture(gl, size = 1024) {
-	const canvas = document.createElement('canvas');
-	canvas.width = canvas.height = size;
-	const ctx = canvas.getContext('2d');
-	ctx.clearRect(0, 0, size, size);
-	const imageData = ctx.getImageData(0, 0, size, size);
-	const texture = gl.createTexture();
-	return { canvas, ctx, imageData, texture };
-}
 
 const renderers = [];
 
