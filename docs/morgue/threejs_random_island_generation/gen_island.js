@@ -4,26 +4,26 @@ import * as Landscape from './landscape.js';
 
 const worldSize = 100;
 
-const landscapeGeometry = Landscape.generateIslandGeometry( worldSize );
-
-var dirtMaterial = new THREE.MeshStandardMaterial( {
-    color: 'brown',
-    polygonOffset: true
-} );
-
-var dirtMesh = new THREE.Mesh( landscapeGeometry, dirtMaterial );
-
-scene.add( dirtMesh );
-
-var wireframe = new THREE.LineSegments( new THREE.WireframeGeometry( landscapeGeometry ) );
-wireframe.material.opacity = 0.25;
-wireframe.material.tramorgue/threejs_random_island_generationnsparent = true;
-scene.add( wireframe );
-
-var waterGeometry = new THREE.PlaneGeometry( worldSize, worldSize );
-var waterMaterial = new THREE.MeshStandardMaterial( { color: 'blue' } );
-var waterMesh = new THREE.Mesh( waterGeometry, waterMaterial );
-scene.add( waterMesh );
+//const landscapeGeometry = Landscape.generateIslandGeometry( worldSize );
+//
+//var dirtMaterial = new THREE.MeshStandardMaterial( {
+//    color: 'brown',
+//    polygonOffset: true
+//} );
+//
+//var dirtMesh = new THREE.Mesh( landscapeGeometry, dirtMaterial );
+//
+//scene.add( dirtMesh );
+//
+//var wireframe = new THREE.LineSegments( new THREE.WireframeGeometry( landscapeGeometry ) );
+//wireframe.material.opacity = 0.25;
+//wireframe.material.trasparent = true;
+//scene.add( wireframe );
+//
+//var waterGeometry = new THREE.PlaneGeometry( worldSize, worldSize );
+//var waterMaterial = new THREE.MeshStandardMaterial( { color: 'blue' } );
+//var waterMesh = new THREE.Mesh( waterGeometry, waterMaterial );
+//scene.add( waterMesh );
 
 // function dirtTexture( width, height ) {
 
