@@ -42,6 +42,14 @@ for dotfile in dotfiles/.config/[a-z]*; do
 	echo -e "${HOME}/.config/${dotfile} ${GREEN}✓${NOCOLOUR}"
 done
 
+
+# Add corporate certificate if not already done
+if [ -f /usr/local/share/ca-certificates/WKGLOBAL-Secure-CertificateAuthority.crt ]; then
+	sudo cp certificates/WKGLOBAL-Secure-CertificateAuthority.crt /usr/local/share/ca-certificates
+	sudo update-ca-certificates
+fi
+
+
 # Attempt to add the deadsnakes open source repository, needed for Python3.12
 if [ ! -f /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list ]; then
 	set +e
@@ -64,16 +72,18 @@ if [ -f /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list ]; then
 fi
 
 # Python virtual environment
-echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
-cd ~
-if [ "$(which python3.12)" == "" ]; then 
-	python3 -m venv --without-pip env
-else
-	python3.12 -m venv --without-pip env
+if [ "$(echo $VIRTUAL_ENV_PROMPT)" == "" ]; then
+	echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
+	cd ~
+	if [ "$(which python3.12)" == "" ]; then 
+		python3 -m venv --without-pip env
+	else
+		python3.12 -m venv --without-pip env
+	fi
+	source env/bin/activate
+	curl -k https://bootstrap.pypa.io/get-pip.py | python
+	cd $CWD
 fi
-source env/bin/activate
-curl -k https://bootstrap.pypa.io/get-pip.py | python
-cd $CWD
 
 # Powerline-shell
 echo -e "\n${YELLOW}# Powerline-shell${NOCOLOUR}\n"
