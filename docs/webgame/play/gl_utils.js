@@ -47,6 +47,19 @@ export function createCanvasTexture(gl, size = 1024) {
 	ctx.clearRect(0, 0, size, size);
 	const imageData = ctx.getImageData(0, 0, size, size);
 	const texture = gl.createTexture();
-	return { canvas, ctx, imageData, texture };
+	let dirty = true;
+	return { canvas, ctx, imageData, texture, dirty };
+}
+
+export function activeBindUpdateTexture(gl, textureUnit, canvasTexture) {
+	gl.activeTexture(textureUnit);
+	gl.bindTexture(gl.TEXTURE_2D, canvasTexture.texture);
+	if (canvasTexture.dirty) {
+		canvasTexture.ctx.putImageData(canvasTexture.imageData, 0, 0);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvasTexture.canvas);
+		canvasTexture.dirty = false;
+	}
 }
 

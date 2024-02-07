@@ -1,22 +1,17 @@
 import * as gl_utils from './gl_utils.js';
 
-export class Terminal {
+export class TUI {
 
 	constructor(container = document.body, defaults = {}) {
+		defaults = Object.assign({
+			background: '#172b2c',
+			viewLeft: 0,
+			viewTop: 0,
+			viewRight: 4,
+			viewBottom: 4
+		}, defaults);
+
 		this.container = container;
-
-		defaults = this.defaults = Object.assign(
-			{
-				cols: 80,
-				rows: 30,
-				wrap: true,
-				background: '#172b2c',
-				colour: COLOURS.WHITE,
-				panes: 1,
-			},
-			defaults,
-		);
-
 		this.context = gl_utils.createContext(container);
 
 		const gl = (this.gl = this.context.gl);
@@ -74,10 +69,7 @@ export class Terminal {
 		gl.useProgram(shader.program);
 
 		shader.aPosition = gl.getAttribLocation(shader.program, 'aPosition');
-		shader.uProjectionMatrix = gl.getUniformLocation(
-			shader.program,
-			'uProjectionMatrix',
-		);
+		shader.uProjectionMatrix = gl.getUniformLocation(shader.program, 'uProjectionMatrix');
 		shader.uPaneMatrix = gl.getUniformLocation(shader.program, 'uPaneMatrix');
 		shader.uPaneColsRows = gl.getUniformLocation(shader.program, 'uPaneColsRows');
 		shader.uFontTexture = gl.getUniformLocation(shader.program, 'uFontTexture');
@@ -90,6 +82,8 @@ export class Terminal {
 		gl.uniform1i(shader.uGlyphColour, 1);
 		gl.uniform1i(shader.uGlyphColRow, 2);
 
+		this.fitContainer();
+
 		this.setBackground(defaults.background);
 		this.setCharacterSet(
 			'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
@@ -99,53 +93,24 @@ export class Terminal {
 			2048	
 		);
 
-		this.projection = { near: 0, far: 100 };
-		this.panes = [];
+		this.projection = {near: 0, far: 100};
+		this.windows = [];
 
-		for (let i = 0; i < this.defaults.panes; i++) {
-			this.addPane();
-		}
-
-		this.setView(0, 0, this.panes[0].cols - 1, this.panes[0].rows - 1);
-		renderers.push(this);
+		this.setView(defaults.viewLeft, defaults.viewTop, defaults.viewRight, defaults.viewBottom);
+		tuis.push(this);
 		resizeObserver.observe(container);
 		this.dirty = true;
 	}
 
-	addPane(params = {}) {
-		params = Object.assign(
-			{
-				cols: this.defaults.cols,
-				rows: this.defaults.rows,
-				colour: this.defaults.colour,
-				wrap: this.defaults.wrap,
-			},
-			params,
-		);
+	createWindow(params = {}) {
+		params.tui = this;
 
-		params.renderer = this;
-
-		const pane = new Pane(params);
-
-		if (params.index === undefined || params.index >= this.panes.length) {
-			this.panes.push(pane);
-		} else {
-			if (params.index <= 0) {
-				this.panes.unshift(pane);
-			} else {
-				this.panes.splice(params.index, pane);
-			}
-		}
-
-		for (let index in this.panes) {
-			this.panes[index].index = index;
-		}
-
-		return pane;
+		const win = new Window(params);
+		return win;
 	}
 
-	getPane(index = 0) {
-		return this.panes[index];
+	getWindow(index = 0) {
+		return this.windows[index];
 	}
 
 	static hexToRGBA(hex) {
@@ -172,7 +137,7 @@ export class Terminal {
 
 
 	setBackground(colour) {
-		const rgba = typeof colour === 'string' ? Terminal.hexToRGBA(colour) : colour;
+		const rgba = typeof colour === 'string' ? TUI.hexToRGBA(colour) : colour;
 		this.context.gl.clearColor(...rgba);
 	}
 
@@ -239,7 +204,7 @@ export class Terminal {
 
 	setCharacterSet(characters, size = 1024, fontFamily = 'monospace') {
 		const gl = this.context.gl;
-		const { canvas, ctx, texture } = gl_utils.createCanvasTexture(gl, size);
+		const {canvas, ctx, texture} = gl_utils.createCanvasTexture(gl, size);
 
 		ctx.clearRect(0, 0, size, size);
 		ctx.fillStyle = 'white';
@@ -308,31 +273,58 @@ export class Terminal {
 		const gl = this.context.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-		for (let pane of this.panes) {
-			pane.render();
+		for (let win of this.windows) {
+			win.render();
 		}
 
 		this.dirty = false;
 	}
 }
 
-class Pane {
+class Window {
 
 	constructor(params = {}) {
-		Object.assign(this, params);
-		this.indicesPerRow = this.cols * 4 + 2;
-		this.indices = this.indicesPerRow * this.rows - 2;
+		params = Object.assign(
+			{
+				left: 0,
+				top: 0,
+				width: 20,
+				height: 10,
+				colour: COLOURS.WHITE,
+				wrap: true,
+				zIndex: params.tui.windows.length
+			},
+			params,
+		);
 
-		const gl = (this.gl = this.renderer.context.gl);
-		const shader = this.renderer.shader;
+		Object.assign(this, params);
+
+		if (params.zIndex === undefined || params.zIndex >= this.tui.windows.length) {
+			this.tui.windows.push(this);
+		} else {
+			if (params.zIndex <= 0) {
+				this.tui.windows.unshift(this);
+			} else {
+				this.tui.windows.splice(params.zIndex, this);
+			}
+		}
+
+		for (let index in this.tui.windows) {
+			this.tui.windows[index].zIndex = index;
+		}
+
+		this.indicesPerRow = this.width * 4 + 2;
+		this.indices = this.indicesPerRow * this.height - 2;
+
+		const gl = (this.gl = this.tui.context.gl);
+		const shader = this.tui.shader;
 
 		this.paneMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-		this.paneSize = new Uint16Array([this.cols, this.rows]);
+		this.paneSize = new Uint16Array([this.width, this.height]);
 
 		// Calculate minimum power of 2 texture size to hold per pixel glyph information
-		const maxColsRows = Math.max(this.cols, this.rows);
 		let pow = 1;
-		while (Math.pow(2, pow)	< maxColsRows) pow++;
+		while (Math.pow(2, pow)	< Math.max(this.width, this.height)) pow++;
 		const size = Math.pow(2, pow);
 
 		this.glyphColour = gl_utils.createCanvasTexture(gl, size);
@@ -340,18 +332,15 @@ class Pane {
 		this.glyphColRow = gl_utils.createCanvasTexture(gl, size);
 		document.body.append(this.glyphColRow.canvas);
 
-		// build degenerated triangle stripe vertices for a colsxrows pane
+		// build degenerated triangle stripe vertices
 		const vertices = [];
-
-		for (let row = 0; row < this.rows; row++) {
+		for (let row = 0; row < this.height; row++) {
 			let col = 0;
-
-			while (col < this.cols) {
+			while (col < this.width) {
 				vertices.push(col, row + 1, col, row, col + 1, row + 1, col + 1, row);
 				col++;
 			}
-
-			if (row < this.rows - 1) {
+			if (row < this.height - 1) {
 				vertices.push(col, row, 0, row + 2);
 			}
 		}
@@ -372,81 +361,70 @@ class Pane {
 		gl.enableVertexAttribArray(shader.aPosition);
 		gl.bindVertexArray(null);
 
-		this.renderer.dirty = true;
+		this.cursor = { col: 0, row: 0 };
+		this.left = 0;
+		this.top = 0;
+		//this.translate(params.left, params.top);
+
+		this.tui.dirty = true;
 	}
 
-	translate(x, y) {
-		this.paneMatrix[12] += x;
-		this.paneMatrix[13] += y;
+	translate(cols, rows) {
+		this.paneMatrix[12] = this.left += cols;
+		this.paneMatrix[13] = this.top += rows;
 	}
 
 	setColour(colour) {
-		this.rgba = typeof colour === 'string' ? Terminal.hexToRGBA(colour) : colour;
+		this.rgba = typeof colour === 'string' ? TUI.hexToRGBA(colour) : colour;
 	}
 
-	put(col, row, char) {
-		if (!this.wrap && (col >= this.cols || row >= this.rows)) return;
+	move(col, row) {
+		this.cursor.row = row;
 
-		if (col >= this.cols) {
-			row += Math.floor(col / this.cols);
-			col = col % this.cols;
+		if (col >= this.width) {
+			this.cursor.row += Math.floor(col / this.width);
+			this.cursor.col = col % this.width;
+		} else {
+			this.cursor.col = col;
 		}
-
-		if (row >= this.rows) return;
-
-		const i = (this.glyphColour.canvas.width * row + col) * 4;
-		const charUVs = this.renderer.charUVs[char];
-
-		let imageData = this.glyphColour.imageData;
-		imageData.data[i] = this.rgba[0] * 255;
-		imageData.data[i + 1] = this.rgba[1] * 255;
-		imageData.data[i + 2] = this.rgba[2] * 255;
-		imageData.data[i + 3] = this.rgba[3] * 255;
-		this.glyphColour.dirty = true;
-
-		imageData = this.glyphColRow.imageData;
-		imageData.data[i] = charUVs[8];
-		imageData.data[i + 1] = charUVs[9];
-		imageData.data[i + 3] = 255;
-		this.glyphColRow.dirty = true;
-
-		this.renderer.dirty = true;
 	}
 
-	write(col, row, string) {
+	write(string) {
 		for (let char of string) {
-			this.put(col++, row, char);
+			if (!this.wrap && this.cursor.col >= this.width) return;
+			if (this.cursor.row >= this.height) return;
+
+			const i = (this.glyphColour.canvas.width * this.cursor.row + this.cursor.col) * 4;
+			const charUVs = this.tui.charUVs[char];
+
+			let imageData = this.glyphColour.imageData;
+			imageData.data[i] = this.rgba[0] * 255;
+			imageData.data[i + 1] = this.rgba[1] * 255;
+			imageData.data[i + 2] = this.rgba[2] * 255;
+			imageData.data[i + 3] = this.rgba[3] * 255;
+			this.glyphColour.dirty = true;
+
+			imageData = this.glyphColRow.imageData;
+			imageData.data[i] = charUVs[8];
+			imageData.data[i + 1] = charUVs[9];
+			imageData.data[i + 3] = 255;
+			this.glyphColRow.dirty = true;
+
+			this.move(this.cursor.col + 1, this.cursor.row);
 		}
+
+		this.tui.dirty = true;
 	}
 
 	render() {
 		const gl = this.gl;
-		const shader = this.renderer.shader;
 
 		gl.bindVertexArray(this.vao);
+		gl_utils.activeBindUpdateTexture(gl, gl.TEXTURE1, this.glyphColour);
+		gl_utils.activeBindUpdateTexture(gl, gl.TEXTURE2, this.glyphColRow);
 
-		gl.activeTexture(gl.TEXTURE1);
-		gl.bindTexture(gl.TEXTURE_2D, this.glyphColour.texture);
-		if (this.glyphColour.dirty) {
-			this.glyphColour.ctx.putImageData(this.glyphColour.imageData, 0, 0);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glyphColour.canvas);
-			this.glyphColour.dirty = false;
-		}
-
-		gl.activeTexture(gl.TEXTURE2);
-		gl.bindTexture(gl.TEXTURE_2D, this.glyphColRow.texture);
-		if (this.glyphColRow.dirty) {
-			this.glyphColRow.ctx.putImageData(this.glyphColRow.imageData, 0, 0);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.glyphColRow.canvas);
-			this.glyphColRow.dirty = false;
-		}
-
-		gl.uniformMatrix4fv(shader.uPaneMatrix, false, this.paneMatrix);
-		gl.uniform2i(shader.uPaneColsRows, this.cols, this.rows);
+		gl.uniformMatrix4fv(this.tui.shader.uPaneMatrix, false, this.paneMatrix);
+		gl.uniform2i(this.tui.shader.uPaneColsRows, this.width, this.height);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.indices);
 	}
 }
@@ -458,24 +436,13 @@ export const COLOURS = {
 	RED: [1, 0, 0, 1],
 };
 
-const renderers = [];
-
-function updateFrame() {
-	requestAnimationFrame(updateFrame);
-
-	for (let renderer of renderers) {
-		if (renderer.dirty) {
-			console.log('dirty');
-		}
-	}
-}
-
+const tuis = [];
 
 const resizeObserver = new ResizeObserver((entries) => {
 	for (const entry of entries) {
-		for (let renderer of renderers) {
-			if (entry.target === renderer.container) {
-				renderer.fitContainer();
+		for (let tui of tuis) {
+			if (entry.target === tui.container) {
+				tui.fitContainer();
 			}
 		}
 	}
