@@ -34,9 +34,10 @@ export class TUI {
 				float fPerRow = float(uPaneColsRows.x * 4 + 2);
 				float fVertex = float(gl_VertexID);
 				float fCol = floor((fVertex - floor((fVertex + 0.5) / fPerRow) * fPerRow) + 0.5) / 4.0;
-				float fRow = floor(fVertex / fPerRow);
+				float fRow = floor((fVertex + 1.0) / fPerRow);
 
 				vColour = texelFetch(uGlyphColour, ivec2(fCol, fRow), 0);
+
 
 				vec4 vTexel = texelFetch(uGlyphColRow, ivec2(fCol, fRow), 0);
 				vec2 vGlyph = vec2(vTexel) * 255.0;
@@ -48,8 +49,16 @@ export class TUI {
 				vUV = usedSize * (vGlyph / vec2(uFontColsRows));
 
 				int corner = (gl_VertexID - int(fRow) * 2) % 4;
+
+				//if (vUV.x < 0.8 && vUV.x > 0.76) {
+						//if (fPerRow == 14.0) vColour = vec4(1, 0, 0, 1);
+				//}
+
+				//if (fRow == 0.0) vColour = vec4(1, 0, 0, 1);
+
 				if (corner == 0 || corner == 2) vUV.y = vUV.y + uvUnit.y;
 				if (corner == 2 || corner == 3) vUV.x = vUV.x + uvUnit.x;
+
 
 				gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 			}

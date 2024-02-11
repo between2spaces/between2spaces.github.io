@@ -10,14 +10,14 @@
     "start": "npm install; npx npm-check-updates -u; npm install; cd docs; python3 -m http.server"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin-js": "^1.6.0",
+    "@stylistic/eslint-plugin-js": "^1.6.1",
     "eslint": "^8.56.0",
     "eslint-config-mdcs": "^5.0.0",
     "eslint-plugin-import": "^2.29.1",
-    "npm-check-updates": "^16.14.14",
+    "npm-check-updates": "^16.14.15",
     "prettier": "^3.2.5",
     "prettier-eslint-cli": "^8.0.1",
     "typescript": "^5.3.3",
-    "typescript-language-server": "^4.3.2"
+    "typescript-language-server": "^4.3.3"
   }
 }
