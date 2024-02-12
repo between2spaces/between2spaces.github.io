@@ -156,6 +156,7 @@ export class TUI {
 		canvas.height = window.innerHeight;
 		this.context.gl.viewport(0, 0, canvas.width, canvas.height);
 		this.dirty = true;
+		this.update();
 	}
 
 	zoom(delta) {
@@ -278,7 +279,7 @@ export class TUI {
 	}
 
 	update() {
-		if ( !this.dirty ) return;
+		if ( !this.dirty || !this.windows ) return;
 		const gl = this.context.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -297,8 +298,8 @@ class Window {
 			{
 				left: 0,
 				top: 0,
-				width: 20,
-				height: 10,
+				cols: 20,
+				rows: 10,
 				colour: COLOURS.WHITE,
 				wrap: true,
 				zIndex: params.tui.windows.length
@@ -322,18 +323,18 @@ class Window {
 			this.tui.windows[index].zIndex = index;
 		}
 
-		this.indicesPerRow = this.width * 4 + 2;
-		this.indices = this.indicesPerRow * this.height - 2;
+		this.indicesPerRow = this.cols * 4 + 2;
+		this.indices = this.indicesPerRow * this.rows - 2;
 
 		const gl = (this.gl = this.tui.context.gl);
 		const shader = this.tui.shader;
 
 		this.paneMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
-		this.paneSize = new Uint16Array([this.width, this.height]);
+		this.paneSize = new Uint16Array([this.cols, this.rows]);
 
 		// Calculate minimum power of 2 texture size to hold per pixel glyph information
 		let pow = 1;
-		while (Math.pow(2, pow)	< Math.max(this.width, this.height)) pow++;
+		while (Math.pow(2, pow)	< Math.max(this.cols, this.rows)) pow++;
 		const size = Math.pow(2, pow);
 
 		this.glyphColour = gl_utils.createCanvasTexture(gl, size);
@@ -342,15 +343,20 @@ class Window {
 		document.body.append(this.glyphColRow.canvas);
 
 		// build degenerated triangle stripe vertices
+		const widthSegments = ( params.width || params.cols ) / params.cols;
+		const heightSegments = ( params.height || params.rows ) / params.rows;
+		const widthCols = this.cols * widthSegments;
+		const heightRows = this.rows * heightSegments;
 		const vertices = [];
-		for (let row = 0; row < this.height; row++) {
+
+		for (let row = 0; row < heightRows; row += heightSegments) {
 			let col = 0;
-			while (col < this.width) {
-				vertices.push(col, row + 1, col, row, col + 1, row + 1, col + 1, row);
-				col++;
+			while (col < widthCols) {
+				vertices.push(col, row + heightSegments, col, row, col + widthSegments, row + heightSegments, col + widthSegments, row);
+				col += widthSegments;
 			}
-			if (row < this.height - 1) {
-				vertices.push(col, row, 0, row + 2);
+			if (row < heightRows - heightSegments) {
+				vertices.push(col, row, 0, row + 2 * heightSegments);
 			}
 		}
 
@@ -390,9 +396,9 @@ class Window {
 	move(col, row) {
 		this.cursor.row = row;
 
-		if (col >= this.width) {
-			this.cursor.row += Math.floor(col / this.width);
-			this.cursor.col = col % this.width;
+		if (col >= this.cols) {
+			this.cursor.row += Math.floor(col / this.cols);
+			this.cursor.col = col % this.cols;
 		} else {
 			this.cursor.col = col;
 		}
@@ -400,8 +406,8 @@ class Window {
 
 	write(string) {
 		for (let char of string) {
-			if (!this.wrap && this.cursor.col >= this.width) return;
-			if (this.cursor.row >= this.height) return;
+			if (!this.wrap && this.cursor.col >= this.cols) return;
+			if (this.cursor.row >= this.rows) return;
 
 			const i = (this.glyphColour.canvas.width * this.cursor.row + this.cursor.col) * 4;
 			const charUVs = this.tui.charUVs[char];
@@ -433,7 +439,7 @@ class Window {
 		gl_utils.activeBindUpdateTexture(gl, gl.TEXTURE2, this.glyphColRow);
 
 		gl.uniformMatrix4fv(this.tui.shader.uPaneMatrix, false, this.paneMatrix);
-		gl.uniform2i(this.tui.shader.uPaneColsRows, this.width, this.height);
+		gl.uniform2i(this.tui.shader.uPaneColsRows, this.cols, this.rows);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.indices);
 	}
 }
