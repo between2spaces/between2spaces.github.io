@@ -402,10 +402,12 @@ class Window {
 		} else {
 			this.cursor.col = col;
 		}
+		console.log('move', this.cursor.col, this.cursor.row);
 	}
 
 	write(string) {
 		for (let char of string) {
+			console.log(char, this.cursor.col, this.cursor.row);
 			if (!this.wrap && this.cursor.col >= this.cols) return;
 			if (this.cursor.row >= this.rows) return;
 
