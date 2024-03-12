@@ -349,9 +349,9 @@ class Window {
 		const heightRows = this.rows * heightSegments;
 		const vertices = [];
 
-		for (let row = 0; row < heightRows; row += heightSegments) {
+		for (let row = 0; row <= heightRows; row += heightSegments) {
 			let col = 0;
-			while (col < widthCols) {
+			while (col <= widthCols) {
 				vertices.push(col, row + heightSegments, col, row, col + widthSegments, row + heightSegments, col + widthSegments, row);
 				col += widthSegments;
 			}
@@ -402,12 +402,10 @@ class Window {
 		} else {
 			this.cursor.col = col;
 		}
-		console.log('move', this.cursor.col, this.cursor.row);
 	}
 
 	write(string) {
 		for (let char of string) {
-			console.log(char, this.cursor.col, this.cursor.row);
 			if (!this.wrap && this.cursor.col >= this.cols) return;
 			if (this.cursor.row >= this.rows) return;
 
