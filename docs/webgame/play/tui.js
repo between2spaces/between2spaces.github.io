@@ -3,12 +3,13 @@ import * as gl_utils from './gl_utils.js';
 export class TUI {
 
 	constructor(container = document.body, defaults = {}) {
+
 		defaults = Object.assign({
 			background: '#172b2c',
 			viewLeft: 0,
 			viewTop: 0,
-			viewRight: 4,
-			viewBottom: 4
+			viewRight: 20,
+			viewBottom:10 
 		}, defaults);
 
 		this.container = container;
@@ -109,25 +110,30 @@ export class TUI {
 		tuis.push(this);
 		resizeObserver.observe(container);
 		this.dirty = true;
+
 	}
 
 	createWindow(params = {}) {
-		params.tui = this;
 
-		const win = new Window(params);
-		return win;
+		params.tui = this;
+		return new Window(params);
+
 	}
 
 	getWindow(index = 0) {
+
 		return this.windows[index];
+
 	}
 
 	static hexToRGBA(hex) {
+
 		// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
 		hex = hex.replace(
 			/^#?([a-f\d])([a-f\d])([a-f\d])$/i,
 			(m, r, g, b) => r + r + g + g + b + b + 'ff',
 		);
+
 		hex = hex.replace(
 			/^#?([a-f\d])([a-f\d])([a-f\d])([a-f\d])$/i,
 			(m, r, g, b, a) => r + r + g + g + b + b + a + a,
@@ -135,46 +141,49 @@ export class TUI {
 
 
 		const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex);
+
 		return [
 			parseInt(rgb ? rgb[1] : '0', 16) / 255.0,
 			parseInt(rgb ? rgb[2] : '0', 16) / 255.0,
 			parseInt(rgb ? rgb[3] : '0', 16) / 255.0,
 			parseInt(rgb ? rgb[4] : '1', 16) / 255.0,
 		];
+
 	}
 
-
-
 	setBackground(colour) {
+
 		const rgba = typeof colour === 'string' ? TUI.hexToRGBA(colour) : colour;
 		this.context.gl.clearColor(...rgba);
+
 	}
 
 	fitContainer() {
+
 		const canvas = this.context.canvas;
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
 		this.context.gl.viewport(0, 0, canvas.width, canvas.height);
 		this.dirty = true;
 		this.update();
+
 	}
 
 	zoom(delta) {
+
 		this.projection.left *= delta;
 		this.projection.right *= delta;
 		this.projection.top *= delta;
 		this.projection.bottom *= delta;
-		this.setView(width, height);
+		this.setView(this.projection.left, this.projection.top, this.projection.right, this.projection.bottom);
+
 	}
 
 	setView(left, top, right, bottom) {
+
 		const projection = this.projection;
 		const near = projection.near;
 		const far = projection.far;
-
-		/* Make right and bottom inclusive bounds i.e. setView(7, 7, 7, 7) => 1 visable cell at 7, 7 */
-		right += 1;
-		bottom += 1;
 
 		projection.right = right;
 		projection.left = left;
@@ -209,10 +218,13 @@ export class TUI {
 			false,
 			this.projectionMatrix,
 		);
+
 		this.dirty = true;
+
 	}
 
 	setCharacterSet(characters, size = 1024, fontFamily = 'monospace') {
+
 		const gl = this.context.gl;
 		const {canvas, ctx, texture} = gl_utils.createCanvasTexture(gl, size);
 
@@ -279,6 +291,7 @@ export class TUI {
 	}
 
 	update() {
+
 		if ( !this.dirty || !this.windows ) return;
 		const gl = this.context.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -288,12 +301,15 @@ export class TUI {
 		}
 
 		this.dirty = false;
+
 	}
+
 }
 
 class Window {
 
 	constructor(params = {}) {
+
 		params = Object.assign(
 			{
 				left: 0,
@@ -343,20 +359,25 @@ class Window {
 		document.body.append(this.glyphColRow.canvas);
 
 		// build degenerated triangle stripe vertices
-		const widthSegments = ( params.width || params.cols ) / params.cols;
-		const heightSegments = ( params.height || params.rows ) / params.rows;
-		const widthCols = this.cols * widthSegments;
-		const heightRows = this.rows * heightSegments;
+		const width = this.width || this.cols;
+		const height = this.height || this.rows;
+		const widthSegments = width / this.cols;
+		const heightSegments = height / this.rows;
+
+		//console.log(widthSegments, width, width / widthSegments);
+
 		const vertices = [];
 
-		for (let row = 0; row <= heightRows; row += heightSegments) {
-			let col = 0;
-			while (col <= widthCols) {
-				vertices.push(col, row + heightSegments, col, row, col + widthSegments, row + heightSegments, col + widthSegments, row);
-				col += widthSegments;
+		for (let y = 0; y < height; y += heightSegments) {
+			let x = 0;
+			while (x < width) {
+				vertices.push(x, y + heightSegments, x, y, x + widthSegments, y + heightSegments, x + widthSegments, y);
+				let w = (x + widthSegments) - x;
+				console.log(w);
+				x += widthSegments;
 			}
-			if (row < heightRows - heightSegments) {
-				vertices.push(col, row, 0, row + 2 * heightSegments);
+			if (y < height - heightSegments) {
+				vertices.push(x, y, 0, y + 2 * heightSegments);
 			}
 		}
 
@@ -379,35 +400,46 @@ class Window {
 		this.cursor = { col: 0, row: 0 };
 		this.left = 0;
 		this.top = 0;
-		//this.translate(params.left, params.top);
+		//this.translate(this.left, this.top);
 
 		this.tui.dirty = true;
+
 	}
 
 	translate(cols, rows) {
+
 		this.paneMatrix[12] = this.left += cols;
 		this.paneMatrix[13] = this.top += rows;
+
 	}
 
 	setColour(colour) {
+
 		this.rgba = typeof colour === 'string' ? TUI.hexToRGBA(colour) : colour;
+
 	}
 
 	move(col, row) {
+
 		this.cursor.row = row;
 
-		if (col >= this.cols) {
+		if (col > this.cols) {
 			this.cursor.row += Math.floor(col / this.cols);
 			this.cursor.col = col % this.cols;
 		} else {
 			this.cursor.col = col;
 		}
+
 	}
 
 	write(string) {
+
 		for (let char of string) {
+
 			if (!this.wrap && this.cursor.col >= this.cols) return;
 			if (this.cursor.row >= this.rows) return;
+
+			//console.log(this.cursor.col, this.cursor.row);
 
 			const i = (this.glyphColour.canvas.width * this.cursor.row + this.cursor.col) * 4;
 			const charUVs = this.tui.charUVs[char];
@@ -426,12 +458,15 @@ class Window {
 			this.glyphColRow.dirty = true;
 
 			this.move(this.cursor.col + 1, this.cursor.row);
+
 		}
 
 		this.tui.dirty = true;
+
 	}
 
 	render() {
+
 		const gl = this.gl;
 
 		gl.bindVertexArray(this.vao);
@@ -441,7 +476,9 @@ class Window {
 		gl.uniformMatrix4fv(this.tui.shader.uPaneMatrix, false, this.paneMatrix);
 		gl.uniform2i(this.tui.shader.uPaneColsRows, this.cols, this.rows);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.indices);
+
 	}
+
 }
 
 export const COLOURS = {
@@ -455,10 +492,7 @@ const tuis = [];
 
 const resizeObserver = new ResizeObserver((entries) => {
 	for (const entry of entries) {
-		for (let tui of tuis) {
-			if (entry.target === tui.container) {
-				tui.fitContainer();
-			}
-		}
+		for (let tui of tuis) if (entry.target === tui.container) tui.fitContainer();
 	}
 });
+

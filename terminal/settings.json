@@ -1,6 +1,9 @@
 {
 	"defaultProfile": "{fb7297e1-916c-44e6-a8b2-5219fe9f9e5f}",
 	"copyOnSelect": true,
+	"initialCols": 117,
+	"initialRows": 30,
+	"centerOnLaunch": true,
 	"newTabMenu": [
 		{
 			"type": "remainingProfiles"
@@ -10,11 +13,11 @@
 		"defaults": {
 			"font": {
 				"face": "Hack Nerd Font",
-				"size": 18
+				"size": 16
 			},
 			"padding": "10",
 			"scrollbarState": "hidden",
-			"colorScheme": "Muted Pascal"
+			"colorScheme": "Muted Pascal",
 		},
 		"list": [
 			{
