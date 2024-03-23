@@ -4,13 +4,13 @@ export class TUI {
 
 	constructor(container = document.body, defaults = {}) {
 
-		defaults = Object.assign({
-			background: '#172b2c',
-			viewLeft: 0,
-			viewTop: 0,
-			viewRight: 20,
-			viewBottom:10 
-		}, defaults);
+		this.background = '#172b2c';
+		this.viewLeft = 0;
+		this.viewTop = 0;
+		this.width = 5;
+		this.height = 10;
+		
+		Object.assign(this, defaults);
 
 		this.container = container;
 		this.context = gl_utils.createContext(container);
@@ -39,7 +39,6 @@ export class TUI {
 
 				vColour = texelFetch(uGlyphColour, ivec2(fCol, fRow), 0);
 
-
 				vec4 vTexel = texelFetch(uGlyphColRow, ivec2(fCol, fRow), 0);
 				vec2 vGlyph = vec2(vTexel) * 255.0;
 				ivec2 fontSize = textureSize(uFontTexture, 0);
@@ -51,15 +50,8 @@ export class TUI {
 
 				int corner = (gl_VertexID - int(fRow) * 2) % 4;
 
-				//if (vUV.x < 0.8 && vUV.x > 0.76) {
-						//if (fPerRow == 14.0) vColour = vec4(1, 0, 0, 1);
-				//}
-
-				//if (fRow == 0.0) vColour = vec4(1, 0, 0, 1);
-
 				if (corner == 0 || corner == 2) vUV.y = vUV.y + uvUnit.y;
 				if (corner == 2 || corner == 3) vUV.x = vUV.x + uvUnit.x;
-
 
 				gl_Position = uProjectionMatrix * uPaneMatrix * vec4(aPosition.x, aPosition.y, 0.0, 1.0);
 			}
@@ -94,7 +86,7 @@ export class TUI {
 
 		this.fitContainer();
 
-		this.setBackground(defaults.background);
+		this.setBackground(this.background);
 		this.setCharacterSet(
 			'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
 				'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
@@ -106,7 +98,7 @@ export class TUI {
 		this.projection = {near: 0, far: 100};
 		this.windows = [];
 
-		this.setView(defaults.viewLeft, defaults.viewTop, defaults.viewRight, defaults.viewBottom);
+		this.setView(this.viewLeft, this.viewTop, this.viewLeft + this.width, this.viewTop + this.height);
 		tuis.push(this);
 		resizeObserver.observe(container);
 		this.dirty = true;
@@ -314,8 +306,8 @@ class Window {
 			{
 				left: 0,
 				top: 0,
-				cols: 20,
-				rows: 10,
+				cols: params.tui.width,
+				rows: params.tui.height,
 				colour: COLOURS.WHITE,
 				wrap: true,
 				zIndex: params.tui.windows.length
@@ -358,32 +350,28 @@ class Window {
 		this.glyphColRow = gl_utils.createCanvasTexture(gl, size);
 		document.body.append(this.glyphColRow.canvas);
 
-		// build degenerated triangle stripe vertices
-		const width = this.width || this.cols;
-		const height = this.height || this.rows;
-		const widthSegments = width / this.cols;
-		const heightSegments = height / this.rows;
+		this.width = this.width || this.cols;
+		this.height = this.height || this.rows;
 
-		//console.log(widthSegments, width, width / widthSegments);
+		// build degenerated triangle stripe vertices
+		const sWidth = this.width / this.cols;
+		const sHeight = this.height / this.rows;
 
 		const vertices = [];
 
-		for (let y = 0; y < height; y += heightSegments) {
+		for (let y = 0, row = 0; row < this.rows; row++, y += sHeight) {
 			let x = 0;
-			while (x < width) {
-				vertices.push(x, y + heightSegments, x, y, x + widthSegments, y + heightSegments, x + widthSegments, y);
-				let w = (x + widthSegments) - x;
-				console.log(w);
-				x += widthSegments;
+			for (let col = 0; col < this.cols; col++, x += sWidth) {
+				vertices.push(x, y + sHeight, x, y, x + sWidth, y + sHeight, x + sWidth, y);
 			}
-			if (y < height - heightSegments) {
-				vertices.push(x, y, 0, y + 2 * heightSegments);
+			if (row < this.rows) {
+				vertices.push(x, y, 0, y + 2 * sHeight);
 			}
 		}
 
 		/* Vertices   Array of Uint16 [0 to 65536] -> 2 Unsigned Shorts per vertex */
 		this.vertices = {
-			typedArray: new Uint16Array(vertices),
+			typedArray: new Float32Array(vertices),
 			buffer: gl.createBuffer()
 		};
 
@@ -393,14 +381,13 @@ class Window {
 		gl.bindVertexArray(this.vao);
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices.buffer);
 		gl.bufferData(gl.ARRAY_BUFFER, this.vertices.typedArray, gl.STATIC_DRAW);
-		gl.vertexAttribPointer(shader.aPosition, 2, gl.UNSIGNED_SHORT, false, 0, 0);
+		gl.vertexAttribPointer(shader.aPosition, 2, gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(shader.aPosition);
 		gl.bindVertexArray(null);
 
 		this.cursor = { col: 0, row: 0 };
-		this.left = 0;
-		this.top = 0;
-		//this.translate(this.left, this.top);
+
+		this.translate(this.left, this.top);
 
 		this.tui.dirty = true;
 
@@ -408,8 +395,8 @@ class Window {
 
 	translate(cols, rows) {
 
-		this.paneMatrix[12] = this.left += cols;
-		this.paneMatrix[13] = this.top += rows;
+		this.paneMatrix[12] = this.left = cols;
+		this.paneMatrix[13] = this.top = rows;
 
 	}
 
@@ -423,7 +410,7 @@ class Window {
 
 		this.cursor.row = row;
 
-		if (col > this.cols) {
+		if (col == this.cols) {
 			this.cursor.row += Math.floor(col / this.cols);
 			this.cursor.col = col % this.cols;
 		} else {
@@ -438,8 +425,6 @@ class Window {
 
 			if (!this.wrap && this.cursor.col >= this.cols) return;
 			if (this.cursor.row >= this.rows) return;
-
-			//console.log(this.cursor.col, this.cursor.row);
 
 			const i = (this.glyphColour.canvas.width * this.cursor.row + this.cursor.col) * 4;
 			const charUVs = this.tui.charUVs[char];
