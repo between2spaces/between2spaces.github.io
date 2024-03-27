@@ -317,6 +317,8 @@ class Window {
 
 		Object.assign(this, params);
 
+		this.gl = this.tui.context.gl;
+
 		if (params.zIndex === undefined || params.zIndex >= this.tui.windows.length) {
 			this.tui.windows.push(this);
 		} else {
@@ -331,13 +333,35 @@ class Window {
 			this.tui.windows[index].zIndex = index;
 		}
 
+		this.paneMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+
+		this.vao = this.gl.createVertexArray();
+		this.setColour(COLOURS.WHITE);
+		this.resize(this.cols, this.rows, this.width, this.height);
+
+		this.cursor = { col: 0, row: 0 };
+
+		this.translate(this.left, this.top);
+
+		this.tui.dirty = true;
+
+	}
+
+	resize(cols, rows, width = null, height = null) {
+
+		const prevCols = this.cols;
+		const prevRows = this.rows;
+
+		this.cols = cols;
+		this.rows = rows;
+		this.width = width || this.width || cols;
+		this.height = height || this.height || rows;
+
+		console.log(cols, rows, this.width, this.height);
+
 		this.indicesPerRow = this.cols * 4 + 2;
 		this.indices = this.indicesPerRow * this.rows - 2;
 
-		const gl = (this.gl = this.tui.context.gl);
-		const shader = this.tui.shader;
-
-		this.paneMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 		this.paneSize = new Uint16Array([this.cols, this.rows]);
 
 		// Calculate minimum power of 2 texture size to hold per pixel glyph information
@@ -345,13 +369,8 @@ class Window {
 		while (Math.pow(2, pow)	< Math.max(this.cols, this.rows)) pow++;
 		const size = Math.pow(2, pow);
 
-		this.glyphColour = gl_utils.createCanvasTexture(gl, size);
-		document.body.append(this.glyphColour.canvas);
-		this.glyphColRow = gl_utils.createCanvasTexture(gl, size);
-		document.body.append(this.glyphColRow.canvas);
-
-		this.width = this.width || this.cols;
-		this.height = this.height || this.rows;
+		this.glyphColour = gl_utils.createCanvasTexture(this.gl, size);
+		this.glyphColRow = gl_utils.createCanvasTexture(this.gl, size);
 
 		// build degenerated triangle stripe vertices
 		const sWidth = this.width / this.cols;
@@ -369,27 +388,30 @@ class Window {
 			}
 		}
 
-		/* Vertices   Array of Uint16 [0 to 65536] -> 2 Unsigned Shorts per vertex */
+		console.log(vertices);
+
 		this.vertices = {
 			typedArray: new Float32Array(vertices),
-			buffer: gl.createBuffer()
+			buffer: this.gl.createBuffer()
 		};
 
-		this.setColour(COLOURS.WHITE);
+		this.vao = this.gl.createVertexArray();
+		this.gl.bindVertexArray(this.vao);
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertices.buffer);
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.vertices.typedArray, this.gl.STATIC_DRAW);
+		this.gl.vertexAttribPointer(this.tui.shader.aPosition, 2, this.gl.FLOAT, false, 0, 0);
+		this.gl.enableVertexAttribArray(this.tui.shader.aPosition);
+		this.gl.bindVertexArray(null);
 
-		this.vao = gl.createVertexArray();
-		gl.bindVertexArray(this.vao);
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices.buffer);
-		gl.bufferData(gl.ARRAY_BUFFER, this.vertices.typedArray, gl.STATIC_DRAW);
-		gl.vertexAttribPointer(shader.aPosition, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(shader.aPosition);
-		gl.bindVertexArray(null);
+		const prevCharBuffer = this.charBuffer;
+		const prevColourBuffer = this.colourBuffer;
 
-		this.cursor = { col: 0, row: 0 };
+		this.charBuffer = [this.cols * this.rows];
+		this.colourBuffer = [this.cols * this.rows];
 
-		this.translate(this.left, this.top);
+		for (let row = 0; row < prevRows; row++) {
 
-		this.tui.dirty = true;
+		}
 
 	}
 
@@ -421,6 +443,16 @@ class Window {
 
 	write(string) {
 
+		const colourData = this.glyphColour.imageData.data;
+		const colrowData = this.glyphColRow.imageData.data;
+		const r = this.rgba[0] * 255;
+		const g = this.rgba[1] * 255;
+		const b = this.rgba[2] * 255;
+		const a = this.rgba[3] * 255;
+
+		this.glyphColour.dirty = true;
+		this.glyphColRow.dirty = true;
+
 		for (let char of string) {
 
 			if (!this.wrap && this.cursor.col >= this.cols) return;
@@ -429,18 +461,17 @@ class Window {
 			const i = (this.glyphColour.canvas.width * this.cursor.row + this.cursor.col) * 4;
 			const charUVs = this.tui.charUVs[char];
 
-			let imageData = this.glyphColour.imageData;
-			imageData.data[i] = this.rgba[0] * 255;
-			imageData.data[i + 1] = this.rgba[1] * 255;
-			imageData.data[i + 2] = this.rgba[2] * 255;
-			imageData.data[i + 3] = this.rgba[3] * 255;
-			this.glyphColour.dirty = true;
+			colourData[i] = r;
+			colourData[i + 1] = g;
+			colourData[i + 2] = b;
+			colourData[i + 3] = a;
 
-			imageData = this.glyphColRow.imageData;
-			imageData.data[i] = charUVs[8];
-			imageData.data[i + 1] = charUVs[9];
-			imageData.data[i + 3] = 255;
-			this.glyphColRow.dirty = true;
+			colrowData[i] = charUVs[8];
+			colrowData[i + 1] = charUVs[9];
+			colrowData[i + 3] = 255;
+
+			this.charBuffer[this.cursor.row * this.cols + this.cursor.col] = char;
+			this.colourBuffer[this.cursor.row * this.cols + this.cursor.col] = this.rgba;
 
 			this.move(this.cursor.col + 1, this.cursor.row);
 

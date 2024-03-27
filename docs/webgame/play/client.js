@@ -15,6 +15,14 @@ export default function main(container) {
 
 	tui.update();
 
+	tui.setView(-1, 8, 20, 15);
+
+	tui.update();
+
+	uiBottomFrame.resize(15, 1);
+
+	tui.update();
+
 }
 
 
