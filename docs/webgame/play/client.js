@@ -2,28 +2,33 @@
 import { TUI } from './tui.js';
 
 export default function main(container) {
+	const tui = new TUI(container, { width: 10, height: 10 });
 
-	const tui = new TUI(container, {width:15, height: 10});
+	const map = tui.createWindow();
+	map.setColour([0.9, 0.9, 0.9, 1]);
+	map.write(
+		'          ' + 
+		'        O ' + 
+		'       ╱  ' + 
+		'      ╱   ' + 
+		'     O    ' + 
+		'          ' + 
+		'          ' +
+		'          ' + 
+		'          ' + 
+		'          '
+	); //'█'.repeat(tui.width));
 
-	const uiBottomFrame = tui.createWindow({top: tui.height - 1, rows:1});
-	uiBottomFrame.setColour([0.3, 0.3, 0.3, 1]);
-	uiBottomFrame.write('█'.repeat(tui.width));
 
-	const uiBottomFrameTx = tui.createWindow({top: tui.height - 1, rows:1});
-	uiBottomFrameTx.setColour([0.24, 0.24, 0.24, 1]);
-	uiBottomFrameTx.write('░'.repeat(tui.width));
-
-	tui.update();
-
-	tui.setView(-1, 8, 20, 15);
-
-	tui.update();
-
-	uiBottomFrame.resize(15, 1);
-
-	tui.update();
-
+	window.addEventListener('keydown', (event) => {
+		if (event.isComposing || event.keyCode === 229) return;
+		let translateCols = 0;
+		let translateRows = 0;
+		if (event.key === 'k') translateRows = -1;
+		else if (event.key === 'j') translateRows = 1;
+		if (translateRows !== 0 || translateCols !== 0) {
+			//uiBottomFrameTx.translate(translateCols, translateRows);
+			tui.update();
+		}
+	});
 }
-
-
-

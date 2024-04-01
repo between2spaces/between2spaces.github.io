@@ -1,15 +1,12 @@
 import * as gl_utils from './gl_utils.js';
 
 export class TUI {
-
 	constructor(container = document.body, defaults = {}) {
-
-		this.background = '#172b2c';
 		this.viewLeft = 0;
 		this.viewTop = 0;
 		this.width = 5;
 		this.height = 10;
-		
+
 		Object.assign(this, defaults);
 
 		this.container = container;
@@ -71,12 +68,24 @@ export class TUI {
 		gl.useProgram(shader.program);
 
 		shader.aPosition = gl.getAttribLocation(shader.program, 'aPosition');
-		shader.uProjectionMatrix = gl.getUniformLocation(shader.program, 'uProjectionMatrix');
+		shader.uProjectionMatrix = gl.getUniformLocation(
+			shader.program,
+			'uProjectionMatrix',
+		);
 		shader.uPaneMatrix = gl.getUniformLocation(shader.program, 'uPaneMatrix');
-		shader.uPaneColsRows = gl.getUniformLocation(shader.program, 'uPaneColsRows');
+		shader.uPaneColsRows = gl.getUniformLocation(
+			shader.program,
+			'uPaneColsRows',
+		);
 		shader.uFontTexture = gl.getUniformLocation(shader.program, 'uFontTexture');
-		shader.uFontColsRows = gl.getUniformLocation(shader.program, 'uFontColsRows');
-		shader.uFontUsedSize = gl.getUniformLocation(shader.program, 'uFontUsedSize');
+		shader.uFontColsRows = gl.getUniformLocation(
+			shader.program,
+			'uFontColsRows',
+		);
+		shader.uFontUsedSize = gl.getUniformLocation(
+			shader.program,
+			'uFontUsedSize',
+		);
 		shader.uGlyphColour = gl.getUniformLocation(shader.program, 'uGlyphColour');
 		shader.uGlyphColRow = gl.getUniformLocation(shader.program, 'uGlyphColRow');
 
@@ -86,40 +95,38 @@ export class TUI {
 
 		this.fitContainer();
 
-		this.setBackground(this.background);
 		this.setCharacterSet(
 			'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
 				'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
 				')_+[]{}\\|;\':",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└' +
-				'←↑→↓↖↗↘↙↔↕',
-			2048	
+				'╱╲←↑→↓↖↗↘↙↔↕',
+			2048,
 		);
 
-		this.projection = {near: 0, far: 100};
+		this.projection = { near: 0, far: 100 };
 		this.windows = [];
 
-		this.setView(this.viewLeft, this.viewTop, this.viewLeft + this.width, this.viewTop + this.height);
+		this.setView(
+			this.viewLeft,
+			this.viewTop,
+			this.viewLeft + this.width,
+			this.viewTop + this.height,
+		);
 		tuis.push(this);
 		resizeObserver.observe(container);
 		this.dirty = true;
-
 	}
 
 	createWindow(params = {}) {
-
 		params.tui = this;
 		return new Window(params);
-
 	}
 
 	getWindow(index = 0) {
-
 		return this.windows[index];
-
 	}
 
 	static hexToRGBA(hex) {
-
 		// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
 		hex = hex.replace(
 			/^#?([a-f\d])([a-f\d])([a-f\d])$/i,
@@ -131,8 +138,9 @@ export class TUI {
 			(m, r, g, b, a) => r + r + g + g + b + b + a + a,
 		);
 
-
-		const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex);
+		const rgb = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(
+			hex,
+		);
 
 		return [
 			parseInt(rgb ? rgb[1] : '0', 16) / 255.0,
@@ -140,39 +148,31 @@ export class TUI {
 			parseInt(rgb ? rgb[3] : '0', 16) / 255.0,
 			parseInt(rgb ? rgb[4] : '1', 16) / 255.0,
 		];
-
-	}
-
-	setBackground(colour) {
-
-		const rgba = typeof colour === 'string' ? TUI.hexToRGBA(colour) : colour;
-		this.context.gl.clearColor(...rgba);
-
 	}
 
 	fitContainer() {
-
 		const canvas = this.context.canvas;
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
 		this.context.gl.viewport(0, 0, canvas.width, canvas.height);
 		this.dirty = true;
 		this.update();
-
 	}
 
 	zoom(delta) {
-
 		this.projection.left *= delta;
 		this.projection.right *= delta;
 		this.projection.top *= delta;
 		this.projection.bottom *= delta;
-		this.setView(this.projection.left, this.projection.top, this.projection.right, this.projection.bottom);
-
+		this.setView(
+			this.projection.left,
+			this.projection.top,
+			this.projection.right,
+			this.projection.bottom,
+		);
 	}
 
 	setView(left, top, right, bottom) {
-
 		const projection = this.projection;
 		const near = projection.near;
 		const far = projection.far;
@@ -212,13 +212,11 @@ export class TUI {
 		);
 
 		this.dirty = true;
-
 	}
 
 	setCharacterSet(characters, size = 1024, fontFamily = 'monospace') {
-
 		const gl = this.context.gl;
-		const {canvas, ctx, texture} = gl_utils.createCanvasTexture(gl, size);
+		const { canvas, ctx, texture } = gl_utils.createCanvasTexture(gl, size);
 
 		ctx.clearRect(0, 0, size, size);
 		ctx.fillStyle = 'white';
@@ -240,7 +238,9 @@ export class TUI {
 			metrics = ctx.measureText('█');
 			width = Math.ceil(metrics.width);
 			cols = Math.floor(size / width);
-			height = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent);
+			height = Math.ceil(
+				metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent,
+			);
 			rows = Math.floor(size / height);
 		} while (cols * rows < characters.length);
 
@@ -250,14 +250,18 @@ export class TUI {
 		for (let i = 0, l = characters.length; i < l; i++) {
 			let y = Math.round(Math.floor(i / cols) * height);
 			let x = Math.round((i % cols) * width);
-			ctx.fillText(characters[i], x + 0.5 * width, y + metrics.actualBoundingBoxAscent);
+			ctx.fillText(
+				characters[i],
+				x + 0.5 * width,
+				y + metrics.actualBoundingBoxAscent,
+			);
 			let left = x / size;
 			let top = y / size;
 			let right = (x + width) / size;
 			let bottom = (y + height) / size;
 			let charCol = i % cols;
 			let charRow = Math.floor(i / cols);
-			
+
 			this.charUVs[characters[i]] = [
 				left,
 				bottom,
@@ -272,19 +276,18 @@ export class TUI {
 			];
 		}
 
-		document.body.append(canvas);
-
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, texture);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-
 	}
 
 	update() {
+		if (!this.dirty || !this.windows) {
+			return;
+		}
 
-		if ( !this.dirty || !this.windows ) return;
 		const gl = this.context.gl;
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -293,15 +296,11 @@ export class TUI {
 		}
 
 		this.dirty = false;
-
 	}
-
 }
 
 class Window {
-
 	constructor(params = {}) {
-
 		params = Object.assign(
 			{
 				left: 0,
@@ -310,7 +309,7 @@ class Window {
 				rows: params.tui.height,
 				colour: COLOURS.WHITE,
 				wrap: true,
-				zIndex: params.tui.windows.length
+				zIndex: params.tui.windows.length,
 			},
 			params,
 		);
@@ -319,7 +318,10 @@ class Window {
 
 		this.gl = this.tui.context.gl;
 
-		if (params.zIndex === undefined || params.zIndex >= this.tui.windows.length) {
+		if (
+			params.zIndex === undefined ||
+			params.zIndex >= this.tui.windows.length
+		) {
 			this.tui.windows.push(this);
 		} else {
 			if (params.zIndex <= 0) {
@@ -341,16 +343,17 @@ class Window {
 
 		this.cursor = { col: 0, row: 0 };
 
-		this.translate(this.left, this.top);
-
-		this.tui.dirty = true;
+		this.translate(0, 0);
 
 	}
 
 	resize(cols, rows, width = null, height = null) {
-
+		// remember current values
+		const prevColourData = this.glyphColour?.imageData.data;
+		const prevGlyphData = this.glyphColRow?.imageData.data;
 		const prevCols = this.cols;
 		const prevRows = this.rows;
+		const prevDataWidth = this.glyphColour?.canvas.width;
 
 		this.cols = cols;
 		this.rows = rows;
@@ -366,7 +369,11 @@ class Window {
 
 		// Calculate minimum power of 2 texture size to hold per pixel glyph information
 		let pow = 1;
-		while (Math.pow(2, pow)	< Math.max(this.cols, this.rows)) pow++;
+
+		while (Math.pow(2, pow) < Math.max(this.cols, this.rows)) {
+			pow++;
+		}
+
 		const size = Math.pow(2, pow);
 
 		this.glyphColour = gl_utils.createCanvasTexture(this.gl, size);
@@ -380,9 +387,20 @@ class Window {
 
 		for (let y = 0, row = 0; row < this.rows; row++, y += sHeight) {
 			let x = 0;
+
 			for (let col = 0; col < this.cols; col++, x += sWidth) {
-				vertices.push(x, y + sHeight, x, y, x + sWidth, y + sHeight, x + sWidth, y);
+				vertices.push(
+					x,
+					y + sHeight,
+					x,
+					y,
+					x + sWidth,
+					y + sHeight,
+					x + sWidth,
+					y,
+				);
 			}
+
 			if (row < this.rows) {
 				vertices.push(x, y, 0, y + 2 * sHeight);
 			}
@@ -392,44 +410,73 @@ class Window {
 
 		this.vertices = {
 			typedArray: new Float32Array(vertices),
-			buffer: this.gl.createBuffer()
+			buffer: this.gl.createBuffer(),
 		};
 
 		this.vao = this.gl.createVertexArray();
 		this.gl.bindVertexArray(this.vao);
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertices.buffer);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.vertices.typedArray, this.gl.STATIC_DRAW);
-		this.gl.vertexAttribPointer(this.tui.shader.aPosition, 2, this.gl.FLOAT, false, 0, 0);
+		this.gl.bufferData(
+			this.gl.ARRAY_BUFFER,
+			this.vertices.typedArray,
+			this.gl.STATIC_DRAW,
+		);
+		this.gl.vertexAttribPointer(
+			this.tui.shader.aPosition,
+			2,
+			this.gl.FLOAT,
+			false,
+			0,
+			0,
+		);
 		this.gl.enableVertexAttribArray(this.tui.shader.aPosition);
 		this.gl.bindVertexArray(null);
-
-		const prevCharBuffer = this.charBuffer;
-		const prevColourBuffer = this.colourBuffer;
 
 		this.charBuffer = [this.cols * this.rows];
 		this.colourBuffer = [this.cols * this.rows];
 
-		for (let row = 0; row < prevRows; row++) {
+		if (prevColourData) {
+			const colourData = this.glyphColour.imageData.data;
+			const glyphData = this.glyphColRow.imageData.data;
+			const curDataWidth = this.glyphColour.canvas.width;
 
+			for (let row = 0; row < prevRows; row++) {
+				if (row >= prevRows) {break;}
+
+				for (let col = 0; col < prevCols; col++) {
+					if (col < prevCols) {
+						let i = (curDataWidth * row + col) * 4;
+						let pi = (prevDataWidth * row + col) * 4;
+
+						colourData[i] = prevColourData[pi];
+						colourData[i + 1] = prevColourData[pi + 1];
+						colourData[i + 2] = prevColourData[pi + 2];
+						colourData[i + 3] = prevColourData[pi + 3];
+
+						glyphData[i] = prevGlyphData[i];
+						glyphData[i + 1] = prevGlyphData[i + 1];
+						glyphData[i + 3] = 255;
+					}
+				}
+			}
 		}
 
+		this.tui.dirty = false;
 	}
 
 	translate(cols, rows) {
-
-		this.paneMatrix[12] = this.left = cols;
-		this.paneMatrix[13] = this.top = rows;
-
+		console.log(this.tui.viewLeft, this.tui.viewTop);
+		this.paneMatrix[12] = this.left += cols;
+		this.paneMatrix[13] = this.top += rows;
+		console.log(this.left, this.top);
+		this.tui.dirty = true;
 	}
 
 	setColour(colour) {
-
 		this.rgba = typeof colour === 'string' ? TUI.hexToRGBA(colour) : colour;
-
 	}
 
 	move(col, row) {
-
 		this.cursor.row = row;
 
 		if (col == this.cols) {
@@ -438,11 +485,9 @@ class Window {
 		} else {
 			this.cursor.col = col;
 		}
-
 	}
 
 	write(string) {
-
 		const colourData = this.glyphColour.imageData.data;
 		const colrowData = this.glyphColRow.imageData.data;
 		const r = this.rgba[0] * 255;
@@ -454,11 +499,16 @@ class Window {
 		this.glyphColRow.dirty = true;
 
 		for (let char of string) {
+			if (!this.wrap && this.cursor.col >= this.cols) {
+				return;
+			}
 
-			if (!this.wrap && this.cursor.col >= this.cols) return;
-			if (this.cursor.row >= this.rows) return;
+			if (this.cursor.row >= this.rows) {
+				return;
+			}
 
-			const i = (this.glyphColour.canvas.width * this.cursor.row + this.cursor.col) * 4;
+			const i =
+				(this.glyphColour.canvas.width * this.cursor.row + this.cursor.col) * 4;
 			const charUVs = this.tui.charUVs[char];
 
 			colourData[i] = r;
@@ -471,18 +521,16 @@ class Window {
 			colrowData[i + 3] = 255;
 
 			this.charBuffer[this.cursor.row * this.cols + this.cursor.col] = char;
-			this.colourBuffer[this.cursor.row * this.cols + this.cursor.col] = this.rgba;
+			this.colourBuffer[this.cursor.row * this.cols + this.cursor.col] =
+				this.rgba;
 
 			this.move(this.cursor.col + 1, this.cursor.row);
-
 		}
 
 		this.tui.dirty = true;
-
 	}
 
 	render() {
-
 		const gl = this.gl;
 
 		gl.bindVertexArray(this.vao);
@@ -492,9 +540,7 @@ class Window {
 		gl.uniformMatrix4fv(this.tui.shader.uPaneMatrix, false, this.paneMatrix);
 		gl.uniform2i(this.tui.shader.uPaneColsRows, this.cols, this.rows);
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.indices);
-
 	}
-
 }
 
 export const COLOURS = {
@@ -508,7 +554,10 @@ const tuis = [];
 
 const resizeObserver = new ResizeObserver((entries) => {
 	for (const entry of entries) {
-		for (let tui of tuis) if (entry.target === tui.container) tui.fitContainer();
+		for (let tui of tuis) {
+			if (entry.target === tui.container) {
+				tui.fitContainer();
+			}
+		}
 	}
 });
-
