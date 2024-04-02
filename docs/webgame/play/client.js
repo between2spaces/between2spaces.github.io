@@ -5,7 +5,6 @@ export default function main(container) {
 	const tui = new TUI(container, { width: 10, height: 10 });
 
 	const map = tui.createWindow();
-	map.setColour([0.9, 0.9, 0.9, 1]);
 	map.write(
 		'          ' + 
 		'        O ' + 
@@ -17,8 +16,11 @@ export default function main(container) {
 		'          ' + 
 		'          ' + 
 		'          '
-	); //'█'.repeat(tui.width));
+	);
 
+	const chatinput = tui.createWindow({wrap: false});
+	chatinput.write('abcdefghijklmnopqrstuvwxyz');
+	
 
 	window.addEventListener('keydown', (event) => {
 		if (event.isComposing || event.keyCode === 229) return;

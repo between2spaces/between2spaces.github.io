@@ -247,33 +247,38 @@ export class TUI {
 		gl.uniform2i(this.shader.uFontColsRows, cols, rows);
 		gl.uniform2i(this.shader.uFontUsedSize, cols * width, rows * height);
 
+		// each character is first painted to a one character canvas and then
+		// copied over to the full character set canvas with the edges of the
+		// painted character removed to force a 1 pixel clean border/character
+		const charCanvas = document.createElement('canvas');
+		charCanvas.width = width;
+		charCanvas.height = height;
+		const charCtx = charCanvas.getContext('2d');
+		charCtx.fillStyle = 'white';
+		charCtx.textAlign = 'center';
+		charCtx.textBaseline = 'middle';
+		charCtx.font = `${font--}px ${fontFamily}`;
+
 		for (let i = 0, l = characters.length; i < l; i++) {
 			let y = Math.round(Math.floor(i / cols) * height);
 			let x = Math.round((i % cols) * width);
-			ctx.fillText(
+
+			charCtx.clearRect(0, 0, width, height);
+			charCtx.fillText(
 				characters[i],
-				x + 0.5 * width,
-				y + metrics.actualBoundingBoxAscent,
+				0.5 * width,
+				metrics.actualBoundingBoxAscent,
 			);
-			let left = x / size;
-			let top = y / size;
-			let right = (x + width) / size;
-			let bottom = (y + height) / size;
+			ctx.drawImage(charCanvas, x + 1, y + 1, width - 2, height - 2);
+
+			//let left = x / size;
+			//let top = y / size;
+			//let right = (x + width) / size;
+			//let bottom = (y + height) / size;
 			let charCol = i % cols;
 			let charRow = Math.floor(i / cols);
 
-			this.charUVs[characters[i]] = [
-				left,
-				bottom,
-				left,
-				top,
-				right,
-				bottom,
-				right,
-				top,
-				charCol,
-				charRow,
-			];
+			this.charUVs[characters[i]] = { col: charCol, row: charRow };
 		}
 
 		gl.activeTexture(gl.TEXTURE0);
@@ -310,6 +315,7 @@ class Window {
 				colour: COLOURS.WHITE,
 				wrap: true,
 				zIndex: params.tui.windows.length,
+				text: ''
 			},
 			params,
 		);
@@ -344,32 +350,23 @@ class Window {
 		this.cursor = { col: 0, row: 0 };
 
 		this.translate(0, 0);
-
+		if (this.text !== '') this.write(this.text);
 	}
 
 	resize(cols, rows, width = null, height = null) {
-		// remember current values
-		const prevColourData = this.glyphColour?.imageData.data;
-		const prevGlyphData = this.glyphColRow?.imageData.data;
-		const prevCols = this.cols;
-		const prevRows = this.rows;
-		const prevDataWidth = this.glyphColour?.canvas.width;
-
 		this.cols = cols;
 		this.rows = rows;
 		this.width = width || this.width || cols;
 		this.height = height || this.height || rows;
-
-		console.log(cols, rows, this.width, this.height);
 
 		this.indicesPerRow = this.cols * 4 + 2;
 		this.indices = this.indicesPerRow * this.rows - 2;
 
 		this.paneSize = new Uint16Array([this.cols, this.rows]);
 
-		// Calculate minimum power of 2 texture size to hold per pixel glyph information
 		let pow = 1;
 
+		// Calculate minimum power of 2 texture size to hold per pixel glyph information
 		while (Math.pow(2, pow) < Math.max(this.cols, this.rows)) {
 			pow++;
 		}
@@ -406,8 +403,6 @@ class Window {
 			}
 		}
 
-		console.log(vertices);
-
 		this.vertices = {
 			typedArray: new Float32Array(vertices),
 			buffer: this.gl.createBuffer(),
@@ -432,43 +427,12 @@ class Window {
 		this.gl.enableVertexAttribArray(this.tui.shader.aPosition);
 		this.gl.bindVertexArray(null);
 
-		this.charBuffer = [this.cols * this.rows];
-		this.colourBuffer = [this.cols * this.rows];
-
-		if (prevColourData) {
-			const colourData = this.glyphColour.imageData.data;
-			const glyphData = this.glyphColRow.imageData.data;
-			const curDataWidth = this.glyphColour.canvas.width;
-
-			for (let row = 0; row < prevRows; row++) {
-				if (row >= prevRows) {break;}
-
-				for (let col = 0; col < prevCols; col++) {
-					if (col < prevCols) {
-						let i = (curDataWidth * row + col) * 4;
-						let pi = (prevDataWidth * row + col) * 4;
-
-						colourData[i] = prevColourData[pi];
-						colourData[i + 1] = prevColourData[pi + 1];
-						colourData[i + 2] = prevColourData[pi + 2];
-						colourData[i + 3] = prevColourData[pi + 3];
-
-						glyphData[i] = prevGlyphData[i];
-						glyphData[i + 1] = prevGlyphData[i + 1];
-						glyphData[i + 3] = 255;
-					}
-				}
-			}
-		}
-
 		this.tui.dirty = false;
 	}
 
 	translate(cols, rows) {
-		console.log(this.tui.viewLeft, this.tui.viewTop);
 		this.paneMatrix[12] = this.left += cols;
 		this.paneMatrix[13] = this.top += rows;
-		console.log(this.left, this.top);
 		this.tui.dirty = true;
 	}
 
@@ -479,7 +443,7 @@ class Window {
 	move(col, row) {
 		this.cursor.row = row;
 
-		if (col == this.cols) {
+		if (this.wrap && col === this.cols) {
 			this.cursor.row += Math.floor(col / this.cols);
 			this.cursor.col = col % this.cols;
 		} else {
@@ -487,7 +451,7 @@ class Window {
 		}
 	}
 
-	write(string) {
+	write(string, col = null, row = null) {
 		const colourData = this.glyphColour.imageData.data;
 		const colrowData = this.glyphColRow.imageData.data;
 		const r = this.rgba[0] * 255;
@@ -498,14 +462,19 @@ class Window {
 		this.glyphColour.dirty = true;
 		this.glyphColRow.dirty = true;
 
-		for (let char of string) {
-			if (!this.wrap && this.cursor.col >= this.cols) {
-				return;
-			}
+		if (col !== null && row !== null) {
+			this.move(col, row);
+		}
 
-			if (this.cursor.row >= this.rows) {
-				return;
+		for (let char of string) {
+			if (char === '\n') {
+				this.cursor.col = 0;
+				this.cursor.row++;
+				continue;
 			}
+			if (!this.wrap && this.cursor.col >= this.cols) break;
+
+			if (this.cursor.row >= this.rows) break;
 
 			const i =
 				(this.glyphColour.canvas.width * this.cursor.row + this.cursor.col) * 4;
@@ -516,13 +485,9 @@ class Window {
 			colourData[i + 2] = b;
 			colourData[i + 3] = a;
 
-			colrowData[i] = charUVs[8];
-			colrowData[i + 1] = charUVs[9];
+			colrowData[i] = charUVs.col;
+			colrowData[i + 1] = charUVs.row;
 			colrowData[i + 3] = 255;
-
-			this.charBuffer[this.cursor.row * this.cols + this.cursor.col] = char;
-			this.colourBuffer[this.cursor.row * this.cols + this.cursor.col] =
-				this.rgba;
 
 			this.move(this.cursor.col + 1, this.cursor.row);
 		}
