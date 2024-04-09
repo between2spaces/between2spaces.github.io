@@ -6,15 +6,15 @@ export default function main(container) {
 
 	const map = tui.createWindow();
 	map.write(
-		'          ' + 
-		'        O ' + 
-		'       ╱  ' + 
-		'      ╱   ' + 
-		'     O    ' + 
-		'          ' + 
 		'          ' +
-		'          ' + 
-		'          ' + 
+		'        ▢ ' +
+		'       ╱  ' +
+		'      ╱   ' +
+		'     ▢    ' +
+		'          ' +
+		'          ' +
+		'          ' +
+		'          ' +
 		'          '
 	);
 
