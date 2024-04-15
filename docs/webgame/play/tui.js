@@ -6,11 +6,14 @@ export class TUI {
 		this.viewTop = 0;
 		this.width = 5;
 		this.height = 10;
+		this.clear = [0.0, 0.0, 0.0, 1.0];
 
 		Object.assign(this, defaults);
 
 		this.container = container;
 		this.context = gl_utils.createContext(container);
+
+		this.context.gl.clearColor(this.clear[0], this.clear[1], this.clear[2], this.clear[3]);
 
 		const gl = (this.gl = this.context.gl);
 		const shader = (this.shader = gl_utils.createShader(
@@ -97,9 +100,9 @@ export class TUI {
 
 		this.setCharacterSet(
 			'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
-				'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
-				')_+[]{}\\|;\':",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└' +
-				'╱╲←↑→↓↖↗↘↙↔↕',
+			'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
+			')_+[]{}\\|;\':",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└' +
+			'╱╲←↑→↓↖↗↘↙↔↕',
 			2048,
 		);
 
@@ -269,7 +272,7 @@ export class TUI {
 				0.5 * width,
 				metrics.actualBoundingBoxAscent,
 			);
-			ctx.drawImage(charCanvas, x + 1, y + 1, width - 2, height - 2);
+			ctx.drawImage(charCanvas, x, y, width, height);
 
 			//let left = x / size;
 			//let top = y / size;

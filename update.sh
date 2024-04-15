@@ -109,6 +109,8 @@ if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))
 	cd neovim
 	make CMAKE_BUILD_TYPE=RelWithDebInfo
 	sudo make install
+	cd ~
+	rm -rf neovim
 	cd $CWD
 fi
 

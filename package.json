@@ -9,15 +9,5 @@
   "scripts": {
     "start": "npm install; npx npm-check-updates -u; npm install; cd docs; python3 -m http.server"
   },
-  "devDependencies": {
-    "@stylistic/eslint-plugin-js": "^1.7.0",
-    "eslint": "^9.0.0",
-    "eslint-config-mdcs": "^5.0.0",
-    "eslint-plugin-import": "^2.29.1",
-    "npm-check-updates": "^16.14.18",
-    "prettier": "^3.2.5",
-    "prettier-eslint-cli": "^8.0.1",
-    "typescript": "^5.4.4",
-    "typescript-language-server": "^4.3.3"
-  }
+  "devDependencies": {}
 }
