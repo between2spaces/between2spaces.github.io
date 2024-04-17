@@ -3,12 +3,9 @@
 
 export default function main(container) {
 
+	UI.init();
 	World.init();
-	
-	window.addEventListener('keydown', (event) => {
-		if (event.key === 'k') Nav.selectPrevious();
-		else if (event.key === 'j') Nav.selectNext();
-	});
+	Key.init();
 
 	window.drag = function (event) {
 		event.dataTransfer.setData('text', event.target.id);
@@ -52,167 +49,155 @@ function pos(left = 0, top = 0, width = null, height = null, additionalPropertie
 }
 
 
-const UIDebug = {
+const UI = {
 	init: function() {
 		
 		E(document.head, 'style', null, null, [
 			'.div {',
 			'   border: 1px solid #aaa;',
 			'}',
-			''
-		].join('\n'));
-
-	}
-};
-
-
-const Bread = {
-	dom: null,
-
-	init: function() {
-		E(document.head, 'style', null, null, [
-			'.bread {',
+			'.menu {',
+			'   margin: 0;',
 			'   border: 1px solid #aaa;',
+			'   min-width: 2em;',
 			'}',
-			'.bread-item {',
-			'   color: #aaa;',
-			'   overflow: hidden;',
-			'   padding: 0;',
-			'   white-space: nowrap;',
-			'	line-height: 100%;',
-			'}',
-			'.bread-item-type {',
-			'	display: inline-block;',
-			'   filter: grayscale(100%);',
-			'   opacity: 50%;',
-			'	padding: 0;',
-			'	line-height: 2em;',
-			'	width: 2em;',
-			'   text-align: center;',
-			'   vertical-align: middle;',
-			'}',
-			'.bread-item-name {',
-			'	display: inline-block;',
-			'   padding: 0.5em;',
-			'   vertical-align: middle;',
-			'}',
-			''
-		]);
-
-		Bread.dom = E(document.body, 'div', 'bread', pos('0', '0', '100%', '2em'));
-	},
-
-	clear: function() {
-		if (!Bread.dom) Bread.init();
-		Bread.dom.innerHTML = '';
-	},
-
-	insert: function(item) {
-		if (!Bread.dom) Nav.init();
-		const el = E(Bread.dom, 'div', 'bread-item', null, [
-			E(null, 'div', 'bread-item-type', null, item.type),
-			E(null, 'div', 'bread-item-name', null, item.name),
-		]);
-		el.id = `bread-item-${Nav.dom.childElementCount}`;
-		el.itemid = item.id;
-	}
-};
-
-const Nav = {
-	dom: null,
-	selected: 1,
-
-	init: function() {
-		E(document.head, 'style', null, null, [
-			'.nav {',
-			'	display: table;',
-			'   border: 1px solid #aaa;',
-			'}',
-			'.nav-item {',
+			'.menu-item {',
 			'	display: table-row;',
 			'   color: #aaa;',
+			'	line-height: 2em;',
+			'   vertical-align: middle;',
 			'   overflow: hidden;',
 			'   padding: 0;',
 			'   white-space: nowrap;',
-			'	line-height: 100%;',
 			'}',
-			'.nav-item-select {',
+			'.menu-item-select {',
 			'	display: table-cell;',
 			'   min-width: 0.5em;',
-			'	line-height: 2em;',
-			'   vertical-align: middle;',
 			'}',
-			'.nav-item-type {',
+			'.menu-item-type {',
 			'	display: table-cell;',
 			'   filter: grayscale(100%);',
 			'   opacity: 50%;',
 			'	width: 2em;',
 			'   text-align: center;',
-			'   vertical-align: middle;',
 			'}',
-			'.nav-item-name {',
+			'.menu-item-name {',
 			'	display: table-cell;',
-			'   padding: 0.5em;',
-			'   vertical-align: middle;',
+			'   text-overflow: ellipsis;',
+			'	width: 100%;',
+			'	max-width: 0;',
+			'   overflow: hidden;',
 			'}',
-			'.nav-item-container {',
+			'.menu-item-container {',
 			'	display: table-cell;',
 			'   min-width: 0.5em;',
-			'	line-height: 2em;',
-			'   vertical-align: middle;',
+			'}',
+			'.focus {',
+			'}',
+			'.focus-type {',
+			'	display: absolute;',
+			'   filter: grayscale(100%);',
+			'   opacity: 50%;',
+			'	font-size: 50vh;',
+			'	line-height: 50vh;',
 			'}',
 			''
 		].join('\n'));
 
-		Nav.dom = E(document.body, 'nav', null, pos('10%', '2em', '25%', '100%'));
-	},
+		this.outside = new Menu('0', '0', '20%', '100%');
+		this.location = new Menu('20%', '0', '30%', '100%');
+		this.location.onSelect = function(item) {
+			Focus.set(item);
+		}
+		Focus.init();
 
-	clear: function() {
-		if (!Nav.dom) Nav.init();
-		Nav.dom.innerHTML = '';
-		Nav.select(1);
-	},
+	}
+};
 
-	add: function(item) {
-		if (!Nav.dom) Nav.init();
-		const el = E(Nav.dom, 'div', 'nav-item', null, [
-			E(null, 'div', 'nav-item-select', null),
-			E(null, 'div', 'nav-item-type', null, item.type),
-			E(null, 'div', 'nav-item-name', null, item.name),
-			E(null, 'div', 'nav-item-container', null, item.contents.length > 0 ? '⋮' : '')
+
+const Key = {
+	menuUp: ['w', 'k', 'ArrowUp'],
+	menuDown: ['s', 'j', 'ArrowDown'],
+
+	init: function() {
+		window.addEventListener('keydown', (event) => {
+			console.log(event.key);
+			if (Key.menuUp.indexOf(event.key) > -1) {
+				UI.location.selectPrevious();
+			} else if (Key.menuDown.indexOf(event.key) > -1) {
+				UI.location.selectNext();
+			}
+		});
+	}
+};
+
+
+class Menu {
+	constructor(left, top, width, height) {
+		this.id = Menu.nextId;
+		Menu.nextId++;
+		this.dom = E(document.body, 'div', 'menu', pos(left, top, width, height));
+		this.selected = 1;
+		this.onSelect = null;
+	}
+
+	set(item=null) {
+		this.dom.innerHTML = '';
+		this.select(1);
+	}
+
+	add(item, selected=false) {
+		const el = E(this.dom, 'div', 'menu-item', null, [
+			E(null, 'div', 'menu-item-select', null),
+			E(null, 'div', 'menu-item-type', null, item.type),
+			E(null, 'div', 'menu-item-name', null, item.name),
+			E(null, 'div', 'menu-item-container', null, item.contents.length > 0 ? '⟫' : '')
 		]);
-		el.id = `nav-item-${Nav.dom.childElementCount}`;
+		el.id = `menu-${this.id}-item-${this.dom.childElementCount}`;
 		el.itemid = item.id;
 		el.draggable = "true";
 		el.ondragstart = "drag(event)";
-	},
+		if (selected || this.selected === this.dom.childElementCount) this.select(this.dom.childElementCount);
+	}
 	
-	select: function(num) {
-		if (!Nav.dom) Nav.init();
-		const el = document.getElementById(`nav-item-${num}`);
+	select(num) {
+		const el = document.getElementById(`menu-${this.id}-item-${num}`);
 		if (!el) return;
-		if (Nav.selected) {
-			const prev = document.getElementById(`nav-item-${Nav.selected}`);
-			if (prev) {
-				prev.style.background = 'none';
-				prev.querySelector('.nav-item-select').style.background = 'none';
-			}
+		const prev = document.getElementById(`menu-${this.id}-item-${this.selected}`);
+		if (prev) {
+			prev.style.background = 'none';
+			prev.querySelector('.menu-item-select').style.background = 'none';
 		}
 		el.style.background = '#eee';
-		el.querySelector('.nav-item-select').style.background = '#aaa';
-		Nav.selected = num;
+		el.querySelector('.menu-item-select').style.background = '#aaa';
+		this.selected = num;
+		if (this.onSelect) this.onSelect(Item.byId[el.itemid]);
+	}
+
+	selectPrevious() {
+		this.select(this.selected - 1);
+	}
+
+	selectNext() {
+		this.select(this.selected + 1);
+	}
+}
+
+Menu.nextId = 0;
+
+
+
+const Focus = {
+	dom: null,
+	typeEl: null,
+
+	init: function() {
+		Focus.dom = E(document.body, 'div', 'focus', pos('50%', '0', '50%', '100%'));
+		Focus.typeEl = E(Focus.dom, 'div', 'focus-type');
 	},
 
-	selectPrevious: function() {
-		if (!Nav.dom) Nav.init();
-		if (Nav.selected === 1) return;
-		Nav.select(Nav.selected - 1);
-	},
-
-	selectNext: function() {
-		if (!Nav.dom) Nav.init();
-		if (Nav.selected === Nav.dom.childElementCount) return;
-		Nav.select(Nav.selected + 1);
+	set: function(item) {
+		Focus.typeEl.innerHTML = item.type;
 	}
 };
 
@@ -259,23 +244,33 @@ const World = {
 		
 		const campfire = Item.create(World.root, '🔥', 'Campfire')
 		Item.create(campfire, '/', 'Log');
+
 		Item.create(World.root, '👞', 'Boots');
 		Item.create(World.root, '🗡', 'Stick');
+
+		const tent = Item.create(World.root, '⌂', 'Tent');
+		Item.create(tent, '👖', 'Pants');
+		const jar = Item.create(tent, '🏺', 'Jar');
+		Item.create(jar, '💧', 'Water');
 
 		World.setLocation(World.root);
 	},
 
 	setLocation: function(item) {
 		World.location = item;
-		Nav.clear();
+		UI.location.set(item);
 		for (let child of item.contents) {
-			Nav.add(child);
+			UI.location.add(child);
 		}
-		let parent = item;
-		Bread.clear();
-		while (parent) {
-			Bread.insert(parent);
-			parent = parent.parent;
+		let parent = item.parent;
+		if (!parent) {
+			UI.outside.set();
+			UI.outside.add(item, true);
+		} else {
+			UI.outside.set(parent);
+			for (let child of parent.contents) {
+				UI.outside.add(child, child === item);
+			}
 		}
 	}
 };
@@ -284,6 +279,9 @@ const World = {
 const Item = {
 	create: function(parent, type, name) {
 		const item = {};
+		item.id = Item.nextId;
+		Item.nextId++;
+		Item.byId[item.id] = item;
 		item.parent = null;
 		item.type = type;
 		item.name = name;
@@ -301,3 +299,6 @@ const Item = {
 		parent.contents.push(item);
 	}
 }
+
+Item.nextId = 0;
+Item.byId = {};
