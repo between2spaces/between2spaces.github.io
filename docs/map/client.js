@@ -2,16 +2,11 @@
 
 
 export default function main(container) {
-
 	UI.init();
-	World.init();
-	Key.init();
-
-	window.drag = function (event) {
-		event.dataTransfer.setData('text', event.target.id);
-	}
-
+	initiateWorld();
+	setupKeydownListeners();
 }
+
 
 function E(parent = null, tag = 'div', classList = null, styleProperties = null, content = []) {
 	const div = document.createElement(tag);
@@ -34,11 +29,13 @@ function E(parent = null, tag = 'div', classList = null, styleProperties = null,
 	return div;
 }
 
+
 function style(element, properties = {}) {
 	for (let property of Object.keys(properties)) {
 		element.style[property] = properties[property];
 	}
 }
+
 
 function pos(left = 0, top = 0, width = null, height = null, additionalProperties = null) {
 	const style = { position: 'absolute', left, top };
@@ -49,141 +46,166 @@ function pos(left = 0, top = 0, width = null, height = null, additionalPropertie
 }
 
 
+function setupKeydownListeners() {
+	const selectPreviousItem = ['w', 'k', 'ArrowUp'];
+	const selectNextItem = ['s', 'j', 'ArrowDown'];
+	const selectParentLocation = ['a', 'h', 'ArrowLeft'];
+	const selectItemLocation = ['d', 'l', 'ArrowRight'];
+
+	window.addEventListener('keydown', (event) => {
+		if (selectPreviousItem.indexOf(event.key) > -1) {
+			UI.selectPrevious();
+		} else if (selectNextItem.indexOf(event.key) > -1) {
+			UI.selectNext();
+		} else if (selectParentLocation.indexOf(event.key) > -1) {
+			UI.selectOut();
+		} else if (selectItemLocation.indexOf(event.key) > -1) {
+			UI.selectIn();
+		}
+	});
+};
+
+
 const UI = {
-	init: function() {
-		
+
+	breadcrumb: null,
+	parent: {
+		dom: null,
+		type: null,
+		name: null
+	},
+
+	location: {
+		dom: null,
+		item: null,
+		items: [],
+		selectedIndex: 0
+	},
+
+	focus: {
+		dom: null,
+	},
+
+	init: () => {
+
 		E(document.head, 'style', null, null, [
 			'.div {',
 			'   border: 1px solid #aaa;',
 			'}',
-			'.menu {',
-			'   margin: 0;',
-			'   border: 1px solid #aaa;',
-			'   min-width: 2em;',
-			'}',
-			'.menu-item {',
-			'	display: table-row;',
-			'   color: #aaa;',
-			'	line-height: 2em;',
-			'   vertical-align: middle;',
-			'   overflow: hidden;',
-			'   padding: 0;',
-			'   white-space: nowrap;',
-			'}',
-			'.menu-item-select {',
-			'	display: table-cell;',
-			'   min-width: 0.5em;',
-			'}',
-			'.menu-item-type {',
-			'	display: table-cell;',
-			'   filter: grayscale(100%);',
-			'   opacity: 50%;',
-			'	width: 2em;',
-			'   text-align: center;',
-			'}',
-			'.menu-item-name {',
-			'	display: table-cell;',
-			'   text-overflow: ellipsis;',
-			'	width: 100%;',
-			'	max-width: 0;',
-			'   overflow: hidden;',
-			'}',
-			'.menu-item-container {',
-			'	display: table-cell;',
-			'   min-width: 0.5em;',
-			'}',
-			'.focus {',
-			'}',
-			'.focus-type {',
-			'	display: absolute;',
-			'   filter: grayscale(100%);',
-			'   opacity: 50%;',
-			'	font-size: 50vh;',
-			'	line-height: 50vh;',
-			'}',
 			''
 		].join('\n'));
 
-		this.outside = new Menu('0', '0', '20%', '100%');
-		this.location = new Menu('20%', '0', '30%', '100%');
-		this.location.onSelect = function(item) {
-			Focus.set(item);
-		}
-		Focus.init();
-
-	}
-};
-
-
-const Key = {
-	menuUp: ['w', 'k', 'ArrowUp'],
-	menuDown: ['s', 'j', 'ArrowDown'],
-
-	init: function() {
-		window.addEventListener('keydown', (event) => {
-			console.log(event.key);
-			if (Key.menuUp.indexOf(event.key) > -1) {
-				UI.location.selectPrevious();
-			} else if (Key.menuDown.indexOf(event.key) > -1) {
-				UI.location.selectNext();
-			}
+		UI.breadcrumb = E(document.body, 'div', null, {
+			position: 'absolute',
+			left: '1em',
+			top: '1em',
+			width: 'calc(40% - 0.5em)',
+			height: '2em',
+			paddingLeft: '0.5em',
+			overflow: 'hidden',
+			textOverflow: 'ellipsis',
+			filter: 'grayscale(100%)',
+			opacity: '50%',
+			lineHeight: '2em',
 		});
-	}
-};
+		UI.breadcrumb.addEventListener('click', () => { World.moveUp(); });
 
+		UI.parent.dom = E(document.body, 'div', null, pos('1em', '3em', '20%', '2em'),
+			E(null, 'div', null, UI.StyleNavItem, [
+				UI.parent.type = E(null, 'div', 'NavItemType'),
+				UI.parent.name = E(null, 'div', 'NavItemName')
+			])
+		);
+		UI.parent.dom.addEventListener('click', () => { World.moveUp(); });
 
-class Menu {
-	constructor(left, top, width, height) {
-		this.id = Menu.nextId;
-		Menu.nextId++;
-		this.dom = E(document.body, 'div', 'menu', pos(left, top, width, height));
-		this.selected = 1;
-		this.onSelect = null;
-	}
+		UI.location.dom = E(document.body, 'div', null, {
+			position: 'absolute',
+			left: 'calc(20% + 1em)',
+			top: '3em',
+			right: '40%',
+			bottom: '1em',
+		});
 
-	set(item=null) {
-		this.dom.innerHTML = '';
-		this.select(1);
-	}
+		UI.focus.dom = E(document.body, 'div', null, {
+			position: 'absolute',
+			left: 'calc(20% + 1em)',
+			top: '3em',
+			right: '40%',
+			bottom: '1em',
+		});
 
-	add(item, selected=false) {
-		const el = E(this.dom, 'div', 'menu-item', null, [
-			E(null, 'div', 'menu-item-select', null),
-			E(null, 'div', 'menu-item-type', null, item.type),
-			E(null, 'div', 'menu-item-name', null, item.name),
-			E(null, 'div', 'menu-item-container', null, item.contents.length > 0 ? '⟫' : '')
-		]);
-		el.id = `menu-${this.id}-item-${this.dom.childElementCount}`;
-		el.itemid = item.id;
-		el.draggable = "true";
-		el.ondragstart = "drag(event)";
-		if (selected || this.selected === this.dom.childElementCount) this.select(this.dom.childElementCount);
-	}
-	
+		UI.setLocation(O.byId[0]);
+	},
+
+	setLocation(item) {
+		if (!item) return;
+		if (!item.volume) return this.setLocation(item.parent);
+
+		UI.breadcrumb.textContent = '';
+		UI.parent.type.textContent = '';
+		UI.parent.name.textContent = '';
+		UI.location.dom.innerHTML = '';
+
+		UI.location.item = item;
+		const hierarchy = [];
+		for (let location = item; location !== null; location = location.parent) {
+			hierarchy.unshift(location);
+		}
+		UI.breadcrumb.innerHTML = '';
+		for (let location of hierarchy) {
+			UI.breadcrumb.textContent += `/ ${location.type} ${location.name} `;
+		}
+		UI.parent.type.textContent = item.type;
+		UI.parent.name.textContent = item.name;
+
+		UI.location.items = [];
+		UI.location.selectedIndex = 0;
+		for (let child of item.contents) {
+			UI.add(child);
+		}
+	},
+
+	add(item) {
+		const el = E(UI.location.dom, 'div', 'NavItem', null, [
+			E(null, 'div', 'NavItemType', null, item.type),
+			E(null, 'div', 'NavItemName', null, item.name)
+		])
+		const index = UI.location.dom.childElementCount - 1;
+		el.id = `item-${index}`;
+		UI.location.items.push(item);
+		el.addEventListener('click', () => { UI.location.selectedIndex === index && item.contents.length > 0 ? World.setLocation(item) : UI.select(index); });
+		el.addEventListener('dblclick', () => { if (item.contents.length > 0) World.setLocation(item); });
+		if (UI.location.selectedIndex === index) this.select(index);
+	},
+
 	select(num) {
-		const el = document.getElementById(`menu-${this.id}-item-${num}`);
+		const el = document.getElementById(`item-${num}`);
 		if (!el) return;
-		const prev = document.getElementById(`menu-${this.id}-item-${this.selected}`);
+		const prev = document.getElementById(`item-${UI.location.selectedIndex}`);
 		if (prev) {
 			prev.style.background = 'none';
-			prev.querySelector('.menu-item-select').style.background = 'none';
 		}
 		el.style.background = '#eee';
-		el.querySelector('.menu-item-select').style.background = '#aaa';
-		this.selected = num;
-		if (this.onSelect) this.onSelect(Item.byId[el.itemid]);
-	}
+		UI.location.selectedIndex = num;
+	},
 
 	selectPrevious() {
-		this.select(this.selected - 1);
-	}
+		this.select(UI.location.selectedIndex - 1);
+	},
 
 	selectNext() {
-		this.select(this.selected + 1);
-	}
+		this.select(UI.location.selectedIndex + 1);
+	},
+
+	selectOut() {
+		this.setLocation(UI.location.item.parent);
+	},
+
+	selectIn() {
+		this.setLocation(UI.location.items[UI.location.selectedIndex]);
+	},
 }
 
-Menu.nextId = 0;
 
 
 
@@ -191,12 +213,12 @@ const Focus = {
 	dom: null,
 	typeEl: null,
 
-	init: function() {
+	init: function () {
 		Focus.dom = E(document.body, 'div', 'focus', pos('50%', '0', '50%', '100%'));
 		Focus.typeEl = E(Focus.dom, 'div', 'focus-type');
 	},
 
-	set: function(item) {
+	set: function (item) {
 		Focus.typeEl.innerHTML = item.type;
 	}
 };
@@ -205,8 +227,8 @@ const Focus = {
 const Equip = {
 	dom: null,
 
-	init: function() {
-		
+	init: function () {
+
 		E(document.head, 'style', null, null, [
 			'.equip-slot {',
 			'   font-size: 16vh;',
@@ -224,81 +246,96 @@ const Equip = {
 
 		Equip.dom = E(document.body, 'div', null, pos('0', '0', '10%', '100%'));
 
-		E(Equip, 'div', 'equip-slot', pos('0%', '0', null, null, { lineHeight: '105%'}), '🗡');
-		E(Equip, 'div', 'equip-slot', pos('0', '16.67%', null, null, { lineHeight: '105%'}), E(null, 'div', null, {fontSize: '14vh', opacity: '50%'},'✋'));
+		E(Equip, 'div', 'equip-slot', pos('0%', '0', null, null, { lineHeight: '105%' }), '🗡');
+		E(Equip, 'div', 'equip-slot', pos('0', '16.67%', null, null, { lineHeight: '105%' }), E(null, 'div', null, { fontSize: '14vh', opacity: '50%' }, '✋'));
 		E(Equip, 'div', 'equip-slot', pos('0', '33.33%', null, null, { fontSize: '19vh', lineHeight: '90%' }), '🗣');
-		E(Equip, 'div', 'equip-slot', pos('0', '50%', null, null, { lineHeight: '105%' }), E(null, 'div', null, {fontSize: '14vh', marginLeft: '-15%', opacity: '50%'}, '👚'));
-		E(Equip, 'div', 'equip-slot', pos('0', '66.67%', null, null, { lineHeight: '105%'}), E(null, 'div', null, {fontSize: '14vh', opacity: '50%'}, '👖'));
-		E(Equip, 'div', 'equip-slot', pos('0', '83.33%', null, null, { lineHeight: '100%' }), E(null, 'div', null, {fontSize: '13vh', marginLeft: '-10%', opacity: '50%'}, '👞'));
+		E(Equip, 'div', 'equip-slot', pos('0', '50%', null, null, { lineHeight: '105%' }), E(null, 'div', null, { fontSize: '14vh', marginLeft: '-15%', opacity: '50%' }, '👚'));
+		E(Equip, 'div', 'equip-slot', pos('0', '66.67%', null, null, { lineHeight: '105%' }), E(null, 'div', null, { fontSize: '14vh', opacity: '50%' }, '👖'));
+		E(Equip, 'div', 'equip-slot', pos('0', '83.33%', null, null, { lineHeight: '100%' }), E(null, 'div', null, { fontSize: '13vh', marginLeft: '-10%', opacity: '50%' }, '👞'));
 	}
 };
 
 
-const World = {
-	root: null,
-	location: null,
-	focus: null,
-	
-	init: function() {
-		World.root = Item.create(null, '🌎', 'World');
-		
-		const campfire = Item.create(World.root, '🔥', 'Campfire')
-		Item.create(campfire, '/', 'Log');
 
-		Item.create(World.root, '👞', 'Boots');
-		Item.create(World.root, '🗡', 'Stick');
 
-		const tent = Item.create(World.root, '⌂', 'Tent');
-		Item.create(tent, '👖', 'Pants');
-		const jar = Item.create(tent, '🏺', 'Jar');
-		Item.create(jar, '💧', 'Water');
+function O(properties) {
+	const object = Object.assign({
+		parent: null,
+		type: '?',
+		name: properties.type ? O.types[properties.type] : 'Undefined',
+		contents: [],
+		volume: 0,
+	}, properties);
 
-		World.setLocation(World.root);
-	},
+	O.byId[object.id = O.nextId++] = object;
 
-	setLocation: function(item) {
-		World.location = item;
-		UI.location.set(item);
-		for (let child of item.contents) {
-			UI.location.add(child);
-		}
-		let parent = item.parent;
-		if (!parent) {
-			UI.outside.set();
-			UI.outside.add(item, true);
-		} else {
-			UI.outside.set(parent);
-			for (let child of parent.contents) {
-				UI.outside.add(child, child === item);
-			}
+	object.contents = [];
+
+	if (properties.contents) {
+		for (let child_properties of properties.contents) {
+			console.log(child_properties);
+			child_properties.parent = object;
+			object.contents.push(O(child_properties));
 		}
 	}
-};
 
-
-const Item = {
-	create: function(parent, type, name) {
-		const item = {};
-		item.id = Item.nextId;
-		Item.nextId++;
-		Item.byId[item.id] = item;
-		item.parent = null;
-		item.type = type;
-		item.name = name;
-		item.contents = [];
-		if (parent) Item.add(parent, item);
-		return item;
-	},
-
-	add: function(parent, item) {
-		if (item.parent) {
-			const i = item.parent.contents.indexOf(item);
-			if (i > -1); item.parent.contents.splice(i, 1);
-		}
-		item.parent = parent;
-		parent.contents.push(item);
+	if (object.id > 0) {
+		if (!object.parent) object.parent = O.byId[0];
+		O.add(object.parent, object);
 	}
+
+	return object;
 }
 
-Item.nextId = 0;
-Item.byId = {};
+O.add = function (parent, object) {
+	if (object.parent) {
+		const i = object.parent.contents.indexOf(object);
+		if (i > -1); object.parent.contents.splice(i, 1);
+	}
+	object.parent = parent;
+	parent.contents.push(object);
+	if (UI.location.item === parent) UI.add(object);
+}
+
+O.types = {
+	'?': 'Undefined',
+	'🌎': 'World',
+	'🔥': 'Campfire',
+	'👖': 'Pants',
+	'👞': 'Boots',
+	'🗡': 'Weapon',
+	'⌂': 'Tent',
+	'/': 'Log',
+	'💧': 'Water',
+	'🏺': 'Jar',
+};
+
+O.byId = {};
+O.nextId = 0;
+O({ type: '🌎', volume: 99999999 });
+
+
+
+
+
+function initiateWorld() {
+	O({
+		type: '🔥', volume: 9, contents: [
+			{ type: '/' },
+		]
+	});
+
+	O({ type: '👞' });
+	O({ type: '🗡' });
+
+	O({
+		type: '⌂', volume: 99, contents: [
+			{ type: '👖' },
+			{
+				type: '🏺', volume: 99, contents: [
+					{ type: '💧' },
+				]
+			},
+		]
+	});
+}
