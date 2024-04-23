@@ -4,49 +4,8 @@
 export default function main(container) {
 	UI.init();
 	initiateWorld();
-	setupKeydownListeners();
-}
 
-
-function E(parent = null, tag = 'div', classList = null, styleProperties = null, content = []) {
-	const div = document.createElement(tag);
-	div.classList.add('div');
-	if (classList === null) classList = [];
-	if (classList.constructor !== Array) classList = [classList];
-	for (let className of classList) {
-		div.classList.add(className);
-	}
-	if (parent) parent.append(div);
-	if (content.constructor !== Array) content = [content];
-	for (let child of content) {
-		if (child instanceof Element) {
-			div.append(child);
-		} else {
-			div.textContent += child;
-		}
-	}
-	if (styleProperties) style(div, styleProperties);
-	return div;
-}
-
-
-function style(element, properties = {}) {
-	for (let property of Object.keys(properties)) {
-		element.style[property] = properties[property];
-	}
-}
-
-
-function pos(left = 0, top = 0, width = null, height = null, additionalProperties = null) {
-	const style = { position: 'absolute', left, top };
-	if (width) style.width = width;
-	if (height) style.height = height;
-	if (additionalProperties) Object.assign(style, additionalProperties);
-	return style;
-}
-
-
-function setupKeydownListeners() {
+	// Listen for Keydowns
 	const selectPreviousItem = ['w', 'k', 'ArrowUp'];
 	const selectNextItem = ['s', 'j', 'ArrowDown'];
 	const selectParentLocation = ['a', 'h', 'ArrowLeft'];
@@ -63,12 +22,50 @@ function setupKeydownListeners() {
 			UI.selectIn();
 		}
 	});
-};
+}
+
+function div(className) {
+	
+}
+
+function E(parent = null, tag = 'div', classList = null, styleProperties = null, content = null) {
+	const div = document.createElement(tag);
+	div.classList.add('div');
+	if (classList === null) classList = [];
+	if (classList.constructor !== Array) classList = [classList];
+	for (let className of classList) div.classList.add(className);
+	if (parent) parent.append(div);
+	if (styleProperties) {
+		for (let property of Object.keys(styleProperties)) {
+			div.style[property] = styleProperties[property];
+		}
+	}
+	if (content === null) content = [];
+	if (content.constructor !== Array) content = [content];
+	for (let child of content) {
+		if (child instanceof Element) {
+			div.append(child);
+		} else {
+			div.textContent += child;
+		}
+	}
+	return div;
+}
+
+
+function pos(left = 0, top = 0, width = null, height = null, additionalProperties = null) {
+	const style = { position: 'absolute', left, top };
+	if (width) style.width = width;
+	if (height) style.height = height;
+	if (additionalProperties) Object.assign(style, additionalProperties);
+	return style;
+}
 
 
 const UI = {
 
 	breadcrumb: null,
+
 	parent: {
 		dom: null,
 		type: null,
@@ -79,7 +76,7 @@ const UI = {
 		dom: null,
 		item: null,
 		items: [],
-		selectedIndex: 0
+		selectedEl: null
 	},
 
 	focus: {
@@ -88,12 +85,7 @@ const UI = {
 
 	init: () => {
 
-		E(document.head, 'style', null, null, [
-			'.div {',
-			'   border: 1px solid #aaa;',
-			'}',
-			''
-		].join('\n'));
+		E(document.head, 'style', null, null, '.div { border: 1px solid #aaa; }');
 
 		UI.breadcrumb = E(document.body, 'div', null, {
 			position: 'absolute',
@@ -110,12 +102,20 @@ const UI = {
 		});
 		UI.breadcrumb.addEventListener('click', () => { World.moveUp(); });
 
-		UI.parent.dom = E(document.body, 'div', null, pos('1em', '3em', '20%', '2em'),
-			E(null, 'div', null, UI.StyleNavItem, [
-				UI.parent.type = E(null, 'div', 'NavItemType'),
-				UI.parent.name = E(null, 'div', 'NavItemName')
+		E(document.body, 'div', null, pos('1em', '3em', '20%', '2em'), [
+			E(null, 'div', 'NavItem', null, [
+					E(null, 'div', 'NavItemType'),
+					E(null, 'div', 'NavItemName'),
+					E(null, 'div', 'NavItemDmg', null, 'Dmg'),
+					E(null, 'div', 'NavItemQlty', null, 'Qlty')
+				]),
+			UI.parent.dom = E(null, 'div', 'NavItem', null, [
+				E(null, 'div', 'NavItemType'),
+				E(null, 'div', 'NavItemName'),
+				E(null, 'div', 'NavItemDmg'),
+				E(null, 'div', 'NavItemQlty')
 			])
-		);
+		]);
 		UI.parent.dom.addEventListener('click', () => { World.moveUp(); });
 
 		UI.location.dom = E(document.body, 'div', null, {
@@ -139,12 +139,23 @@ const UI = {
 
 	setLocation(item) {
 		if (!item) return;
-		if (!item.volume) return this.setLocation(item.parent);
+		if (!item.volume) return;
 
 		UI.breadcrumb.textContent = '';
-		UI.parent.type.textContent = '';
-		UI.parent.name.textContent = '';
+
+		UI.parent.dom.querySelector('.NavItemType').textContent = '';
+		UI.parent.dom.querySelector('.NavItemName').textContent = '';
+		UI.parent.dom.querySelector('.NavItemDmg').textContent = '';
+		UI.parent.dom.querySelector('.NavItemQlty').textContent = '';
+
 		UI.location.dom.innerHTML = '';
+
+		E(UI.location.dom, 'div', 'NavItem', null, [
+			E(null, 'div', 'NavItemType'),
+			E(null, 'div', 'NavItemName'),
+			E(null, 'div', 'NavItemDmg', null, 'Dmg'),
+			E(null, 'div', 'NavItemQlty', null, 'Qlty')
+		]);
 
 		UI.location.item = item;
 		const hierarchy = [];
@@ -155,11 +166,12 @@ const UI = {
 		for (let location of hierarchy) {
 			UI.breadcrumb.textContent += `/ ${location.type} ${location.name} `;
 		}
-		UI.parent.type.textContent = item.type;
-		UI.parent.name.textContent = item.name;
+		
+		UI.update(item);
 
 		UI.location.items = [];
-		UI.location.selectedIndex = 0;
+		UI.location.selectedEl = null;
+		UI.location.selectedEl = null;
 		for (let child of item.contents) {
 			UI.add(child);
 		}
@@ -167,34 +179,32 @@ const UI = {
 
 	add(item) {
 		const el = E(UI.location.dom, 'div', 'NavItem', null, [
-			E(null, 'div', 'NavItemType', null, item.type),
-			E(null, 'div', 'NavItemName', null, item.name)
+			E(null, 'div', 'NavItemType'),
+			E(null, 'div', 'NavItemName'),
+			E(null, 'div', 'NavItemDmg'),
+			E(null, 'div', 'NavItemQlty')
 		])
-		const index = UI.location.dom.childElementCount - 1;
-		el.id = `item-${index}`;
+		el.id = `item-${item.id}`;
 		UI.location.items.push(item);
-		el.addEventListener('click', () => { UI.location.selectedIndex === index && item.contents.length > 0 ? World.setLocation(item) : UI.select(index); });
+		el.addEventListener('click', () => { UI.location.selectedEl === el && item.contents.length > 0 ? World.setLocation(item) : UI.select(el); });
 		el.addEventListener('dblclick', () => { if (item.contents.length > 0) World.setLocation(item); });
-		if (UI.location.selectedIndex === index) this.select(index);
+		if (UI.location.selectedEl === null) this.select(el);
+		UI.update(item);
 	},
 
-	select(num) {
-		const el = document.getElementById(`item-${num}`);
+	select(el) {
 		if (!el) return;
-		const prev = document.getElementById(`item-${UI.location.selectedIndex}`);
-		if (prev) {
-			prev.style.background = 'none';
-		}
+		if (UI.location.selectedEl) UI.location.selectedEl.style.background = 'none';
 		el.style.background = '#eee';
-		UI.location.selectedIndex = num;
+		UI.location.selectedEl = el;
 	},
 
 	selectPrevious() {
-		this.select(UI.location.selectedIndex - 1);
+		this.select(UI.location.selectedEl.previousSibling);
 	},
 
 	selectNext() {
-		this.select(UI.location.selectedIndex + 1);
+		this.select(UI.location.selectedEl.nextSibling);
 	},
 
 	selectOut() {
@@ -202,8 +212,31 @@ const UI = {
 	},
 
 	selectIn() {
-		this.setLocation(UI.location.items[UI.location.selectedIndex]);
+		this.setLocation(O.byId[UI.location.selectedEl.id.split('-')[1]]);
 	},
+
+	update(object) {
+		if (object.parent === UI.location.item) {
+			const navItem = document.getElementById(`item-${object.id}`);
+			if (object.damage >= 1) {
+				navItem.remove();
+				return;
+			}
+			navItem.querySelector('.NavItemType').textContent = object.type;
+			navItem.querySelector('.NavItemName').textContent = object.name;
+			navItem.querySelector('.NavItemDmg').textContent = (Math.round((object.damage + Number.EPSILON) * 100) / 100).toFixed(2);
+			navItem.querySelector('.NavItemQlty').textContent = (Math.round((object.quality + Number.EPSILON) * 100) / 100).toFixed(2);
+		} else if (object === UI.location.item) {
+			if (object.damage >= 1) {
+				UI.setLocation(object.parent);
+				return;
+			}
+			UI.parent.dom.querySelector('.NavItemType').textContent = object.type;
+			UI.parent.dom.querySelector('.NavItemName').textContent = object.name;
+			UI.parent.dom.querySelector('.NavItemDmg').textContent = (Math.round((object.damage + Number.EPSILON) * 100) / 100).toFixed(2);
+			UI.parent.dom.querySelector('.NavItemQlty').textContent = (Math.round((object.quality + Number.EPSILON) * 100) / 100).toFixed(2);
+		}
+	}
 }
 
 
@@ -265,23 +298,24 @@ function O(properties) {
 		name: properties.type ? O.types[properties.type] : 'Undefined',
 		contents: [],
 		volume: 0,
+		quality: 0.98 + Math.random() * 0.019,
+		damage: 0,
 	}, properties);
 
 	O.byId[object.id = O.nextId++] = object;
 
 	object.contents = [];
 
-	if (properties.contents) {
-		for (let child_properties of properties.contents) {
-			console.log(child_properties);
-			child_properties.parent = object;
-			object.contents.push(O(child_properties));
-		}
-	}
-
 	if (object.id > 0) {
 		if (!object.parent) object.parent = O.byId[0];
 		O.add(object.parent, object);
+	}
+
+	if (properties.contents) {
+		for (let child_properties of properties.contents) {
+			child_properties.parent = object;
+			O(child_properties);
+		}
 	}
 
 	return object;
@@ -290,11 +324,26 @@ function O(properties) {
 O.add = function (parent, object) {
 	if (object.parent) {
 		const i = object.parent.contents.indexOf(object);
-		if (i > -1); object.parent.contents.splice(i, 1);
+		if (i > -1) object.parent.contents.splice(i, 1);
 	}
 	object.parent = parent;
 	parent.contents.push(object);
-	if (UI.location.item === parent) UI.add(object);
+
+	if (UI.location.item.id === parent.id) {
+		UI.add(object);
+	}
+}
+
+O.destroy = function(object) {
+	if (object.parent) {
+		const i = object.parent.contents.indexOf(object);
+		object.parent.contents.splice(i, 1);
+	}
+	for (let child of object.contents) {
+		if (object.parent) O.add(object.parent, child);
+	}
+	delete O.byId[object.id];
+	UI.update(object);
 }
 
 O.types = {
@@ -319,13 +368,14 @@ O({ type: '🌎', volume: 99999999 });
 
 
 function initiateWorld() {
+	O({ type: '👞' });
+
 	O({
-		type: '🔥', volume: 9, contents: [
+		type: '🔥', volume: 9, quality: 0.9, contents: [
 			{ type: '/' },
 		]
 	});
 
-	O({ type: '👞' });
 	O({ type: '🗡' });
 
 	O({
@@ -338,4 +388,22 @@ function initiateWorld() {
 			},
 		]
 	});
+
+	const tick = 2000;
+	setInterval(O.update, tick);
+
+}
+
+O.update = function (object=O.byId[0], decay=1) {
+	if (object.type === '🔥') decay*=2;
+
+	object.damage += (1 - object.quality) * decay;
+
+	if (object.damage >= 1) return O.destroy(object);
+
+	UI.update(object);
+
+	for (let child of object.contents) {
+		O.update(child, decay);
+	}
 }

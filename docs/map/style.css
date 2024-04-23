@@ -62,3 +62,11 @@ body {
     padding-left: 0.5em;
     height: 2em;
 }
+
+.NavItemDmg {
+    display: table-cell;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    height: 2em;
+    overflow: hidden;
+}
