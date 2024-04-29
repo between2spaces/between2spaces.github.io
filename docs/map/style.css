@@ -15,58 +15,19 @@ body {
     font-size: 30pt;
 }
 
-.NavItem {
-    display: table-row;
-    vertical-align: middle;
-    line-height: 2em;
+.view {
+    position: relative;
 }
 
-.NavItemContents {
-    display: table-cell;
-    min-width: 1em;
-    text-align: center;
+.entity {
+    position: absolute;
+    width: 1em;
+    height: 1em;
+    border: 1px solid #aaa;
 }
 
-.NavItemType {
-    display: table-cell;
-    filter: grayscale(100%);
-    opacity: 50%;
-    padding-left: 0.5em;
-    padding-right: 0.5em;
+.tile {
+    width: 2em;
     height: 2em;
-    overflow: hidden;
-}
-
-.BreadItemType {
-    filter: grayscale(100%);
-    opacity: 50%;
-    padding-left: 0.5em;
-    min-width: 2em;
-    height: 2em;
-}
-
-.NavItemName {
-    display: table-cell;
-    text-overflow: ellipsis;
-    width: 100%;
-    max-width: 0;
-    overflow: hidden;
-    padding-left: 0.5em;
-    height: 2em;
-}
-
-.BreadItemName {
-    text-overflow: ellipsis;
-    width: 100%;
-    overflow: hidden;
-    padding-left: 0.5em;
-    height: 2em;
-}
-
-.NavItemDmg {
-    display: table-cell;
-    padding-left: 0.5em;
-    padding-right: 0.5em;
-    height: 2em;
-    overflow: hidden;
+    border: 1px solid #aaa;
 }
