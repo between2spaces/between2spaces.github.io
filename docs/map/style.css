@@ -18,17 +18,30 @@ body {
     position: relative;
 }
 
-.entity {
+.glyph {
     position: absolute;
     width: 1em;
     height: 1em;
-    border: 1px solid #aaa;
     text-align: center;
     line-height: 1;
     top: 0;
     left: 0;
     padding: 0;
+    margin: 0;
+}
+
+.entity {
+    position: absolute;
+    width: 1em;
+    height: 1em;
+    text-align: center;
+    line-height: 1;
+    top: 0;
+    left: 0;
+    padding: 0;
+    margin: 0;
 }
 
 .tile {
+    border: 1px solid #eee;
 }

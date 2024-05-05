@@ -1,4 +1,5 @@
-import EntityTypeTemplate from './entitytypes.js';
+import Glyphs from './glyphs.js';
+import World from './world.js';
 
 class Map {
 	constructor(container) {
@@ -35,56 +36,84 @@ class Map {
 		this.position();
 	}
 
-	add(entity) {
-		if (entity instanceof Tile) {
-			this.tiles[`${Math.round(entity.offset.x)}x${Math.round(entity.offset.y)}`] = entity;
-			const northKey = `${Math.round(entity.offset.x)}x${Math.round(entity.offset.y - 1)}`;
-			if (this.tiles.hasOwnProperty(northKey)) entity.assignNeighbour(this.tiles[northKey], 'north');
-			const southKey = `${Math.round(entity.offset.x)}x${Math.round(entity.offset.y + 1)}`;
-			if (this.tiles.hasOwnProperty(southKey)) entity.assignNeighbour(this.tiles[southKey], 'south');
-			const eastKey = `${Math.round(entity.offset.x + 1)}x${Math.round(entity.offset.y)}`;
-			if (this.tiles.hasOwnProperty(eastKey)) entity.assignNeighbour(this.tiles[eastKey], 'east');
-			const westKey = `${Math.round(entity.offset.x - 1)}x${Math.round(entity.offset.y)}`;
-			if (this.tiles.hasOwnProperty(westKey)) entity.assignNeighbour(this.tiles[westKey], 'west');
-			this.dom.append(entity.dom);
-			if (!this.tileSize) {
-				this.tileSize = { width: entity.dom.offsetWidth, height: entity.dom.offsetHeight };
-				this.position();
-			}
-		} else if (!entity.container) {
-			this.tileAt(entity).add(entity);
-		}
+	add(entitydef) {
+		const entity = new Entity(entitydef.type ?? '?', entitydef.x ?? 0, entitydef.y ?? 0, entitydef.rotation ?? 0);
+		this.tileAt(entity).add(entity);
+		return entity;
 	}
 
 	tileAt(entity) {
 		const tileX = Math.round(entity.offset.x);
 		const tileY = Math.round(entity.offset.y);
 		const key = `${tileX}x${tileY}`;
-		if (!this.tiles.hasOwnProperty(key)) this.add(new Tile(tileX, tileY));
+		if (!this.tiles.hasOwnProperty(key)) {
+			this.tiles[key] = new Tile(tileX, tileY);
+			const northKey = `${Math.round(entity.offset.x)}x${Math.round(entity.offset.y - 1)}`;
+			if (this.tiles.hasOwnProperty(northKey)) this.tiles[key].assignNeighbour(this.tiles[northKey], 'north');
+			const southKey = `${Math.round(entity.offset.x)}x${Math.round(entity.offset.y + 1)}`;
+			if (this.tiles.hasOwnProperty(southKey)) this.tiles[key].assignNeighbour(this.tiles[southKey], 'south');
+			const eastKey = `${Math.round(entity.offset.x + 1)}x${Math.round(entity.offset.y)}`;
+			if (this.tiles.hasOwnProperty(eastKey)) this.tiles[key].assignNeighbour(this.tiles[eastKey], 'east');
+			const westKey = `${Math.round(entity.offset.x - 1)}x${Math.round(entity.offset.y)}`;
+			if (this.tiles.hasOwnProperty(westKey)) this.tiles[key].assignNeighbour(this.tiles[westKey], 'west');
+			const tileDom = this.tiles[key].dom;
+			this.dom.append(tileDom);
+			if (!this.tileSize) {
+				this.tileSize = { width: tileDom.offsetWidth, height: tileDom.offsetHeight };
+				this.position();
+			}
+		}
 		return this.tiles[key];
 	}
 }
 
 
+class Glyph {
+
+	constructor(type = '?', rotation = 0) {
+		this.dom = document.createElement('div');
+		this.dom.className = 'glyph';
+		this.dom.style.transform = `rotate(${rotation}deg)`;
+		const glyph = Glyphs[type];
+		if (glyph.overflow) this.dom.style.overflow = glyph.overflow;
+		if (glyph.color) this.dom.style.color = glyph.color;
+		const chars = glyph.char ? [glyph] : glyph.chars ?? [{}];
+		for (let char of chars) this.add(char);
+	}
+
+	add(char) {
+		const el = document.createElement('div');
+		el.className = 'glyph';
+		el.style.left = `${char.x ?? 0}em`;
+		el.style.top = `${char.y ?? 0}em`;
+		el.style.fontSize = `${char.size ?? 1}em`;
+		el.style.transform = `rotate(${char.rotation ?? 0}deg)`;
+		el.textContent = char.char ?? '?';
+		this.dom.append(el);
+	}
+
+}
+
+
 class Entity {
 
-	constructor(type, x = 0, y = 0) {
+	constructor(type, x = 0, y = 0, rotation = 0) {
 		this.offset = { x, y };
-		this.rotation = 0;
+		this.rotation = rotation;
 		this.container = null;
 		this.contents = [];
-		Object.assign(this, EntityTypeTemplate[type]);
-		this.contents = [];
-		if (EntityTypeTemplate[type].hasOwnProperty('contents')) {
-			for (let child of EntityTypeTemplate[type].contents) {
-				this.add(new Entity)
-			}
-		}
 		this.dom = document.createElement('div');
 		this.dom.className = 'entity';
 		this.position(x, y);
 		this.rotate();
-		this.dom.append(type);
+		this.setType(type);
+	}
+
+	setType(type) {
+		if (this.glyph?.dom) this.glyph.dom.remove();
+		this.type = type;
+		this.glyph = new Glyph(type);
+		this.dom.insertBefore(this.glyph.dom, this.dom.firstChild);
 	}
 
 	add(entity) {
@@ -109,9 +138,19 @@ class Entity {
 		this.dom.style.top = `${this.offset.y}em`;
 	}
 
-	rotate(delta=0) {
+	rotate(delta = 0) {
 		this.rotation += delta;
 		this.dom.style.transform = `rotate(${this.rotation}deg)`;
+	}
+
+	tile() {
+		let container = this.container;
+		while (container && !(container instanceof Tile)) container = container.container;
+		return container;
+	}
+
+	assignBorder(direction) {
+		this.tile().assignBorder(this, direction);
 	}
 
 }
@@ -120,7 +159,7 @@ class Entity {
 class Tile extends Entity {
 
 	constructor(offsetx, offsety) {
-		super('⛆', offsetx, offsety);
+		super('floorboards', offsetx, offsety);
 		this.neighbour = {
 			north: null,
 			east: null,
@@ -202,15 +241,7 @@ export default function main(container) {
 		}
 	});
 
-	map.add(new Tile(0, 0));
-	map.add(new Tile(0, -1));
-
-	
-	map.tiles['0x0'].assignBorder(new Entity('═'), 'east');
-	map.tiles['0x0'].assignBorder(new Entity('═'), 'south');
-	map.tiles['0x0'].assignBorder(new Entity('ᚔ'), 'west');
-
-	map.tiles['0x-1'].assignBorder(new Entity('🚪'), 'north');
+	World.initialise(map);
 
 	function update() {
 		map.update();
