@@ -32,16 +32,30 @@ body {
 
 .entity {
     position: absolute;
-    width: 1em;
-    height: 1em;
     text-align: center;
     line-height: 1;
-    top: 0;
-    left: 0;
     padding: 0;
     margin: 0;
 }
 
 .tile {
-    border: 1px solid #eee;
+    position: absolute;
+    width: 0.98em;
+    height: 0.98em;
+    background: #ddd;
+}
+
+.border {
+    position: absolute;
+    background: #3ec;
+}
+
+.horizontalBorder {
+    width: 0.98em;
+    height: 0.04em;
+}
+
+.verticalBorder {
+    width: 0.04em;
+    height: 0.98em;
 }

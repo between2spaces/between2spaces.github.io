@@ -2,12 +2,13 @@ import Glyphs from './glyphs.js';
 import World from './world.js';
 
 class Map {
-	constructor(container) {
+	constructor() {
 		this.offset = { x: 0, y: 0 };
 		this.dom = document.createElement('div');
 		this.dom.className = 'view';
 		this.tiles = {};
-		this.tileSize = null;
+		this.borders = {};
+		this.position();
 		const self = this;
 		window.addEventListener('resize', function (event) {
 			self.position();
@@ -22,10 +23,8 @@ class Map {
 		if (y === null) y = this.offset.y;
 		this.offset.x = x;
 		this.offset.y = y;
-		// (!this.tileSize) return;
-		this.dom.style.left = `calc(${window.innerWidth * 0.5}px - ${0.5 - this.offset.x}em)`;
-		this.dom.style.top = `calc(${window.innerHeight * 0.5}px - ${0.5 - this.offset.y}em)`;
-		//this.dom.style.top = `${window.innerHeight * 0.5 - 0.5 - this.offset.y * this.tileSize.height}px`;
+		this.dom.style.left = `calc(${window.innerWidth * 0.5}px - ${this.offset.x}em)`;
+		this.dom.style.top = `calc(${window.innerHeight * 0.5}px - ${this.offset.y}em)`;
 	}
 
 	centreNeighbour(direction = null) {
@@ -38,32 +37,24 @@ class Map {
 
 	add(entitydef) {
 		const entity = new Entity(entitydef.type ?? '?', entitydef.x ?? 0, entitydef.y ?? 0, entitydef.rotation ?? 0);
-		this.tileAt(entity).add(entity);
+		this.tile(Math.round(entity.position.x), Math.round(entity.position.y)).add(entity);
 		return entity;
 	}
 
-	tileAt(entity) {
-		const tileX = Math.round(entity.offset.x);
-		const tileY = Math.round(entity.offset.y);
-		const key = `${tileX}x${tileY}`;
-		if (!this.tiles.hasOwnProperty(key)) {
-			this.tiles[key] = new Tile(tileX, tileY);
-			const northKey = `${Math.round(entity.offset.x)}x${Math.round(entity.offset.y - 1)}`;
-			if (this.tiles.hasOwnProperty(northKey)) this.tiles[key].assignNeighbour(this.tiles[northKey], 'north');
-			const southKey = `${Math.round(entity.offset.x)}x${Math.round(entity.offset.y + 1)}`;
-			if (this.tiles.hasOwnProperty(southKey)) this.tiles[key].assignNeighbour(this.tiles[southKey], 'south');
-			const eastKey = `${Math.round(entity.offset.x + 1)}x${Math.round(entity.offset.y)}`;
-			if (this.tiles.hasOwnProperty(eastKey)) this.tiles[key].assignNeighbour(this.tiles[eastKey], 'east');
-			const westKey = `${Math.round(entity.offset.x - 1)}x${Math.round(entity.offset.y)}`;
-			if (this.tiles.hasOwnProperty(westKey)) this.tiles[key].assignNeighbour(this.tiles[westKey], 'west');
-			const tileDom = this.tiles[key].dom;
-			this.dom.append(tileDom);
-			if (!this.tileSize) {
-				this.tileSize = { width: tileDom.offsetWidth, height: tileDom.offsetHeight };
-				this.position();
-			}
+	tile(x, y, createIfNotExists = true) {
+		const key = `${x}x${y}`;
+		if (createIfNotExists && !this.tiles.hasOwnProperty(key)) {
+			this.tiles[key] = new Tile(x, y);
 		}
-		return this.tiles[key];
+		return this.tiles.hasOwnProperty(key) ? this.tiles[key] : null;
+	}
+
+	border(x, y, createIfNotExists = true) {
+		const key = `${x}x${y}`;
+		if (createIfNotExists && !this.borders.hasOwnProperty(key)) {
+			this.borders[key] = new Border(x, y);
+		}
+		return this.borders.hasOwnProperty(key) ? this.borders[key] : null;
 	}
 }
 
@@ -77,6 +68,7 @@ class Glyph {
 		const glyph = Glyphs[type];
 		if (glyph.overflow) this.dom.style.overflow = glyph.overflow;
 		if (glyph.color) this.dom.style.color = glyph.color;
+		if (glyph.zIndex) this.dom.style.zIndex = glyph.zIndex;
 		const chars = glyph.char ? [glyph] : glyph.chars ?? [{}];
 		for (let char of chars) this.add(char);
 	}
@@ -88,6 +80,7 @@ class Glyph {
 		el.style.top = `${char.y ?? 0}em`;
 		el.style.fontSize = `${char.size ?? 1}em`;
 		el.style.transform = `rotate(${char.rotation ?? 0}deg)`;
+		if (this.dom.style.zIndex) el.style.zIndex = this.dom.style.zIndex;
 		el.textContent = char.char ?? '?';
 		this.dom.append(el);
 	}
@@ -98,13 +91,14 @@ class Glyph {
 class Entity {
 
 	constructor(type, x = 0, y = 0, rotation = 0) {
-		this.offset = { x, y };
+		this.position = { x, y };
+		this.offset = { x: x - Math.round(x), y: y - Math.round(y) };
 		this.rotation = rotation;
-		this.container = null;
+		this.parent = null;
 		this.contents = [];
 		this.dom = document.createElement('div');
 		this.dom.className = 'entity';
-		this.position(x, y);
+		this.setPosition(x, y);
 		this.rotate();
 		this.setType(type);
 	}
@@ -117,11 +111,11 @@ class Entity {
 	}
 
 	add(entity) {
-		if (entity.container) {
-			const i = entity.container.contents.indexOf(entity);
-			entity.container.contents.splice(i, 1);
+		if (entity.parent) {
+			const i = entity.parent.contents.indexOf(entity);
+			entity.parent.contents.splice(i, 1);
 		}
-		entity.container = this;
+		entity.parent = this;
 		this.contents.push(entity);
 		this.dom.append(entity.dom);
 	}
@@ -129,11 +123,13 @@ class Entity {
 	update() {
 	}
 
-	position(x = null, y = null) {
-		if (x === null) x = this.offset.x;
-		if (y === null) y = this.offset.y;
-		this.offset.x = x;
-		this.offset.y = y;
+	setPosition(x = null, y = null) {
+		if (x === null) x = this.position.x;
+		if (y === null) y = this.position.y;
+		this.position.x = x;
+		this.position.y = y;
+		this.offset.x = x % 1;
+		this.offset.y = y % 1;
 		this.dom.style.left = `${this.offset.x}em`;
 		this.dom.style.top = `${this.offset.y}em`;
 	}
@@ -144,13 +140,9 @@ class Entity {
 	}
 
 	tile() {
-		let container = this.container;
-		while (container && !(container instanceof Tile)) container = container.container;
-		return container;
-	}
-
-	assignBorder(direction) {
-		this.tile().assignBorder(this, direction);
+		let parent = this.parent;
+		while (parent && !(parent instanceof Tile)) parent = parent.parent;
+		return parent;
 	}
 
 }
@@ -158,65 +150,82 @@ class Entity {
 
 class Tile extends Entity {
 
-	constructor(offsetx, offsety) {
-		super('floorboards', offsetx, offsety);
-		this.neighbour = {
-			north: null,
-			east: null,
-			south: null,
-			west: null
-		};
-		this.border = {
-			north: null,
-			east: null,
-			south: null,
-			west: null
-		};
-		this.dom.classList.add('tile');
+	constructor(x, y) {
+		super('dirt', x, y);
+		this.neighbour = { north: null, east: null, south: null, west: null };
+		this.border = { north: null, east: null, south: null, west: null };
+		this.dom.className = 'tile';
+
+		map.dom.append(this.dom);
+		this.setPosition();
+
+		this.assignNeighbour(map.tile(x, y - 1, false), 'north');
+		this.assignNeighbour(map.tile(x, y + 1, false), 'south');
+		this.assignNeighbour(map.tile(x + 1, y, false), 'east');
+		this.assignNeighbour(map.tile(x - 1, y, false), 'west');
+
+		if (!this.border.north) this.border.north = new Border(x, y - 0.05, 'horizontal');
+	}
+
+	setPosition(x = null, y = null) {
+		if (x === null) x = this.position.x;
+		if (y === null) y = this.position.y;
+		this.position.x = this.offset.x = x;
+		this.position.y = this.offset.y = y;
+		console.log(this.dom.offsetWidth);
+		this.dom.style.left = `${this.offset.x - this.dom.offsetWidth * 0.5}em`;
+		this.dom.style.top = `${this.offset.y - this.dom.offsetHeight * 0.5}em`;
 	}
 
 	assignNeighbour(tile, direction) {
+		if (!tile) return;
 		if (direction === 'north') {
 			this.neighbour.north = tile;
 			tile.neighbour.south = this;
+			this.border.north = tile.border.south;
 		} else if (direction === 'south') {
 			this.neighbour.south = tile;
 			tile.neighbour.north = this;
+			this.border.south = tile.border.north;
 		} else if (direction === 'east') {
 			this.neighbour.east = tile;
 			tile.neighbour.west = this;
+			this.border.east = tile.border.west;
 		} else if (direction === 'west') {
 			this.neighbour.west = tile;
 			tile.neighbour.east = this;
-		}
-	}
-
-	assignBorder(entity, direction) {
-		this.add(entity);
-		if (direction === 'north') {
-			this.border.north = entity;
-			entity.position(0, -0.5);
-		} else if (direction === 'south') {
-			this.border.south = entity;
-			entity.position(0, 0.49999);
-			entity.rotate(180);
-		} else if (direction === 'east') {
-			this.border.east = entity;
-			entity.position(0.49999, 0);
-			entity.rotate(90);
-		} else if (direction === 'west') {
-			this.border.west = entity;
-			entity.position(-0.5, 0);
-			entity.rotate(-90);
+			this.border.west = tile.border.east;
 		}
 	}
 
 }
 
+class Border extends Entity {
 
+	constructor(x, y, alignment = 'horizontal') {
+		super('dirt', x, y);
+		this.dom.className = `border ${alignment}Border`;
+		this.alignment = alignment;
+		map.dom.append(this.dom);
+	}
+
+	setPosition(x = null, y = null) {
+		if (x === null) x = this.position.x;
+		if (y === null) y = this.position.y;
+		this.position.x = this.offset.x = x;
+		this.position.y = this.offset.y = y;
+		this.dom.style.left = `${this.offset.x - (this.alignment === 'horizontal' ? 0.52 : 0.45)}em`;
+		this.dom.style.top = `${this.offset.y - (this.alignment === 'horizontal' ? 0.45 : 0.52)}em`;
+	}
+
+}
+
+
+let map;
 
 export default function main(container) {
-	const map = new Map();
+
+	map = new Map();
 
 	container.append(map.dom);;
 
