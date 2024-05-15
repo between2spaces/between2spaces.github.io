@@ -40,8 +40,8 @@ body {
 
 .tile {
     position: absolute;
-    width: 0.98em;
-    height: 0.98em;
+    width: 1em;
+    height: 1em;
     background: #ddd;
 }
 
@@ -51,11 +51,11 @@ body {
 }
 
 .horizontalBorder {
-    width: 0.98em;
+    width: 1em;
     height: 0.04em;
 }
 
 .verticalBorder {
     width: 0.04em;
-    height: 0.98em;
+    height: 1em;
 }

@@ -106,6 +106,7 @@ class Entity {
 	setType(type) {
 		if (this.glyph?.dom) this.glyph.dom.remove();
 		this.type = type;
+		if (!type) return;
 		this.glyph = new Glyph(type);
 		this.dom.insertBefore(this.glyph.dom, this.dom.firstChild);
 	}
@@ -172,9 +173,8 @@ class Tile extends Entity {
 		if (y === null) y = this.position.y;
 		this.position.x = this.offset.x = x;
 		this.position.y = this.offset.y = y;
-		console.log(this.dom.offsetWidth);
-		this.dom.style.left = `${this.offset.x - this.dom.offsetWidth * 0.5}em`;
-		this.dom.style.top = `${this.offset.y - this.dom.offsetHeight * 0.5}em`;
+		this.dom.style.left = `calc(${this.offset.x}em - 0.5 * ${this.dom.offsetWidth}px)`;
+		this.dom.style.top = `calc(${this.offset.y}em - 0.5 * ${this.dom.offsetHeight}px)`;
 	}
 
 	assignNeighbour(tile, direction) {
@@ -203,7 +203,7 @@ class Tile extends Entity {
 class Border extends Entity {
 
 	constructor(x, y, alignment = 'horizontal') {
-		super('dirt', x, y);
+		super(null, x, y);
 		this.dom.className = `border ${alignment}Border`;
 		this.alignment = alignment;
 		map.dom.append(this.dom);
@@ -214,8 +214,8 @@ class Border extends Entity {
 		if (y === null) y = this.position.y;
 		this.position.x = this.offset.x = x;
 		this.position.y = this.offset.y = y;
-		this.dom.style.left = `${this.offset.x - (this.alignment === 'horizontal' ? 0.52 : 0.45)}em`;
-		this.dom.style.top = `${this.offset.y - (this.alignment === 'horizontal' ? 0.45 : 0.52)}em`;
+		//this.dom.style.left = `${this.offset.x - (this.alignment === 'horizontal' ? 0.52 : 0.45)}em`;
+		//this.dom.style.top = `${this.offset.y - (this.alignment === 'horizontal' ? 0.45 : 0.52)}em`;
 	}
 
 }
@@ -259,4 +259,5 @@ export default function main(container) {
 	setInterval(update, 1000);
 
 	console.log(map.tiles['0x0']);
+
 }
