@@ -1,4 +1,4 @@
-const World = {
+const TestWorld = {
     initialise: (map) => {
 
         map.tile(0, 0);
@@ -23,4 +23,4 @@ const World = {
     }
 }
 
-export default World;
+export default TestWorld;
