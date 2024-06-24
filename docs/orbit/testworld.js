@@ -2,7 +2,7 @@ const TestWorld = {
     initialise: (map) => {
 
         map.tile(0, 0);
-        map.tile(1, 0);
+        //map.tile(1, 0);
 
         // map.add({ type: 'fence', x: 0, y: 0 }).assignBorder('east');
         // map.add({ type: 'wall', x: 0, y: 0 }).assignBorder('north');

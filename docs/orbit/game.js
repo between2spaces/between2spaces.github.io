@@ -79,16 +79,29 @@ class Map {
 
 	tile(x, y, createIfNotExists = true) {
 		const key = `${x}x${y}`;
+
 		if (createIfNotExists && !this.tiles.hasOwnProperty(key)) {
-			this.tiles[key] = new Tile(x, y);
+			const tile = this.tiles[key] = new Tile(x, y);
+
+			this.dom.append(tile.dom);
+			tile.setPosition();
+
+			tile.assignNeighbour(this.tile(x, y - 1, false), 'north');
+			tile.assignNeighbour(this.tile(x, y + 1, false), 'south');
+			tile.assignNeighbour(this.tile(x + 1, y, false), 'east');
+			tile.assignNeighbour(this.tile(x - 1, y, false), 'west');
+
+			if (!tile.border.north) tile.border.north = new Border(x, y - 0.05, 'horizontal');
 		}
+
 		return this.tiles.hasOwnProperty(key) ? this.tiles[key] : null;
 	}
 
 	border(x, y, createIfNotExists = true) {
 		const key = `${x}x${y}`;
 		if (createIfNotExists && !this.borders.hasOwnProperty(key)) {
-			this.borders[key] = new Border(x, y);
+			const border = this.borders[key] = new Border(x, y);
+			this.dom.append(border.dom);
 		}
 		return this.borders.hasOwnProperty(key) ? this.borders[key] : null;
 	}
@@ -192,16 +205,6 @@ class Tile extends Entity {
 		this.neighbour = { north: null, east: null, south: null, west: null };
 		this.border = { north: null, east: null, south: null, west: null };
 		this.dom.className = 'tile';
-
-		map.dom.append(this.dom);
-		this.setPosition();
-
-		this.assignNeighbour(map.tile(x, y - 1, false), 'north');
-		this.assignNeighbour(map.tile(x, y + 1, false), 'south');
-		this.assignNeighbour(map.tile(x + 1, y, false), 'east');
-		this.assignNeighbour(map.tile(x - 1, y, false), 'west');
-
-		if (!this.border.north) this.border.north = new Border(x, y - 0.05, 'horizontal');
 	}
 
 	setPosition(x = null, y = null) {
@@ -242,7 +245,6 @@ class Border extends Entity {
 		super(null, x, y);
 		this.dom.className = `border ${alignment}Border`;
 		this.alignment = alignment;
-		map.dom.append(this.dom);
 	}
 
 	setPosition(x = null, y = null) {
