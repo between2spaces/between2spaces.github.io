@@ -15,88 +15,12 @@
       background-color: #000;
       overflow: hidden;
     }
-
-    #planet {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      background-color: blue;
-      border-radius: 50%;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    .satellite {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background-color: red;
-      border-radius: 50%;
-    }
   </style>
 </head>
 
 <body>
-  <div id="planet"></div>
-  <script>
-    const G = 6.67430e-11; // Gravitational constant
-    const planetMass = 5.972e24; // Earth mass in kg
-    const planet = document.getElementById('planet');
-    const planetX = window.innerWidth / 2;
-    const planetY = window.innerHeight / 2;
-    const numberOfSatellites = 5;
-    const satellites = [];
-
-    for (let i = 0; i < numberOfSatellites; i++) {
-      const satellite = document.createElement('div');
-      satellite.classList.add('satellite');
-      document.body.appendChild(satellite);
-
-      const mass = 1000; // Arbitrary mass for satellites in kg
-      const distance = 200 + 50 * i; // Distance from the planet
-      const angle = Math.random() * 2 * Math.PI;
-      const velocity = Math.sqrt(G * planetMass / distance); // Circular orbit velocity
-
-      satellites.push({
-        element: satellite,
-        x: planetX + distance * Math.cos(angle),
-        y: planetY + distance * Math.sin(angle),
-        vx: -velocity * Math.sin(angle),
-        vy: velocity * Math.cos(angle),
-        mass: mass
-      });
-    }
-
-    function updatePositions() {
-      satellites.forEach(satellite => {
-        const { element, x, y, vx, vy, mass } = satellite;
-
-        // Calculate gravitational force
-        const dx = planetX - satellite.x;
-        const dy = planetY - satellite.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const force = (G * planetMass * mass) / (distance * distance);
-        const ax = force * dx / distance / mass;
-        const ay = force * dy / distance / mass;
-
-        // Update velocity
-        satellite.vx += ax;
-        satellite.vy += ay;
-
-        // Update position
-        satellite.x += satellite.vx;
-        satellite.y += satellite.vy;
-
-        // Update element position
-        console.log(`translate(${satellite.x * 0.0000000001 - 10}px, ${satellite.y * 0.0000000001 - 10}px)`);
-        element.style.transform = `translate(${satellite.x * 0.0000000001 - 10}px, ${satellite.y * 0.0000000001 - 10}px)`;
-      });
-
-      requestAnimationFrame(updatePositions);
-    }
-
-    updatePositions();
+  <script type="module">
+    import './main.js';
   </script>
 </body>
 

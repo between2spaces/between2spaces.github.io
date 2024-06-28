@@ -42,13 +42,11 @@ for dotfile in dotfiles/.config/[a-z]*; do
 	echo -e "${HOME}/.config/${dotfile} ${GREEN}✓${NOCOLOUR}"
 done
 
-
-# Add corporate certificate if not already done
+# Add corporame certificate if not already done
 if [ -f /usr/local/share/ca-certificates/WKGLOBAL-Secure-CertificateAuthority.crt ]; then
 	sudo cp certificates/WKGLOBAL-Secure-CertificateAuthority.crt /usr/local/share/ca-certificates
 	sudo update-ca-certificates
 fi
-
 
 # Attempt to add the deadsnakes open source repository, needed for Python3.12
 if [ ! -f /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-jammy.list ]; then
@@ -75,7 +73,7 @@ fi
 if [ "$(echo $VIRTUAL_ENV_PROMPT)" == "" ]; then
 	echo -e "\n${YELLOW}# Python virtual environment${NOCOLOUR}\n"
 	cd ~
-	if [ "$(which python3.12)" == "" ]; then 
+	if [ "$(which python3.12)" == "" ]; then
 		python3 -m venv --without-pip env
 	else
 		python3.12 -m venv --without-pip env
@@ -93,13 +91,12 @@ pip install powerline-shell
 echo -e "\n${YELLOW}# Neovim clipoard support for WSL2${NOCOLOUR}\n"
 sudo apt install wl-clipboard
 
-
 # Install ripgrep requried for NeoVim Telescope
 echo -e "\n${YELLOW}# ripgrep ${NOCOLOR}\n"
 sudo apt install ripgrep
 
 # Neovim
-if [ "$(which nvim)" == "" ] || [ "$(($(date +%s)-$(date -r $(which nvim) +%s)))" -gt "604800" ]; then
+if [ "$(which nvim)" == "" ] || [ "$(($(date +%s) - $(date -r $(which nvim) +%s)))" -gt "604800" ]; then
 	echo -e "\n${YELLOW}# Neovim not found or binary is older than a week, installing latest release...${NOCOLOUR}\n"
 	sudo apt install ninja-build gettext cmake unzip curl
 	cd ~
@@ -121,7 +118,7 @@ if [ ! -d $NVM_DIR ]; then
 	git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
 fi
 cd "$NVM_DIR"
-git -c advice.detachedHead=false checkout `git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1)`
+git -c advice.detachedHead=false checkout $(git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1))
 . "$NVM_DIR/nvm.sh"
 cd $CWD
 
@@ -135,12 +132,8 @@ npm install
 npx npm-check-updates -u
 npm install
 
-# Install vtsls language server for Neovim LSP
-npm install -g @vtsls/language-server
-
 # Source .bashrc
 . "$HOME/.bashrc"
 
 # Update Windows Terminal settings
 ./terminal/update.sh
-
