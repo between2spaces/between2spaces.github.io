@@ -51,7 +51,7 @@ class Simulation {
 				let distSq = dx * dx + dy * dy;
 				let dist = Math.sqrt(distSq);
 
-				if (!this.firstUpdate && body1.mass > body2.mass && dist < 2280721870) {
+				if (!this.firstUpdate && body1.mass >= body2.mass && dist < 1280721870) {
 					console.log(`${body2.name} absorbed into ${body1.name}`);
 					body1.mass += body2.mass;
 					body1.renderSize = Math.max(body1.mass * object_scale, 3);
@@ -86,8 +86,8 @@ sim.addBody(new Body("sun", "yellow", 0, 0, 0, 0, 1.989e30));
 // Add an "earth" orbiting the sun
 sim.addBody(new Body("earth", "blue", 149.6e9, 0, 0, 29.78e3, 5.972e24));
 
-for (let i = 0; i < 10; i++) {
-	sim.addBody(new Body("obj", "white", Math.random() * 149.6e9, 0, 0, 29.78e3 + (Math.random() * 1000 - 500), 5.972e24));
+for (let i = 0; i < 500; i++) {
+	sim.addBody(new Body("obj", "white", Math.random() * 149.6e9, 0, 0, 29.78e3 + (Math.random() * 50000 - 25000), Math.random() * 7.972e24));
 }
 // Simulation loop
 function run() {

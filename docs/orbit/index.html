@@ -1,27 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orbital Mechanics Simulation</title>
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background-color: #000;
-      overflow: hidden;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text-based Onslaught Game</title>
+    <style>
+        #gameArea {
+            width: 300px;
+            height: 300px;
+            border: 1px solid black;
+            position: relative;
+            font-size: 20px;
+            user-select: none;
+        }
+        .gameObject {
+            position: absolute;
+            cursor: pointer;
+        }
+        #tower {
+            top: 140px;
+            left: 140px;
+        }
+        #status {
+            margin-top: 10px;
+        }
+    </style>
 </head>
-
 <body>
-  <script type="module">
-    import './main.js';
-  </script>
-</body>
+    <div id="gameArea">
+        <div id="tower" class="gameObject">🏰</div>
+        <div id="player" class="gameObject">🧙</div>
+    </div>
+    <div id="status">Score: <span id="score">0</span> | Health: <span id="health">100</span></div>
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const player = document.getElementById('player');
+        const scoreElement = document.getElementById('score');
+        const healthElement = document.getElementById('health');
 
+        let score = 0;
+        let health = 100;
+
+        function updateStatus() {
+            scoreElement.textContent = score;
+            healthElement.textContent = health;
+        }
+
+        function randomPosition() {
+            return Math.floor(Math.random() * 280);
+        }
+
+        function createGameObject(type) {
+            const object = document.createElement('div');
+            object.className = 'gameObject';
+            object.style.left = `${randomPosition()}px`;
+            object.style.top = `${randomPosition()}px`;
+
+            if (type === 'enemy') {
+                object.textContent = '👾';
+                object.onclick = () => {
+                    gameArea.removeChild(object);
+                    score += 10;
+                    updateStatus();
+                    setTimeout(() => createGameObject('enemy'), 2000);
+                };
+            } else if (type === 'loot') {
+                object.textContent = '💎';
+                object.onclick = () => {
+                    gameArea.removeChild(object);
+                    score += 5;
+                    updateStatus();
+                    setTimeout(() => createGameObject('loot'), 3000);
+                };
+            }
+
+            gameArea.appendChild(object);
+        }
+
+        function movePlayer(e) {
+            const rect = gameArea.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            x = Math.max(0, Math.min(x, 280));
+            y = Math.max(0, Math.min(y, 280));
+
+            player.style.left = `${x}px`;
+            player.style.top = `${y}px`;
+        }
+
+        gameArea.addEventListener('click', movePlayer);
+
+        function startGame() {
+            for (let i = 0; i < 3; i++) {
+                createGameObject('enemy');
+                createGameObject('loot');
+            }
+
+            setInterval(() => {
+                health -= 5;
+                updateStatus();
+                if (health <= 0) {
+                    alert('Game Over!');
+                    location.reload();
+                }
+            }, 5000);
+        }
+
+        startGame();
+    </script>
+</body>
 </html>
