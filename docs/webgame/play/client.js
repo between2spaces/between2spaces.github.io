@@ -2,22 +2,23 @@
 import { TUI } from './tui.js';
 
 export default function main(container) {
-	const tui = new TUI(container, { width: 2, height: 2, viewLeft: 0.5, viewTop: 0.5, clear: [1.0, 1.0, 1.0, 1.0] });
+	const tui = new TUI(container, {
+		width: 2,
+		height: 2,
+		viewLeft: 0.5,
+		viewTop: 0.5,
+		clear: [1.0, 1.0, 1.0, 1.0],
+	});
 	tui.setCharacterSet(
 		'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
-		'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
-		')_+[]{}\\|;\':",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└' +
-		'←↑→↓↖↗↘↙↔↕▢╱╲⯭⌂',
+			'abcdefghijklmnopqrstuvwxyz~!@#$%^&*(' +
+			')_+[]{}\\|;\':",.<>/? ░▒▓█│─╮╭╯╰┐┌┘└' +
+			'←↑→↓↖↗↘↙↔↕▢╱╲⯭⌂',
 		2048,
 	);
 	const map = tui.createWindow({ cols: 3, rows: 3 });
 	map.setColour([0.7, 0.7, 0.7, 1]);
-	map.write(
-		'⯭ ⯭' +
-		' ⌂ ' +
-		'⯭ ⯭'
-	);
-
+	map.write('⯭ ⯭' + ' ⌂ ' + '⯭ ⯭');
 
 	window.addEventListener('keydown', (event) => {
 		if (event.isComposing || event.keyCode === 229) return;
